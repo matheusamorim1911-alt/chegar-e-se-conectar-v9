@@ -1,0 +1,125 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function logado() { return request.auth != null; }
+    function dono(uid) { return logado() && request.auth.uid == uid; }
+    function caminhoGestor() { return /databases/$(database)/documents/gestores/$(request.auth.token.email); }
+    function gestor() {
+      return logado() && request.auth.token.email_verified == true && exists(caminhoGestor());
+    }
+    // administrador principal: documento sem "perms" (criado no console) ou com super == true
+    function principal(d) { return d.get('super', false) == true || !('perms' in d); }
+    function pode(p) {
+      return gestor() && (principal(get(caminhoGestor()).data) || get(caminhoGestor()).data.perms.get(p, false) == true);
+    }
+    function caminho(c, id) { return /databases/$(database)/documents/$(c)/$(id); }
+
+    // vagas: só quem ocupa uma vaga (ou é gestor) envia. O contador fica em meta/vagas.
+    function membro() { return logado() && (exists(caminho('members', request.auth.uid)) || gestor()); }
+
+    // limite de envios: cada gravação traz a hora do servidor (campo "at");
+    // um envio novo só vale depois de "seg" segundos do anterior. Apagar itens não espera.
+    function apagando() {
+      return resource != null && ('items' in resource.data)
+        && request.resource.data.items.size() < resource.data.items.size();
+    }
+    function intervalo(seg) {
+      return request.resource.data.at == request.time
+        && (resource == null || !('at' in resource.data) || apagando()
+            || request.time > resource.data.at + duration.value(seg, 's'));
+    }
+    function lista(max) { return request.resource.data.items is list && request.resource.data.items.size() <= max; }
+
+    // dados pessoais: só a própria pessoa
+    match /usuarios/{uid} { allow read, write: if dono(uid); }
+    match /data/users/{uid}/{doc=**} { allow read, write: if dono(uid); }
+
+    // compartilhado: todos leem, cada um grava o seu; quem tem o privilégio "avisos" modera
+    match /votes/{uid}   { allow read: if true; allow write: if dono(uid) && membro(); }
+    match /reports/{uid} {
+      allow read: if true;
+      allow create, update: if (dono(uid) && membro() && lista(5) && intervalo(30)) || pode('avisos');
+      allow delete: if dono(uid) || pode('avisos');
+    }
+    match /fila/{uid} {
+      allow read: if true;
+      allow create, update: if (dono(uid) && membro() && lista(8) && intervalo(30)) || pode('avisos');
+      allow delete: if dono(uid) || pode('avisos');
+    }
+
+    // pedidos de correção e lista de usuários
+    match /requests/{uid} {
+      allow read: if dono(uid) || pode('solicitacoes');
+      allow create, update: if dono(uid) && membro() && lista(10) && intervalo(60);
+      allow delete: if dono(uid);
+    }
+
+    // quem participa. Entrar ocupa uma vaga: o app cria members/<uid> e soma 1 em meta/vagas
+    // na mesma gravação. Gestores não ocupam vaga. Antes de a gestão criar meta/vagas, entra sem contar.
+    match /members/{uid} {
+      allow read: if dono(uid) || pode('usuarios');
+      allow create: if dono(uid) && (gestor()
+        || !exists(caminho('meta', 'vagas'))
+        || getAfter(caminho('meta', 'vagas')).data.n == get(caminho('meta', 'vagas')).data.n + 1);
+      allow update: if dono(uid);
+      allow delete: if pode('usuarios');
+    }
+    match /meta/vagas {
+      allow read: if true;
+      allow create, delete: if pode('usuarios') || (gestor() && !exists(caminho('meta', 'vagas')));
+      allow update: if pode('usuarios') || (logado()
+        && request.resource.data.keys().hasOnly(['n', 'max'])
+        && request.resource.data.max == resource.data.max
+        && request.resource.data.n == resource.data.n + 1
+        && request.resource.data.n <= resource.data.max
+        && !exists(caminho('members', request.auth.uid))
+        && existsAfter(caminho('members', request.auth.uid)));
+    }
+
+    // medições de Wi-Fi: anônimas (sem quem mediu), só área de ~30 m; quem participa cria, todos leem
+    match /medicoes/{id} {
+      allow read: if true;
+      allow create: if membro()
+        && request.resource.data.keys().hasOnly(['cell', 'x', 'y', 'ok', 'edu', 'mb', 'ms', 'tipo', 'acc', 't', 'ver'])
+        && request.resource.data.cell is string && request.resource.data.cell.size() <= 20
+        && request.resource.data.x is number && request.resource.data.y is number
+        && request.resource.data.ok is bool
+        && request.resource.data.mb is number && request.resource.data.mb >= 0 && request.resource.data.mb <= 1000
+        && request.resource.data.t is number && request.resource.data.t <= request.time.toMillis() + 60000
+        && request.resource.data.t >= request.time.toMillis() - 3600000;
+      allow update: if false;
+      allow delete: if pode('wifi');
+    }
+
+    // erros dos aparelhos: qualquer um registra (campos limitados); gestão com "Usuários" lê e apaga
+    match /erros/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['msg', 'src', 'linha', 'ua', 'ver', 'pag', 'ts', 'uid'])
+        && request.resource.data.msg is string && request.resource.data.msg.size() <= 300
+        && request.resource.data.get('src', '') is string && request.resource.data.get('src', '').size() <= 200
+        && request.resource.data.get('ua', '') is string && request.resource.data.get('ua', '').size() <= 200;
+      allow read, delete: if pode('usuarios');
+      allow update: if false;
+    }
+
+    // conteúdo publicado pela gestão: todos leem; cada documento exige o seu privilégio
+    match /gestao/{doc} {
+      allow read: if true;
+      allow write: if (doc == 'linhas' && pode('linhas')) || (doc == 'pontos' && pode('pontos'))
+        || (doc == 'wifi' && pode('wifi')) || (doc == 'servicos' && pode('servicos')) || (doc == 'svcmapa' && pode('servicos')) || (doc == 'redes' && pode('wifi'))
+        || (doc == 'plantas' && pode('plantas')) || (doc == 'bloqueados' && pode('usuarios'))
+        || (doc == 'respostas' && pode('solicitacoes')) || (doc == 'calib' && pode('gps'))
+        || (doc == 'admins' && pode('admins'));
+    }
+    match /plantas_img/{doc} { allow read: if true; allow write: if pode('plantas'); }
+    match /cal/{doc}         { allow read: if true; allow write: if pode('calendario'); }
+
+    // administradores: cada um vê o próprio registro; quem tem "admins" vê e gerencia os outros.
+    // O principal só muda pelo console, e ninguém se promove a principal pelo app.
+    match /gestores/{email} {
+      allow read: if logado() && (request.auth.token.email == email || pode('admins'));
+      allow create: if pode('admins') && ('perms' in request.resource.data) && request.resource.data.get('super', false) != true;
+      allow update: if pode('admins') && !principal(resource.data) && ('perms' in request.resource.data) && request.resource.data.get('super', false) != true;
+      allow delete: if pode('admins') && !principal(resource.data);
+    }
+  }
+}
