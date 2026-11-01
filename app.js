@@ -3,7 +3,7 @@
 var FBMODE=!!(window.CSE_FIREBASE&&window.CSE_FIREBASE.apiKey&&window.CSE_FIREBASE.projectId)&&!(window.claude&&typeof window.claude.use==='function');
 var LITE=(function(){try{return window.matchMedia('(pointer:coarse), (max-width:820px)').matches||(navigator.hardwareConcurrency||8)<=4||!!(navigator.connection&&navigator.connection.saveData)}catch(e){return false}})();
 document.documentElement.classList.toggle('lite',LITE);
-var CFG={cover:'folha',banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'sistema',bussola:false,foto:true,perf:'auto',bldn:true};
+var CFG={cover:'folha',banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'sistema',bussola:false,foto:true,perf:'auto',bldn:true,simples:false,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true};
 try{var _c=JSON.parse(localStorage.getItem('cse-cfg'));if(_c)CFG=Object.assign(CFG,_c)}catch(e){}
 /* desempenho: automático (o app decide pelo aparelho), leve (sem transparência nem efeitos) ou completo */
 var LITE_AUTO=LITE;
@@ -240,12 +240,13 @@ try{mine=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){mine={}}
 try{prefs=JSON.parse(localStorage.getItem(PKEY))||{}}catch(e){prefs={}}
 function saveMine(){try{localStorage.setItem(KEY,JSON.stringify(mine))}catch(e){}}
 function savePrefs(){try{localStorage.setItem(PKEY,JSON.stringify({from:state.from,to:state.to}))}catch(e){}}
-function avgOf(id){var w=WIFI[id],m=mine[id];return m?(w.avg*w.votes+m)/(w.votes+1):w.avg}
-function votesOf(id){return WIFI[id].votes+(mine[id]?1:0)}
+/* a rede pode ter sido removida pela gestão enquanto a tela ainda mostra o ponto: nunca quebre por isso */
+function avgOf(id){var w=WIFI[id];if(!w)return 0;var m=mine[id];return m?(w.avg*w.votes+m)/(w.votes+1):w.avg}
+function votesOf(id){var w=WIFI[id];if(!w)return 0;return w.votes+(mine[id]?1:0)}
 function info(avg){var b=avg>=4.3?4:avg>=3.5?3:avg>=2.5?2:1;return {bars:b,label:['','Fraco','Regular','Bom','Muito bom'][b],tone:b>=3?'good':b===2?'warn':'bad'}}
 function d2(a,b){return Math.hypot(a[0]-b[0],a[1]-b[1])}
 function wifiNearStop(sid){return Object.keys(WIFI).filter(function(w){return d2(WIFI[w].p,STOPS[sid].p)<=95}).sort(function(a,b){return avgOf(b)-avgOf(a)})}
-function stopsNearWifi(wid){return Object.keys(STOPS).filter(function(s){return d2(WIFI[wid].p,STOPS[s].p)<=95})}
+function stopsNearWifi(wid){if(!WIFI[wid])return [];return Object.keys(STOPS).filter(function(s){return d2(WIFI[wid].p,STOPS[s].p)<=95})}
 
 /* ---------- estado ---------- */
 var SORTED=Object.keys(STOPS).sort(function(a,b){if(a==='est')return -1;if(b==='est')return 1;return STOPS[a].name.localeCompare(STOPS[b].name,'pt')});
@@ -613,7 +614,7 @@ function updateMap(){
     el.classList.toggle('sel',!!sel&&((k===sel.kind&&id===sel.id)||(sel.kind==='night'&&k==='stop'&&id===state.nightFrom)));
     el.classList.toggle('end',!sel&&k==='stop'&&(id===state.from||id===state.to));
   });
-  svg.querySelectorAll('.mk.wifi').forEach(function(el){$('.wbars',el).innerHTML=mbars(info(avgOf(el.dataset.id)).bars)});
+  svg.querySelectorAll('.mk.wifi').forEach(function(el){var b=$('.wbars',el);if(!b||!WIFI[el.dataset.id])return;b.innerHTML=mbars(info(avgOf(el.dataset.id)).bars)});
   drawLabels();
 }
 
@@ -842,7 +843,8 @@ function renderDetail(focusSel){
   else if(s.kind==='guard')h=guardHTML(s.id);
   else if(s.kind==='svc')h=svcHTML(s.id);
   else if(s.kind==='stop')h=stopHTML(s.id,now)+repBlock('stop:'+s.id);
-  else h=wifiHTML(s.id)+repBlock('wifi:'+s.id);
+  else if(WIFI[s.id])h=wifiHTML(s.id)+repBlock('wifi:'+s.id);
+  else {state.sel=null;h=linesHTML()}  /* a rede saiu do ar enquanto estava aberta */
   detail.innerHTML=h;
   if(focusSel){var el=detail.querySelector(focusSel);if(el)el.focus({preventScroll:true})}
 }
@@ -905,7 +907,7 @@ function setLayer(key,btn){
   renderAll();
 }
 $('#chBus').addEventListener('click',function(){setLayer('bus',this)});
-$('#nightBtn').addEventListener('click',function(){state.nightFrom=state.nightFrom||state.to;select('night','x',true)});
+function openNight(){state.nightFrom=state.nightFrom||state.to;select('night','x',true)}
 detail.addEventListener('click',function(e){
   var c=e.target.closest('[data-copy]');if(!c)return;
   var txt=c.dataset.copy,lab=c.textContent;
@@ -914,17 +916,21 @@ detail.addEventListener('click',function(e){
 });
 function selectNum(c){var n=c.parentNode.querySelector('.num');if(!n)return;var r=document.createRange();r.selectNodeContents(n);var s=window.getSelection();s.removeAllRanges();s.addRange(r)}
 $('#chWifi').addEventListener('click',function(){setLayer('wifi',this)});
-var clk=$('#clk'),nowBtn=$('#nowBtn');
-clk.value=fmt(realNow());
-clk.addEventListener('input',function(){
-  if(clk.value){state.manual=true;state.clk=clk.value;nowBtn.hidden=false}
-  else{state.manual=false;state.clk='';nowBtn.hidden=true;clk.value=fmt(realNow())}
+/* Horário simulado: o controle mora em Ajustes (CFG › Mapa); aqui só a lógica, por delegação, pois o campo #clk é recriado a cada vez que os Ajustes são redesenhados. */
+document.addEventListener('input',function(e){
+  if(!e.target||e.target.id!=='clk')return;
+  var clk=e.target,nowBtn=$('#nowBtn');
+  if(clk.value){state.manual=true;state.clk=clk.value;if(nowBtn)nowBtn.hidden=false}
+  else{state.manual=false;state.clk='';if(nowBtn)nowBtn.hidden=true;clk.value=fmt(realNow())}
   renderAll();
 });
-nowBtn.addEventListener('click',function(){state.manual=false;state.clk='';nowBtn.hidden=true;clk.value=fmt(realNow());renderAll()});
+document.addEventListener('click',function(e){
+  if(!e.target.closest||!e.target.closest('#nowBtn'))return;
+  state.manual=false;state.clk='';var clk=$('#clk');if(clk)clk.value=fmt(realNow());e.target.closest('#nowBtn').hidden=true;renderAll();
+});
 setInterval(function(){
   if(state.manual)return;
-  clk.value=fmt(realNow());
+  var clk=$('#clk');if(clk)clk.value=fmt(realNow());
   var a=document.activeElement;
   if(!plan.contains(a)&&!detail.contains(a)&&!(a&&a.classList&&a.classList.contains('wtxt')))renderAll();
   if(!pPane.contains(a))renderPredios();
@@ -999,12 +1005,16 @@ function flatReps(docs){
 }
 function isExample(id){return !(SH.on&&SH.votes[id]&&SH.votes[id].n)}
 avgOf=function(id){
-  if(SH.on){var v=SH.votes[id];if(v&&v.n)return v.s/v.n;return WIFI[id].avg}
-  var w=WIFI[id],m=mine[id];return m?(w.avg*w.votes+m)/(w.votes+1):w.avg;
+  var w=WIFI[id];
+  if(SH.on){var v=SH.votes[id];if(v&&v.n)return v.s/v.n;return w?w.avg:0}
+  if(!w)return 0;
+  var m=mine[id];return m?(w.avg*w.votes+m)/(w.votes+1):w.avg;
 };
 votesOf=function(id){
-  if(SH.on){var v=SH.votes[id];return v&&v.n?v.n:WIFI[id].votes}
-  return WIFI[id].votes+(mine[id]?1:0);
+  var w=WIFI[id];
+  if(SH.on){var v=SH.votes[id];return v&&v.n?v.n:(w?w.votes:0)}
+  if(!w)return 0;
+  return w.votes+(mine[id]?1:0);
 };
 function writeVotes(){
   if(!SH.on||!SH.uid||SH.denied)return;
@@ -1070,7 +1080,7 @@ function drawShared(){
     var L=FILA_N[f.n],x=pp[0]+(off-1)*50-(off>1?0:0),y=pp[1]-26;
     s+=mk('place fila f'+f.n,k,[x,y],'Fila no '+PL[k].name+': '+L[0]+', '+L[1],'<rect class="hit" x="-30" y="-16" width="60" height="32" rx="16"/><rect class="fila-pl" x="-24" y="-12" width="48" height="24" rx="12"/><text class="fila-tx" y="0.5">'+(f.n?L[3]+'′':'livre')+'</text>').replace(/data-kind="[^"]*"/,'data-kind="place"')})}
   gRep.innerHTML=CFG.reps?s:'';
-  svg.querySelectorAll('.mk.wifi').forEach(function(el){$('.wbars',el).innerHTML=mbars(info(avgOf(el.dataset.id)).bars)});
+  svg.querySelectorAll('.mk.wifi').forEach(function(el){var b=$('.wbars',el);if(!b||!WIFI[el.dataset.id])return;b.innerHTML=mbars(info(avgOf(el.dataset.id)).bars)});
   schedule();
 }
 function refreshAll(){
@@ -1764,7 +1774,9 @@ function renderCfg(focusSel){
     '<button class="copy" type="button" id="cfgPreview"'+(CFG.cover==='none'?' disabled':'')+'>Ver a capa agora</button></details>';
   Rr.innerHTML='<div><p class="eyebrow">Ajustes</p><h2>Mapa</h2></div>'+
     '<div class="tgls">'+tg('cfgFlow',CFG.flow,'Movimento nas rotas','A linha se desenha do início ao fim, no sentido do ônibus. Desligue para a linha ficar parada.')+
-    tg('cfgCompass',!!CFG.bussola,'Bússola na rosa dos ventos','A rosa gira com o celular e uma seta laranja aponta para o ponto de destino do Seu trajeto, com a distância. Usa a localização e o sensor de direção. Também liga tocando na rosa.')+tg('cfgBldn',CFG.bldn!==false,'Nomes dos prédios no zoom','Ao aproximar o mapa, aparecem os nomes dos prédios e institutos, tirados da planta da UFRJ.')+'</div>'+
+    tg('cfgCompass',!!CFG.bussola,'Bússola na rosa dos ventos','A rosa gira com o celular e uma seta laranja aponta para o destino ou a partida do Seu trajeto, com a distância. Usa a localização e o sensor de direção. Também liga tocando na rosa.')+tg('cfgBldn',CFG.bldn!==false,'Nomes dos prédios no zoom','Ao aproximar o mapa, aparecem os nomes dos prédios e institutos, tirados da planta da UFRJ.')+'</div>'+
+    '<div class="cfgtime"><label for="clk">Simular horário</label><div class="cfgtimerow"><input type="time" id="clk" value="'+esc(state.manual&&state.clk?state.clk:fmt(realNow()))+'"><button class="linkbtn" id="nowBtn" type="button"'+(state.manual?'':' hidden')+'>Agora</button></div></div>'+
+    '<p class="muted small keep">Para ver como ficam as linhas e os avisos em outro horário, inclusive de noite. Deixe vazio ou toque em Agora para voltar à hora real do aparelho.</p>'+
     '<div><p class="eyebrow">Ajustes</p><h2>Avisos e notificações</h2></div>'+
     '<div class="tgls">'+
     tg('cfgBanner',CFG.banner,'Mudanças de data acima do mapa','Feriados transferidos, pontos facultativos e aulas suspensas.')+
@@ -2966,14 +2978,14 @@ function temaFoldHTML(){
   return '<details class="cvdet" id="temadet"'+(temaOpen?' open':'')+'><summary><span class="cvsum"><span class="tsw'+(dark?' dk':'')+'" aria-hidden="true"><i></i></span></span><span class="grow"><b>Tema</b><small class="tema-sum">'+esc(temaResumo())+'</small></span><span class="chev" aria-hidden="true">▾</span></summary>'+
     '<div class="temaopts" role="radiogroup" aria-label="Tema">'+TEMAS.map(function(x){var on=x[0]===t;
       return '<button type="button" class="temaopt" role="radio" aria-checked="'+on+'" data-tema="'+x[0]+'"><span class="tic t-'+x[0]+'" aria-hidden="true"></span><span class="grow"><b>'+x[1]+'</b><small>'+x[2]+(x[0]==='horario'?' Hoje: claro das '+hm(s.rise)+' às '+hm(s.set)+'.':'')+'</small></span></button>'}).join('')+'</div>'+
-    '<p class="muted small keep">O mapa fica sempre escuro, nos dois temas. No modo Pelo horário, mudar o Horário no topo do app também muda o tema, para você testar.</p></details>';
+    '<p class="muted small keep">O mapa fica sempre escuro, nos dois temas. No modo Pelo horário, mudar o Simular horário aqui em Ajustes também muda o tema, para você testar.</p></details>';
 }
 var _renderCfgT=renderCfg;
 renderCfg=function(f){_renderCfgT(f);var L=$('#cfgL'),bg=L&&L.querySelector('#bgdet');if(L&&!L.querySelector('#temadet')){if(bg)bg.insertAdjacentHTML('beforebegin',temaFoldHTML());else L.insertAdjacentHTML('beforeend',temaFoldHTML());if(f&&/data-tema/.test(f)){var el=L.querySelector(f);if(el)el.focus({preventScroll:true})}}};
 document.addEventListener('toggle',function(e){if(e.target&&e.target.id==='temadet')temaOpen=e.target.open},true);
 document.addEventListener('click',function(e){var b=e.target.closest('[data-tema]');if(!b||!b.closest('#temadet'))return;CFG.tema=b.dataset.tema;saveCfg();applyTheme();renderCfg('[data-tema="'+CFG.tema+'"]')});
-var clkEl=$('#clk');if(clkEl){clkEl.addEventListener('change',function(){setTimeout(applyTheme,0)});clkEl.addEventListener('input',function(){setTimeout(applyTheme,0)})}
-var nb=document.getElementById('nowBtn');if(nb)nb.addEventListener('click',function(){setTimeout(applyTheme,0)});
+document.addEventListener('input',function(e){if(e.target&&e.target.id==='clk')setTimeout(applyTheme,0)});
+document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('#nowBtn'))setTimeout(applyTheme,0)});
 try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme)}catch(e){}
 setInterval(applyTheme,30000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)applyTheme()});
@@ -3218,7 +3230,7 @@ var _locStopC=locStop;locStop=function(){_locStopC();if(CMP.on)cmpSchedule()};
 
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261031-1011';
+var APP_VERSION='20261101-1814';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
@@ -3366,18 +3378,47 @@ var INAPP=(function(){var u=navigator.userAgent||'';
   if(/Android/.test(u)&&/; wv\)/.test(u))return true;
   if(/iPhone|iPad|iPod/.test(u)&&!/Safari\//.test(u)&&!navigator.standalone)return true;
   return false})();
+/* qual app abriu o link e onde fica o menu dele, para o passo a passo */
+var IA=(function(){var u=navigator.userAgent||'',android=/Android/.test(u),n='';
+  if(/Instagram/i.test(u))n='Instagram';else if(/FBAN|FBAV|FB_IAB|FBIOS/.test(u))n='Facebook';else if(/WhatsApp/i.test(u))n='WhatsApp';
+  else if(/musical_ly|TikTok|BytedanceWebview/i.test(u))n='TikTok';else if(/LinkedInApp/i.test(u))n='LinkedIn';else if(/Snapchat/i.test(u))n='Snapchat';
+  else if(/Line\//.test(u))n='LINE';else if(/GSA\//.test(u))n='app do Google';
+  var br=android?'Chrome':'Safari',menu=android&&n!=='Instagram'&&n!=='TikTok'?'⋮':'⋯';
+  var opt=n==='Instagram'||n==='Facebook'?'Abrir no navegador externo':n==='WhatsApp'?'Abrir no '+br:'Abrir no navegador';
+  return {android:android,app:n,br:br,menu:menu,opt:opt}})();
+function iaURL(){return location.href.split('#')[0]}
+function iaIntent(){var url=iaURL();return 'intent://'+url.replace(/^https?:\/\//,'')+'#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url='+encodeURIComponent(url)+';end'}
 function inappHTML(){
-  var android=/Android/.test(navigator.userAgent||''),url=location.href.split('#')[0];
-  var intent='intent://'+url.replace(/^https?:\/\//,'')+'#Intent;scheme=https;package=com.android.chrome;end';
-  return '<div class="inapp" id="inapp" role="region" aria-label="Aviso sobre o navegador"><p><b>Você abriu o app dentro de outro aplicativo.</b> Para entrar com Google e usar localização, bússola e biometria, abra no '+(android?'Chrome':'Safari')+'.</p>'+
-    '<div class="inapp-b">'+(android?'<a class="copy primary" href="'+esc(intent)+'">Abrir no Chrome</a>':'<span class="small">Toque em <b>⋯</b> ou no ícone de compartilhar e escolha <b>Abrir no Safari</b>.</span>')+
-    '<button type="button" class="copy" id="inappCopy">Copiar link</button><button type="button" class="copy" id="inappX" aria-label="Fechar aviso">Agora não</button></div>'+
-    '<p class="muted small">Dá para entrar com e-mail e senha aqui mesmo.</p></div>';
+  return '<div class="inapp" id="inapp" role="region" aria-label="Aviso sobre o navegador"><p><b>Você está no navegador '+(IA.app?'do '+esc(IA.app):'de outro aplicativo')+'.</b> Para entrar com Google e usar localização, bússola e biometria, abra no '+IA.br+'.</p>'+
+    '<div class="inapp-b">'+(IA.android?'<a class="copy primary" href="'+esc(iaIntent())+'">Abrir no Chrome</a>':'<button type="button" class="copy primary" id="inappHow">Como abrir no Safari</button>')+
+    '<button type="button" class="copy" id="inappCopy">Copiar link</button><button type="button" class="copy" id="inappX" aria-label="Fechar aviso">Agora não</button></div></div>';
 }
+/* tela cheia que aparece antes do login e da capa */
+function iaGateHTML(){
+  var who=IA.app?'do '+esc(IA.app):'deste aplicativo';
+  return '<div class="iagate" id="iagate" role="dialog" aria-modal="true" aria-labelledby="iagT">'+
+    '<span class="iag-arrow" aria-hidden="true">Menu '+IA.menu+' aqui ↑</span>'+
+    '<div class="iagate-card">'+
+      '<p class="eyebrow">Você abriu pelo '+(IA.app?esc(IA.app):'link de outro app')+'</p>'+
+      '<h2 id="iagT">Abra no '+IA.br+' para usar o app inteiro</h2>'+
+      '<p>No navegador '+who+', o Google não deixa entrar e o celular bloqueia localização, bússola e biometria.</p>'+
+      (IA.android?'<a class="copy primary iag-go" id="iagGo" href="'+esc(iaIntent())+'">Abrir no Chrome</a><p class="muted small iag-or">Se não abrir, faça assim:</p>':'')+
+      '<ol class="iag-steps"><li>Toque em <b>'+IA.menu+'</b> no canto de cima da tela.</li><li>Escolha <b>'+esc(IA.opt)+'</b> (o nome muda um pouco de app para app).</li></ol>'+
+      '<div class="inapp-b"><button type="button" class="copy" id="inappCopy">Copiar link</button><span class="small muted">e cole no '+IA.br+'</span></div>'+
+      '<button type="button" class="linkbtn iag-stay" id="iagStay">Continuar aqui mesmo</button>'+
+      '<p class="muted small">Aqui dá para consultar o mapa e entrar com e-mail e senha.</p>'+
+    '</div></div>';
+}
+function iaGate(){if($('#iagate'))return;document.body.insertAdjacentHTML('beforeend',iaGateHTML());setTimeout(function(){var b=$('#iagGo')||$('#iagStay');if(b)b.focus({preventScroll:true})},60)}
 if(ON_SITE&&INAPP){
   var _skipIA=false;try{_skipIA=sessionStorage.getItem('cse-inapp-x')==='1'}catch(e){}
-  if(!_skipIA){var app0=document.querySelector('.app');if(app0)app0.insertAdjacentHTML('afterbegin',inappHTML())}
+  if(!_skipIA)iaGate();
+  else{var app0=document.querySelector('.app');if(app0)app0.insertAdjacentHTML('afterbegin',inappHTML())}
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('#iagate')){var st=$('#iagStay');if(st)st.click()}});
   document.addEventListener('click',function(e){
+    if(e.target.closest('#iagStay')){var g=$('#iagate');if(g)g.remove();try{sessionStorage.setItem('cse-inapp-x','1')}catch(_){}
+      if(!$('#inapp')){var a=document.querySelector('.app');if(a)a.insertAdjacentHTML('afterbegin',inappHTML())}return}
+    if(e.target.closest('#inappHow')){iaGate();return}
     if(e.target.closest('#inappX')){var b=$('#inapp');if(b)b.remove();try{sessionStorage.setItem('cse-inapp-x','1')}catch(_){}return}
     if(e.target.closest('#inappCopy')){var url=location.href.split('#')[0];
       var done=function(){gToast('Link copiado. Cole no '+(/Android/.test(navigator.userAgent)?'Chrome':'Safari')+'.')};
@@ -3386,8 +3427,8 @@ if(ON_SITE&&INAPP){
   /* o Google recusa login nesses navegadores: explica em vez de abrir uma tela de erro */
   document.addEventListener('click',function(e){
     var g=e.target.closest('[data-goo]');if(!g)return;e.preventDefault();e.stopImmediatePropagation();
-    gToast('O Google não deixa entrar por aqui. Abra no '+(/Android/.test(navigator.userAgent)?'Chrome':'Safari')+' ou use "Entrar com e-mail".',1);
-    if(!$('#inapp')){var a=document.querySelector('.app');if(a)a.insertAdjacentHTML('afterbegin',inappHTML())}
+    gToast('O Google não deixa entrar por aqui. Abra no '+IA.br+' ou use "Entrar com e-mail".',1);
+    iaGate();
   },true);
 }
 
@@ -3913,7 +3954,7 @@ cover.addEventListener('click',function(e){
   closeCover(function(){
     if(a==='trajeto'){setTab('trajeto');try{history.replaceState(null,'','#trajeto')}catch(err){}var s=$('#to');if(s){s.scrollIntoView({block:'center'});s.focus()}}
     else if(a==='grade'||a==='cal'){setTab(a);try{history.replaceState(null,'','#'+a)}catch(err){}var pn=$('#pane-'+a);if(pn)pn.scrollIntoView({block:'start'})}
-    else if(a==='noite'){$('#nightBtn').click()}
+    else if(a==='noite'){openNight()}
     else{var mc=document.querySelector('.mapcard');if(mc)mc.scrollIntoView({block:'start'})}
     if(a!=='trajeto'&&a!=='noite'){var t=$('#tab-'+(a==='mapa'?'trajeto':a));if(a==='mapa'){var z=$('#zin');if(z)z.focus({preventScroll:true})}else if(t)t.focus({preventScroll:true})}
   });
@@ -4101,4 +4142,202 @@ document.addEventListener('pointermove',function(e){
 document.addEventListener('pointerdown',function(e){var el=e.target.closest&&e.target.closest('.cv-btn');if(!el)return;var r=el.getBoundingClientRect();
   el.style.setProperty('--mx',(e.clientX-r.left)+'px');el.style.setProperty('--my',(e.clientY-r.top)+'px');
   el.classList.remove('tap');void el.offsetWidth;el.classList.add('tap');setTimeout(function(){el.classList.remove('tap')},650)},{passive:true});
+
+/* ======================= v10: modo simplificado, abas, bússola, destino pelo mapa e tempo ======================= */
+
+/* ---------- 1. modo simplificado: esconde as linhas de apoio ---------- */
+CFG.simples=CFG.simples===true;
+function applySimples(){document.documentElement.classList.toggle('simples',!!CFG.simples)}
+applySimples();
+
+/* ---------- 2. ordem e visibilidade das abas ---------- */
+var TABS=[['trajeto','Trajetos','Linhas, horários e o próximo ônibus'],['predios','Lugares','Onde fica, quando abre e as plantas'],['grade','Grade','Suas aulas da semana'],['cal','Calendário','Prazos, feriados e mudanças de data']];
+var TABID=TABS.map(function(t){return t[0]});
+var CV_OF={trajeto:'trajeto',grade:'grade',cal:'cal'};
+function tabOrder(){
+  var o=Array.isArray(CFG.tabs)?CFG.tabs.filter(function(t){return TABID.indexOf(t)>=0}):[];
+  TABID.forEach(function(t){if(o.indexOf(t)<0)o.push(t)});
+  return o;
+}
+function tabOff(){var f=Array.isArray(CFG.tabsOff)?CFG.tabsOff.filter(function(t){return TABID.indexOf(t)>=0}):[];
+  return f.length>=TABID.length?f.slice(0,TABID.length-1):f}            /* nunca esconde todas */
+function tabOn(t){return tabOff().indexOf(t)<0}
+function tabVis(){return tabOrder().filter(tabOn)}
+function tabName(t){for(var i=0;i<TABS.length;i++)if(TABS[i][0]===t)return TABS[i][1];return t}
+function applyTabs(){
+  var bar=document.querySelector('.tabs');if(!bar)return;
+  tabOrder().forEach(function(t){var b=$('#tab-'+t);if(b)bar.appendChild(b)});        /* reordena */
+  TABID.forEach(function(t){var b=$('#tab-'+t);if(b)b.hidden=!tabOn(t);
+    var cv=CV_OF[t]&&document.querySelector('.cv-row [data-cv="'+CV_OF[t]+'"]');if(cv)cv.hidden=!tabOn(t)});
+  var cur=document.querySelector('.tabs [data-tab][aria-selected="true"]');
+  if(cur&&cur.hidden)setTab(tabVis()[0]);
+}
+var _setTabV=setTab;
+setTab=function(t){
+  if(t!=='cfg'&&(TABID.indexOf(t)<0||!tabOn(t)))t=tabVis()[0];
+  _setTabV(t);
+};
+function tabsCfgHTML(){
+  var o=tabOrder(),vis=tabVis().length;
+  return '<div><p class="eyebrow">Ajustes</p><h2>Abas do app</h2></div>'+
+    '<p class="muted small keep">Use as setas para mudar a ordem. Desligue as que você não usa; pelo menos uma fica.</p>'+
+    '<div class="tbord">'+o.map(function(t,i){var on=tabOn(t),nm=TABS[TABID.indexOf(t)];
+      return '<div class="tbrow'+(on?'':' off')+'"><span class="grow"><b>'+esc(nm[1])+'</b><small>'+esc(nm[2])+'</small></span>'+
+        '<span class="tbbtns"><button type="button" class="copy tbmv" data-tbup="'+t+'"'+(i===0?' disabled':'')+' aria-label="Subir '+esc(nm[1])+'">↑</button>'+
+        '<button type="button" class="copy tbmv" data-tbdn="'+t+'"'+(i===o.length-1?' disabled':'')+' aria-label="Descer '+esc(nm[1])+'">↓</button>'+
+        '<label class="tbsw"><input type="checkbox" role="switch" data-tbon="'+t+'"'+(on?' checked':'')+(on&&vis<=1?' disabled':'')+'><span class="sw2" aria-hidden="true"></span><span class="tbsw-t">'+(on?'Mostrar':'Escondida')+'</span></label></span></div>'}).join('')+'</div>';
+}
+function saveTabs(order,off){CFG.tabs=order;CFG.tabsOff=off;saveCfg();applyTabs();renderCfgKeep()}
+document.addEventListener('click',function(e){
+  var u=e.target.closest('[data-tbup]'),d=e.target.closest('[data-tbdn]');if(!u&&!d)return;
+  var t=(u||d).dataset[u?'tbup':'tbdn'],o=tabOrder(),i=o.indexOf(t),j=i+(u?-1:1);
+  if(i<0||j<0||j>=o.length)return;
+  o.splice(j,0,o.splice(i,1)[0]);saveTabs(o,tabOff());
+});
+document.addEventListener('change',function(e){
+  var c=e.target&&e.target.dataset&&e.target.dataset.tbon;if(!c)return;
+  var off=tabOff().filter(function(x){return x!==c});
+  if(!e.target.checked)off.push(c);
+  if(off.length>=TABID.length)return;
+  saveTabs(tabOrder(),off);
+});
+
+/* ---------- 3. bússola: apontar para o destino ou para o ponto de partida ---------- */
+CFG.bussolaAlvo=CFG.bussolaAlvo==='origem'?'origem':'destino';
+cmpGeom=function(){
+  var ori=CFG.bussolaAlvo==='origem',alvo=STOPS[ori?state.from:state.to];if(!alvo)return null;
+  var hasLoc=typeof LOC!=='undefined'&&LOC.on&&LOC.p&&!LOC.out;
+  var S=hasLoc?LOC.p:(STOPS[ori?state.to:state.from]&&STOPS[ori?state.to:state.from].p);
+  if(!S)return null;
+  var vx=alvo.p[0]-S[0],vy=alvo.p[1]-S[1],m=Math.hypot(vx,vy)*mPerUnit();
+  var angV=Math.atan2(vx,-vy)*180/Math.PI,bear=((angV-angN())%360+360)%360;
+  return {to:alvo,fromLoc:hasLoc,m:m,angV:angV,bear:bear,origem:ori};
+};
+
+/* ---------- 4. ponto escolhido no mapa vira o destino ---------- */
+CFG.autoDest=CFG.autoDest!==false;
+function stopNear(p){var n=nearestOf(STOPS,p,function(s){return s.off});return n&&n.id}
+function pointStop(kind,id){
+  if(kind==='stop')return STOPS[id]?id:null;
+  var o=kind==='wifi'?WIFI[id]:kind==='svc'?SVCMAP[id]:kind==='place'?PL[id]:null;
+  return o&&o.p?stopNear(o.p):null;
+}
+var _selectV=select;
+select=function(kind,id,scroll){
+  if(CFG.autoDest&&['stop','wifi','svc','place'].indexOf(kind)>=0){
+    var to=pointStop(kind,id);
+    if(to&&to!==state.to){
+      var from=(typeof LOC!=='undefined'&&LOC.on&&LOC.near&&LOC.near.id!==to)?LOC.near.id:state.from;
+      if(from===to)from=state.to!==to?state.to:(to==='est'?'ctl':'est');
+      state.to=to;state.from=from;savePrefs();
+    }
+  }
+  _selectV(kind,id,scroll);
+};
+
+/* ---------- 5. previsão do tempo da Ilha do Fundão (Open-Meteo, sem cadastro) ---------- */
+CFG.clima=CFG.clima!==false;CFG.chuva=CFG.chuva!==false;
+var CLIMA={d:null,busy:false,err:false,t:0};
+var CLIMA_URL='https://api.open-meteo.com/v1/forecast?latitude=-22.86&longitude=-43.23&timezone=America%2FSao_Paulo&forecast_days=1&current=temperature_2m,weather_code,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&hourly=precipitation_probability';
+var WMO={0:['Céu limpo','sol'],1:['Poucas nuvens','sol'],2:['Parcialmente nublado','nuvem'],3:['Nublado','nuvem'],45:['Névoa','nuvem'],48:['Névoa gelada','nuvem'],
+  51:['Garoa fraca','chuva'],53:['Garoa','chuva'],55:['Garoa forte','chuva'],61:['Chuva fraca','chuva'],63:['Chuva','chuva'],65:['Chuva forte','chuva'],
+  66:['Chuva gelada','chuva'],67:['Chuva gelada forte','chuva'],80:['Pancadas de chuva','chuva'],81:['Pancadas de chuva','chuva'],82:['Pancadas fortes','chuva'],
+  95:['Tempestade','tempestade'],96:['Tempestade com granizo','tempestade'],99:['Tempestade com granizo','tempestade']};
+function wmo(c){return WMO[c]||['Tempo indefinido','nuvem']}
+function climaCache(){try{var c=JSON.parse(localStorage.getItem('cse-clima'));if(c&&Date.now()-c.t<18e5)return c}catch(e){}return null}
+function climaLoad(force){
+  if(CLIMA.busy||!CFG.clima||!window.fetch)return;
+  var c=!force&&climaCache();
+  if(c){CLIMA.d=c.d;CLIMA.t=c.t;drawClima();return}
+  CLIMA.busy=true;
+  var to=setTimeout(function(){CLIMA.busy=false},9000);
+  fetch(CLIMA_URL,{cache:'no-store'}).then(function(r){return r.ok?r.json():Promise.reject(0)}).then(function(j){
+    clearTimeout(to);CLIMA.busy=false;CLIMA.err=false;
+    var dl=j.daily||{},hr=j.hourly||{},cu=j.current||{};
+    CLIMA.d={now:cu.temperature_2m,code:(cu.weather_code!=null?cu.weather_code:(dl.weather_code||[])[0]),
+      max:(dl.temperature_2m_max||[])[0],min:(dl.temperature_2m_min||[])[0],
+      pmax:(dl.precipitation_probability_max||[])[0],hs:hr.time||[],hp:hr.precipitation_probability||[]};
+    CLIMA.t=Date.now();
+    try{localStorage.setItem('cse-clima',JSON.stringify({t:CLIMA.t,d:CLIMA.d}))}catch(e){}
+    drawClima();
+  },function(){clearTimeout(to);CLIMA.busy=false;CLIMA.err=true;drawClima()});
+}
+/* próxima hora com chance alta de chuva, daqui até o fim do dia */
+function climaChuva(){
+  var d=CLIMA.d;if(!d||!d.hs||!d.hs.length)return null;
+  var agora=nowMin(),best=null;
+  for(var i=0;i<d.hs.length;i++){
+    var hh=+String(d.hs[i]).slice(11,13),p=+d.hp[i];
+    if(!(p>=0)||hh*60<agora-30||hh*60>agora+6*60)continue;
+    if(p>=60&&(!best||p>best.p))best={h:hh,p:p};
+  }
+  return best;
+}
+function climaHTML(){
+  if(!CFG.clima)return '';
+  var d=CLIMA.d;
+  if(!d){return CLIMA.err?'<div class="climabox"><span class="cl-ic nuvem" aria-hidden="true"></span><span class="grow"><b>Previsão indisponível</b><small>Não deu para falar com o serviço de previsão agora.</small></span><button type="button" class="linkbtn" id="climaTry">Tentar de novo</button></div>':''}
+  var w=wmo(d.code),ch=CFG.chuva?climaChuva():null,t=function(v){return v==null?'—':Math.round(v)+'°'};
+  return '<div class="climabox'+(ch?' chuva':'')+'">'+
+    '<span class="cl-ic '+w[1]+'" aria-hidden="true"></span>'+
+    '<span class="grow"><b>'+(d.now!=null?t(d.now)+' · ':'')+esc(w[0])+'</b>'+
+    '<small>Hoje '+t(d.max)+' / '+t(d.min)+(d.pmax!=null?' · '+Math.round(d.pmax)+'% de chance de chuva':'')+'</small></span>'+
+    (ch?'<span class="cl-alerta"><b>Leve guarda-chuva</b><small>'+ch.p+'% de chuva por volta das '+String(ch.h).padStart(2,'0')+'h</small></span>':'')+
+    '</div>';
+}
+function drawClima(){
+  var b=$('#climabar');
+  if(!b){var m=$('#mudbar');if(!m)return;m.insertAdjacentHTML('afterend','<div class="climabar" id="climabar" role="status" hidden></div>');b=$('#climabar')}
+  var h=climaHTML();b.innerHTML=h;b.hidden=!h;
+}
+document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('#climaTry')){CLIMA.err=false;climaLoad(true)}});
+if(CFG.clima)setTimeout(function(){climaLoad(false)},600);
+setInterval(function(){if(CFG.clima&&!document.hidden&&Date.now()-CLIMA.t>18e5)climaLoad(false)},3e5);
+document.addEventListener('visibilitychange',function(){if(!document.hidden&&CFG.clima&&Date.now()-CLIMA.t>18e5)climaLoad(false)});
+
+/* ---------- ajustes: as novas opções ---------- */
+function v10CfgHTML(){
+  return '<div><p class="eyebrow">Ajustes</p><h2>Tela e navegação</h2></div>'+
+    '<div class="tgls">'+
+    tg('cfgSimples',CFG.simples,'Modo simplificado','Esconde as explicações, dicas e legendas, deixando só o essencial na tela.')+
+    tg('cfgAutoDest',CFG.autoDest,'Ponto do mapa vira destino','Ao tocar num ponto do mapa, ele entra como destino em Seu trajeto e a origem passa a ser a parada mais perto de você.')+
+    '</div>'+
+    '<div><p class="eyebrow">Ajustes</p><h2>Previsão do tempo</h2></div>'+
+    '<div class="tgls">'+
+    tg('cfgClima',CFG.clima,'Mostrar a previsão do dia','Temperatura de agora, máxima e mínima da Ilha do Fundão, acima do mapa.')+
+    tg('cfgChuva',CFG.chuva,'Avisar quando houver chuva','Mostra “leve guarda-chuva” quando a chance passa de 60% nas próximas 6 horas.')+
+    '</div>'+
+    '<p class="muted small keep">Previsão do Open-Meteo, atualizada a cada 30 minutos.</p>';
+}
+function bussolaAlvoHTML(){
+  return '<p class="balvo-t"><b>A bússola aponta para</b></p>'+
+    '<div class="seg cl-alvo" role="group" aria-label="Para onde a bússola aponta">'+
+    [['destino','Destino'],['origem','Partida']].map(function(o){
+      return '<button type="button" data-balvo="'+o[0]+'" aria-pressed="'+(CFG.bussolaAlvo===o[0])+'">'+o[1]+'</button>'}).join('')+
+    '</div><p class="muted small keep">A agulha laranja aponta para o destino ou para o ponto de partida do Seu trajeto.</p>';
+}
+var _renderCfgV10=renderCfg;
+renderCfg=function(f){
+  _renderCfgV10(f);
+  var Rr=$('#cfgR');if(!Rr)return;
+  if(!Rr.querySelector('#cfgSimples')){
+    var first=Rr.querySelector('.tgls');                      /* a escolha da bússola fica junto do mapa */
+    if(first)first.insertAdjacentHTML('afterend',bussolaAlvoHTML());
+    Rr.insertAdjacentHTML('beforeend',v10CfgHTML()+tabsCfgHTML());
+  }
+};
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-balvo]');if(!b)return;
+  CFG.bussolaAlvo=b.dataset.balvo;saveCfg();if(typeof cmpSchedule==='function'&&CMP.on)cmpSchedule();renderCfgKeep();
+});
+document.addEventListener('change',function(e){
+  var id=e.target.id,map={cfgSimples:'simples',cfgAutoDest:'autoDest',cfgClima:'clima',cfgChuva:'chuva'};
+  if(!map[id])return;
+  CFG[map[id]]=e.target.checked;saveCfg();
+  if(id==='cfgSimples')applySimples();
+  if(id==='cfgClima'){if(CFG.clima)climaLoad(false);else drawClima()}
+  if(id==='cfgChuva')drawClima();
+});
+applyTabs();
+
 })();
