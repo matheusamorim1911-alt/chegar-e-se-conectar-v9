@@ -3,15 +3,28 @@
 var FBMODE=!!(window.CSE_FIREBASE&&window.CSE_FIREBASE.apiKey&&window.CSE_FIREBASE.projectId)&&!(window.claude&&typeof window.claude.use==='function');
 var LITE=(function(){try{return window.matchMedia('(pointer:coarse), (max-width:820px)').matches||(navigator.hardwareConcurrency||8)<=4||!!(navigator.connection&&navigator.connection.saveData)}catch(e){return false}})();
 document.documentElement.classList.toggle('lite',LITE);
-var CFG={cover:'folha',banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'sistema',bussola:false,foto:true,perf:'auto',bldn:true,simples:false,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true};
+var CFG={cover:'folha',banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'sistema',bussola:false,foto:true,perf:'auto',perfV:0,bldn:true,simples:false,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true};
 try{var _c=JSON.parse(localStorage.getItem('cse-cfg'));if(_c)CFG=Object.assign(CFG,_c)}catch(e){}
-/* desempenho: automático (o app decide pelo aparelho), leve (sem transparência nem efeitos) ou completo */
+/* desempenho: automático, leve (sem transparência nem efeitos), intermediário (o antigo "completo") e completo
+   (intermediário + vidro e animações em Ajustes, glossário e gestão). Automático: computador = completo; o resto = intermediário. */
 var LITE_AUTO=LITE;
+function perfEnter(m){if(!m||perfEff()!=='completo')return;m.classList.add('ent');clearTimeout(m._ent);m._ent=setTimeout(function(){m.classList.remove('ent')},1100)}
+var DESKTOP=(function(){try{return window.matchMedia('(pointer:fine) and (hover:hover) and (min-width:821px)').matches&&!(navigator.connection&&navigator.connection.saveData)}catch(e){return false}})();
+var SAVEDATA=!!(navigator.connection&&navigator.connection.saveData);
+function perfMode(){
+  var m=CFG.perf||'auto';
+  /* quem escolheu "completo" antes dos 4 modos tinha o que hoje é o intermediário */
+  if(CFG.perfV!==2){if(m==='completo')m=CFG.perf='intermediario';CFG.perfV=2}
+  if(m!=='leve'&&m!=='intermediario'&&m!=='completo')m='auto';
+  return m;
+}
+function perfEff(){var m=perfMode();return m==='auto'?(DESKTOP?'completo':'intermediario'):m}
 function applyPerf(){
-  var m=CFG.perf||'auto',r=document.documentElement;
-  LITE=m==='leve'?true:m==='completo'?false:LITE_AUTO;
-  r.classList.toggle('lite',LITE);r.classList.toggle('lowgfx',m==='leve');
-  if(m==='leve')r.classList.remove('refract');
+  var m=perfMode(),e=perfEff(),r=document.documentElement;
+  LITE=e==='leve'?true:(m==='auto'&&SAVEDATA&&!DESKTOP)?true:false;
+  r.classList.toggle('lite',LITE);r.classList.toggle('lowgfx',e==='leve');
+  r.classList.toggle('perf-c',e==='completo');r.classList.toggle('perf-i',e==='intermediario');
+  if(e==='leve')r.classList.remove('refract');
 }
 applyPerf();
 
@@ -394,7 +407,7 @@ var raf=0;
 var lastMS=-1,lastMk=-1,lblT=0,lastGesture=0,mapBase=null;
 var vecOn=false,vecLoading=false;
 function loadVec(){
-  if(vecOn||vecLoading||CFG.perf==='leve')return;vecLoading=true;
+  if(vecOn||vecLoading||perfEff()==='leve')return;vecLoading=true;
   var im=new Image();im.onload=function(){vecOn=true;var e=$('#imgVec');if(e)e.setAttribute('href',MAPVEC)};im.onerror=function(){vecLoading=false};im.src=MAPVEC;
 }
 function applyView(force){
@@ -601,8 +614,8 @@ function updateMap(){
     if(on&&act)gLines.appendChild(el);
   });
   var gF=$('#gFlow');
-  svg.classList.toggle('flowing',!!(state.layers.bus&&CFG.flow&&CFG.perf!=='leve'&&!window.matchMedia('(prefers-reduced-motion:reduce)').matches));
-  if(gF){gF.classList.toggle('off',!state.layers.bus||!CFG.flow||CFG.perf==='leve');gF.classList.toggle('all',!act);
+  svg.classList.toggle('flowing',!!(state.layers.bus&&CFG.flow&&perfEff()!=='leve'&&!window.matchMedia('(prefers-reduced-motion:reduce)').matches));
+  if(gF){gF.classList.toggle('off',!state.layers.bus||!CFG.flow||perfEff()==='leve');gF.classList.toggle('all',!act);
     /* várias linhas (parada, ou nenhuma linha específica: serviço, Wi-Fi, guarita): uma de cada vez */
     var seqL=act&&act.length>1?act:(!act?Object.keys(LINES).filter(function(l){return !LINES[l].susp}):null);
     svg.classList.toggle('seqall',!act);
@@ -1816,7 +1829,7 @@ cPane.addEventListener('click',function(e){var x=e.target.closest('[data-muddel]
 /* ---------- ajustes em tela cheia ---------- */
 var cfgM=$('#pane-cfg'),cfgPrevFocus=null;
 function openCfg(){
-  cfgPrevFocus=document.activeElement;renderCfg();cfgM.hidden=false;cfgM.classList.remove('closing');
+  cfgPrevFocus=document.activeElement;renderCfg();cfgM.hidden=false;cfgM.classList.remove('closing');perfEnter(cfgM);
   document.documentElement.style.overflow='hidden';$('#tab-cfg').setAttribute('aria-pressed','true');
   cfgM.querySelector('.cfgsheet').scrollTop=0;setTimeout(function(){$('#cfgClose').focus({preventScroll:true})},30);
 }
@@ -1908,7 +1921,7 @@ function renderGloss(){
 function openGloss(q){
   glPrev=document.activeElement;if(typeof q==='string'){gl.q=q;gl.cat='todas'}
   if(!cfgM.hidden)cfgM.hidden=true,$('#tab-cfg').setAttribute('aria-pressed','false');
-  renderGloss();$('#glQ').value=gl.q;glM.hidden=false;glM.classList.remove('closing');
+  renderGloss();$('#glQ').value=gl.q;glM.hidden=false;glM.classList.remove('closing');perfEnter(glM);
   document.documentElement.style.overflow='hidden';$('#glossBtn').setAttribute('aria-pressed','true');
   glM.querySelector('.cfgsheet').scrollTop=0;
   setTimeout(function(){var f=window.matchMedia('(pointer:fine)').matches?$('#glQ'):$('#glClose');f.focus({preventScroll:true})},30);
@@ -1937,8 +1950,8 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!glM.hidden
 
 
 /* ======================= gestão: dados que o gestor pode alterar ======================= */
-var GST={linhas:{},pontos:{},wifi:{},servicos:{},plantas:{items:[]},bloqueados:{ids:[]},respostas:{},calib:{},admins:{list:{}}};
-var GKEYS=['linhas','pontos','wifi','servicos','plantas','bloqueados','respostas','calib','admins'];
+var GST={linhas:{},pontos:{},wifi:{},servicos:{},plantas:{items:[]},bloqueados:{ids:[]},respostas:{},calib:{},admins:{list:{}},acesso:{}};
+var GKEYS=['linhas','pontos','wifi','servicos','plantas','bloqueados','respostas','calib','admins','acesso'];
 var GESTOR=false; /* true: editor no claude.ai · 'demo': fora do claude.ai (salva só neste aparelho) */
 var GLS='cse-gestao-';
 var ORIG={lines:{},stops:{},wifi:{},pl:{}};
@@ -2182,8 +2195,10 @@ function ensureGest(){
     if(e.target.id==='gSq'){gFilter.svc=e.target.value;var c2=$('#gSlist');if(c2)c2.innerHTML=svcList()}
   });
 }
-function openGest(tab){ensureGest();if(tab)gTab=tab;gEdit=null;renderGest();gestM.hidden=false;document.documentElement.style.overflow='hidden';var b=$('#gestBtn');if(b)b.setAttribute('aria-pressed','true');setTimeout(function(){$('#gClose').focus({preventScroll:true})},30)}
-function closeGest(){if(!gestM)return;gestM.hidden=true;if(cfgM.hidden&&glM.hidden)document.documentElement.style.overflow='';var b=$('#gestBtn');if(b){b.setAttribute('aria-pressed','false');b.focus({preventScroll:true})}}
+function openGest(tab){ensureGest();if(tab)gTab=tab;gEdit=null;renderGest();gestM.hidden=false;gestM.classList.remove('closing');perfEnter(gestM);document.documentElement.style.overflow='hidden';var b=$('#gestBtn');if(b)b.setAttribute('aria-pressed','true');setTimeout(function(){$('#gClose').focus({preventScroll:true})},30)}
+function closeGest(){if(!gestM)return;
+  var fim=function(){gestM.classList.remove('closing');gestM.hidden=true;if(cfgM.hidden&&glM.hidden)document.documentElement.style.overflow='';var b=$('#gestBtn');if(b){b.setAttribute('aria-pressed','false');b.focus({preventScroll:true})}};
+  if(perfEff()==='completo'&&!window.matchMedia('(prefers-reduced-motion:reduce)').matches){gestM.classList.add('closing');setTimeout(fim,240)}else fim()}
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&gestM&&!gestM.hidden&&(!reqM||reqM.hidden)){e.stopPropagation();closeGest()}},true);
 function setGestor(v){
   GESTOR=v;var b=$('#gestBtn');if(b)b.hidden=!v;
@@ -3230,7 +3245,7 @@ var _locStopC=locStop;locStop=function(){_locStopC();if(CMP.on)cmpSchedule()};
 
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261101-1814';
+var APP_VERSION='20261102-1054';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
@@ -3603,14 +3618,15 @@ document.addEventListener('toggle',function(e){
 },true);
 
 /* ======================= Ajustes › Desempenho ======================= */
-var PERFS=[['auto','Automático','O app decide pelo aparelho: celulares e aparelhos mais simples já recebem menos efeitos.'],
+var PERFS=[['auto','Automático','O app decide pelo aparelho: no computador usa o Completo; no celular e no tablet, o Intermediário.'],
   ['leve','Leve','Tira as transparências, o desfoque, as sombras e as animações (capa e movimento nas rotas). Bom para celulares mais simples ou com pouca bateria.'],
-  ['completo','Completo','Todos os efeitos de vidro, mesmo em celular. Pode deixar aparelhos mais simples lentos.']];
+  ['intermediario','Intermediário','Vidro e efeitos no mapa, nos painéis e nos botões. Ajustes, glossário e gestão ficam sólidos, para pesar menos.'],
+  ['completo','Completo','Tudo do Intermediário, mais vidro transparente e animações ao abrir Ajustes, glossário e gestão. Pode deixar aparelhos mais simples lentos.']];
 function perfHTML(){
-  var cur=PERFS.filter(function(x){return x[0]===(CFG.perf||'auto')})[0]||PERFS[0];
+  var cur=PERFS.filter(function(x){return x[0]===perfMode()})[0]||PERFS[0];
   return '<div class="perfsec" id="perfsec"><div><p class="eyebrow">Ajustes</p><h2>Desempenho</h2></div>'+
     '<div class="perfopts" role="radiogroup" aria-label="Desempenho">'+PERFS.map(function(x){var on=x[0]===cur[0];return '<button type="button" class="chip" role="radio" aria-checked="'+on+'" aria-pressed="'+on+'" data-perf="'+x[0]+'">'+x[1]+'</button>'}).join('')+'</div>'+
-    '<p class="muted small keep">'+cur[2]+(cur[0]==='auto'?' Neste aparelho: '+(LITE_AUTO?'modo econômico.':'efeitos completos.'):'')+'</p></div>';
+    '<p class="muted small keep">'+cur[2]+(cur[0]==='auto'?' Neste aparelho: '+(perfEff()==='completo'?'Completo.':'Intermediário.'):'')+'</p></div>';
 }
 var _renderCfgPerf=renderCfg;
 renderCfg=function(f){_renderCfgPerf(f);var L=$('#cfgL');if(L&&!L.querySelector('#perfsec'))L.insertAdjacentHTML('beforeend',perfHTML());if(f&&/data-perf/.test(f)){var el=document.querySelector(f);if(el)el.focus({preventScroll:true})}};
@@ -3618,7 +3634,7 @@ document.addEventListener('click',function(e){var b=e.target.closest&&e.target.c
   CFG.perf=b.dataset.perf;saveCfg();applyPerf();updateMap();if(typeof placeCoverMap==='function'&&!cover.hidden)placeCoverMap();
   var sec=$('#perfsec');if(sec){var t=document.createElement('div');t.innerHTML=perfHTML();sec.replaceWith(t.firstChild)}
   var nb=document.querySelector('[data-perf="'+CFG.perf+'"]');if(nb)nb.focus({preventScroll:true});
-  gToast(CFG.perf==='leve'?'Modo leve ligado.':CFG.perf==='completo'?'Efeitos completos ligados.':'Desempenho automático.')});
+  gToast(CFG.perf==='leve'?'Modo leve ligado.':CFG.perf==='completo'?'Modo completo ligado.':CFG.perf==='intermediario'?'Modo intermediário ligado.':'Desempenho automático.')});
 
 /* ======================= cobertura do Wi-Fi da UFRJ (prévia com dados de exemplo) ======================= */
 /* Hexágonos de ~30 m (≈60 m de longe) coloridos pela qualidade medida, transparência pela quantidade de
@@ -3897,8 +3913,8 @@ function wifiChip(){var c=$('#chWifi');if(!c)return;var on=!!(state.layers.wifi|
 var vecHideT=0;
 var _applyViewVec=applyView;
 applyView=function(f){_applyViewVec(f);var e=$('#imgVec');if(!e||!vecOn)return;
-  if(CFG.perf==='leve'){e.style.display='none';return}
-  e.style.display='none';clearTimeout(vecHideT);vecHideT=setTimeout(function(){var v=$('#imgVec');if(v&&CFG.perf!=='leve')v.style.display=''},260)};
+  if(perfEff()==='leve'){e.style.display='none';return}
+  e.style.display='none';clearTimeout(vecHideT);vecHideT=setTimeout(function(){var v=$('#imgVec');if(v&&perfEff()!=='leve')v.style.display=''},260)};
 /* ---------- desempenho: pausa a animação das rotas quando ninguém está vendo ---------- */
 (function(){
   var mw=document.querySelector('.mapwrap'),vis=true;
@@ -4273,15 +4289,36 @@ function climaChuva(){
   }
   return best;
 }
+var CL_NUV='<path d="M10 25a6 6 0 0 1 .7-11.95A8 8 0 0 1 26 12.5 5.5 5.5 0 0 1 25.5 25Z"';
+var CL_SVG={
+  sol:'<svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="7" fill="#FFC15A"/><g stroke="#FFC15A" stroke-width="2.4" stroke-linecap="round"><path d="M18 4v4M18 28v4M4 18h4M28 18h4M8.1 8.1l2.8 2.8M25.1 25.1l2.8 2.8M8.1 27.9l2.8-2.8M25.1 10.9l2.8-2.8"/></g></svg>',
+  nuvem:'<svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="13" cy="13" r="5" fill="#FFC15A" opacity=".85"/>'+CL_NUV+' transform="translate(1 1)" fill="#DDE5EE"/></svg>',
+  chuva:'<svg viewBox="0 0 36 36" aria-hidden="true">'+CL_NUV+' transform="translate(1 -3)" fill="#B7C4D3"/><g stroke="#4FA8FF" stroke-width="2.6" stroke-linecap="round"><path d="M12 25l-2 5M19 25l-2 5M26 25l-2 5"/></g></svg>',
+  tempestade:'<svg viewBox="0 0 36 36" aria-hidden="true">'+CL_NUV+' transform="translate(1 -4)" fill="#8D99AB"/><path d="M19.5 20l-5 8h4l-1.5 6 7-9h-4.2l2-5z" fill="#FFC15A"/></svg>'
+};
+function clIc(k){return '<span class="cl-ic" aria-hidden="true">'+(CL_SVG[k]||CL_SVG.nuvem)+'</span>'}
+/* barras de chance de chuva das próximas 12 horas; destaca as que passam de 60% */
+function climaBarras(){
+  var d=CLIMA.d;if(!d||!d.hs||!d.hs.length)return '';
+  var h0=Math.floor(nowMin()/60),o='',n=0;
+  for(var i=0;i<d.hs.length&&n<12;i++){
+    var hh=+String(d.hs[i]).slice(11,13),p=+d.hp[i];
+    if(hh<h0||!(p>=0))continue;
+    o+='<i class="'+(p>=60?'hi':'')+'" style="height:'+Math.max(3,Math.round(p*.34))+'px" title="'+String(hh).padStart(2,'0')+'h · '+Math.round(p)+'%"></i>';n++;
+  }
+  return n>=3?'<span class="cl-bars-t" aria-hidden="true"><span class="cl-bars">'+o+'</span><small>chuva nas próximas horas</small></span>':'';
+}
 function climaHTML(){
   if(!CFG.clima)return '';
   var d=CLIMA.d;
-  if(!d){return CLIMA.err?'<div class="climabox"><span class="cl-ic nuvem" aria-hidden="true"></span><span class="grow"><b>Previsão indisponível</b><small>Não deu para falar com o serviço de previsão agora.</small></span><button type="button" class="linkbtn" id="climaTry">Tentar de novo</button></div>':''}
+  if(!d){return CLIMA.err?'<div class="climabox cl-nuvem">'+clIc('nuvem')+'<span class="cl-main"><span class="cl-desc"><b>Previsão indisponível</b><small>Não deu para falar com o serviço de previsão agora.</small></span></span><button type="button" class="linkbtn" id="climaTry">Tentar de novo</button></div>':''}
   var w=wmo(d.code),ch=CFG.chuva?climaChuva():null,t=function(v){return v==null?'—':Math.round(v)+'°'};
-  return '<div class="climabox'+(ch?' chuva':'')+'">'+
-    '<span class="cl-ic '+w[1]+'" aria-hidden="true"></span>'+
-    '<span class="grow"><b>'+(d.now!=null?t(d.now)+' · ':'')+esc(w[0])+'</b>'+
-    '<small>Hoje '+t(d.max)+' / '+t(d.min)+(d.pmax!=null?' · '+Math.round(d.pmax)+'% de chance de chuva':'')+'</small></span>'+
+  return '<div class="climabox cl-'+w[1]+(ch?' chuva':'')+'">'+
+    clIc(w[1])+
+    '<span class="cl-main">'+(d.now!=null?'<span class="cl-temp">'+t(d.now)+'</span>':'')+
+    '<span class="cl-desc"><b>'+esc(w[0])+'</b>'+
+    '<small>Hoje '+t(d.max)+' / '+t(d.min)+(d.pmax!=null?' · '+Math.round(d.pmax)+'% de chance de chuva':'')+'</small></span></span>'+
+    climaBarras()+
     (ch?'<span class="cl-alerta"><b>Leve guarda-chuva</b><small>'+ch.p+'% de chuva por volta das '+String(ch.h).padStart(2,'0')+'h</small></span>':'')+
     '</div>';
 }
@@ -4339,5 +4376,70 @@ document.addEventListener('change',function(e){
   if(id==='cfgChuva')drawClima();
 });
 applyTabs();
+
+/* ======================= v11: exigir login para consultar (a gestão liga e desliga) ======================= */
+var ACESSO={login:false};
+var AUTH_READY=!FBMODE;   /* no site, só decide depois que o Firebase diz se há conta entrada */
+try{if(FBMODE&&localStorage.getItem('cse-acesso')==='1')ACESSO.login=true}catch(e){}
+function acessoOn(){return FBMODE?ACESSO.login:!!(GST.acesso&&GST.acesso.login===true)}
+var AUTH_USER=false,GATE_ON=false;
+function autenticado(){return AUTH_USER||ACC.kind==='claude'||GESTOR===true||GESTOR==='demo'}
+function gateHTML(){
+  return '<div class="acgate" id="acGate" role="dialog" aria-modal="true" aria-labelledby="acGateT" hidden>'+
+    '<div class="acgate-card"><span class="acgate-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg></span>'+
+    '<h2 id="acGateT">Entre para consultar</h2>'+
+    '<p class="muted">A gestão pediu que o mapa, os trajetos e as fotos só apareçam para quem entrou com uma conta.</p>'+
+    (FB_ON?'<div class="acgate-b"><button type="button" class="lg-btn pri" data-goo>Entrar com Google</button><button type="button" class="lg-btn sec" data-mail>Entrar com e-mail</button></div>'
+          :'<p class="muted small keep">Abra o app pelo site publicado ou pelo claude.ai para entrar com sua conta.</p>')+
+    '</div></div>';
+}
+function gateUpdate(){
+  var on=acessoOn(),need=on&&AUTH_READY&&!autenticado(),r=document.documentElement;
+  r.classList.toggle('gated',need);r.classList.toggle('prot',on);
+  var g=$('#acGate');
+  if(need&&!g){document.body.insertAdjacentHTML('beforeend',gateHTML());g=$('#acGate')}
+  if(g)g.hidden=!need;
+  if(need)r.style.overflow='hidden';
+  else if(GATE_ON&&cover.hidden&&login.hidden&&cfgM.hidden&&glM.hidden&&(!gestM||gestM.hidden))r.style.overflow='';
+  GATE_ON=need;
+}
+/* o Firebase avisa quando há conta entrada (ou nenhuma) e quando a gestão muda a regra */
+var _fbSharedV11=fbShared;
+fbShared=function(fb){
+  _fbSharedV11(fb);
+  fb.db.doc('meta/acesso').onSnapshot(function(s){
+    ACESSO.login=!!(s.exists&&(s.data()||{}).login===true);
+    try{localStorage.setItem('cse-acesso',ACESSO.login?'1':'0')}catch(e){}
+    gateUpdate();if(gestM&&!gestM.hidden&&gTab==='geral')renderGest();
+  },function(){gateUpdate()});
+  fb.auth.onAuthStateChanged(function(u){AUTH_USER=!!u;AUTH_READY=true;gateUpdate()});
+};
+if(FBMODE&&!FB_ON)AUTH_READY=true;
+var _rebuildV11=rebuildAll;rebuildAll=function(){_rebuildV11.apply(this,arguments);gateUpdate()};
+
+/* com a regra ligada: sem clique direito nem arrastar em imagens, mapa e fotos (só desanima; print de tela continua possível) */
+document.addEventListener('contextmenu',function(e){if(!acessoOn())return;var t=e.target;if(t&&t.closest&&t.closest('img,svg,canvas,.mapwrap,.planwrap,.cvdet,.cv-map,.lg-bg'))e.preventDefault()});
+document.addEventListener('dragstart',function(e){if(acessoOn()&&e.target&&e.target.tagName==='IMG')e.preventDefault()});
+
+/* gestão › Visão geral: o interruptor (só quem tem o privilégio de administradores) */
+function acessoCard(){
+  if(!gcan('admins'))return '';
+  return '<h3 class="gh">Acesso ao app</h3><div class="tgls">'+
+    tg('gAcessoLogin',acessoOn(),'Exigir login para consultar','Quem não entrou com Google ou e-mail não vê o mapa, os trajetos nem as fotos. Também bloqueia clique direito e arrastar nas imagens.')+
+    '</div><p class="muted small keep">'+(FBMODE?'Vale para todos os aparelhos. Os dados do Firebase só ficam protegidos de verdade depois de publicar as regras novas (arquivo firestore.rules).':'Modo demonstração: vale só para este aparelho.')+'</p>';
+}
+var _gGeralV11=gGeral;gGeral=function(){return _gGeralV11()+acessoCard()};
+document.addEventListener('change',function(e){
+  if(!e.target||e.target.id!=='gAcessoLogin')return;
+  var v=e.target.checked,box=e.target;
+  var volta=function(){box.checked=!v;gToast('Não deu para salvar. Só o administrador principal muda isso.',1)};
+  if(FBMODE){
+    if(!SH.db){volta();return}
+    SH.db.doc('meta/acesso').set({login:v,ts:Date.now(),by:SH.uid||''}).then(function(){gToast(v?'Login obrigatório ligado.':'Login obrigatório desligado.')},volta);
+  }else{
+    saveG('acesso',{login:v}).then(function(){gateUpdate()});
+  }
+});
+gateUpdate();
 
 })();

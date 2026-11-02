@@ -14,6 +14,14 @@ service cloud.firestore {
     }
     function caminho(c, id) { return /databases/$(database)/documents/$(c)/$(id); }
 
+    // login obrigatório para consultar: a gestão liga em meta/acesso (campo "login").
+    // Desligado (ou sem o documento), todos leem como antes; ligado, só quem entrou com conta (Google ou e-mail).
+    function contaReal() { return logado() && request.auth.token.firebase.sign_in_provider != 'anonymous'; }
+    function acessoLivre() {
+      return !exists(caminho('meta', 'acesso')) || get(caminho('meta', 'acesso')).data.get('login', false) != true;
+    }
+    function leitura() { return acessoLivre() || contaReal(); }
+
     // vagas: só quem ocupa uma vaga (ou é gestor) envia. O contador fica em meta/vagas.
     function membro() { return logado() && (exists(caminho('members', request.auth.uid)) || gestor()); }
 
@@ -35,14 +43,14 @@ service cloud.firestore {
     match /data/users/{uid}/{doc=**} { allow read, write: if dono(uid); }
 
     // compartilhado: todos leem, cada um grava o seu; quem tem o privilégio "avisos" modera
-    match /votes/{uid}   { allow read: if true; allow write: if dono(uid) && membro(); }
+    match /votes/{uid}   { allow read: if leitura(); allow write: if dono(uid) && membro(); }
     match /reports/{uid} {
-      allow read: if true;
+      allow read: if leitura();
       allow create, update: if (dono(uid) && membro() && lista(5) && intervalo(30)) || pode('avisos');
       allow delete: if dono(uid) || pode('avisos');
     }
     match /fila/{uid} {
-      allow read: if true;
+      allow read: if leitura();
       allow create, update: if (dono(uid) && membro() && lista(8) && intervalo(30)) || pode('avisos');
       allow delete: if dono(uid) || pode('avisos');
     }
@@ -64,6 +72,11 @@ service cloud.firestore {
       allow update: if dono(uid);
       allow delete: if pode('usuarios');
     }
+    // quem decide se o login é obrigatório: legível por todos (o app precisa saber antes de entrar), só o administrador principal grava
+    match /meta/acesso {
+      allow read: if true;
+      allow write: if pode('admins');
+    }
     match /meta/vagas {
       allow read: if true;
       allow create, delete: if pode('usuarios') || (gestor() && !exists(caminho('meta', 'vagas')));
@@ -78,7 +91,7 @@ service cloud.firestore {
 
     // medições de Wi-Fi: anônimas (sem quem mediu), só área de ~30 m; quem participa cria, todos leem
     match /medicoes/{id} {
-      allow read: if true;
+      allow read: if leitura();
       allow create: if membro()
         && request.resource.data.keys().hasOnly(['cell', 'x', 'y', 'ok', 'edu', 'mb', 'ms', 'tipo', 'acc', 't', 'ver'])
         && request.resource.data.cell is string && request.resource.data.cell.size() <= 20
@@ -103,15 +116,15 @@ service cloud.firestore {
 
     // conteúdo publicado pela gestão: todos leem; cada documento exige o seu privilégio
     match /gestao/{doc} {
-      allow read: if true;
+      allow read: if leitura();
       allow write: if (doc == 'linhas' && pode('linhas')) || (doc == 'pontos' && pode('pontos'))
         || (doc == 'wifi' && pode('wifi')) || (doc == 'servicos' && pode('servicos')) || (doc == 'svcmapa' && pode('servicos')) || (doc == 'redes' && pode('wifi'))
         || (doc == 'plantas' && pode('plantas')) || (doc == 'bloqueados' && pode('usuarios'))
         || (doc == 'respostas' && pode('solicitacoes')) || (doc == 'calib' && pode('gps'))
         || (doc == 'admins' && pode('admins'));
     }
-    match /plantas_img/{doc} { allow read: if true; allow write: if pode('plantas'); }
-    match /cal/{doc}         { allow read: if true; allow write: if pode('calendario'); }
+    match /plantas_img/{doc} { allow read: if leitura(); allow write: if pode('plantas'); }
+    match /cal/{doc}         { allow read: if leitura(); allow write: if pode('calendario'); }
 
     // administradores: cada um vê o próprio registro; quem tem "admins" vê e gerencia os outros.
     // O principal só muda pelo console, e ninguém se promove a principal pelo app.
