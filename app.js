@@ -3,7 +3,7 @@
 var FBMODE=!!(window.CSE_FIREBASE&&window.CSE_FIREBASE.apiKey&&window.CSE_FIREBASE.projectId)&&!(window.claude&&typeof window.claude.use==='function');
 var LITE=(function(){try{return window.matchMedia('(pointer:coarse), (max-width:820px)').matches||(navigator.hardwareConcurrency||8)<=4||!!(navigator.connection&&navigator.connection.saveData)}catch(e){return false}})();
 document.documentElement.classList.toggle('lite',LITE);
-var CFG={cover:'folha',banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'sistema',bussola:false,foto:true,perf:'auto',perfV:0,bldn:true,simples:true,simplesV:0,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true,faixa:10,faixaV:0};
+var CFG={cover:'folha',banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'sistema',bussola:false,foto:true,perf:'auto',perfV:0,bldn:true,simples:true,simplesV:0,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true,faixa:10,faixaV:0,telaCheia:null};
 try{var _c=JSON.parse(localStorage.getItem('cse-cfg'));if(_c)CFG=Object.assign(CFG,_c)}catch(e){}
 /* desempenho: automático, leve (sem transparência nem efeitos), intermediário (o antigo "completo") e completo
    (intermediário + vidro e animações em Ajustes, glossário e gestão). Automático: computador = completo; o resto = intermediário. */
@@ -3328,7 +3328,7 @@ var _locStopC=locStop;locStop=function(){_locStopC();if(CMP.on)cmpSchedule()};
 
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261104-2241';
+var APP_VERSION='20261104-2309';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
@@ -4491,6 +4491,7 @@ function v10CfgHTML(){
     '<div class="tgls">'+
     tg('cfgSimples',CFG.simples,'Modo simplificado','Esconde os textos que explicam cada função e as dicas. A legenda do mapa continua.')+'<div class="faixa-w"><p class="balvo-t"><b>Horário dos ônibus</b></p><div class="seg cl-alvo" role="group" aria-label="Como mostrar o horário dos ônibus">'+[[0,'Exato'],[5,'Faixa de 5 min'],[10,'Faixa de 10 min']].map(function(o){return '<button type="button" data-faixa="'+o[0]+'" aria-pressed="'+((+CFG.faixa||0)===o[0])+'">'+o[1]+'</button>'}).join('')+'</div><p class="muted small">Na faixa, o app mostra um intervalo (ex.: entre 07:35 e 07:45) em vez da hora exata, já que o ônibus pode adiantar ou atrasar.</p></div>'+
     tg('cfgAutoDest',CFG.autoDest,'Ponto do mapa vira destino','Ao tocar num ponto do mapa, ele entra como destino em Seu trajeto e a origem passa a ser a parada mais perto de você.')+
+    fsCfgHTML()+
     '</div>'+
     '<div><p class="eyebrow">Ajustes</p><h2>Previsão do tempo</h2></div>'+
     '<div class="tgls">'+
@@ -4525,7 +4526,7 @@ document.addEventListener('click',function(e){
   CFG.bussolaAlvo=b.dataset.balvo;saveCfg();if(typeof cmpSchedule==='function'&&CMP.on)cmpSchedule();renderCfgKeep();
 });
 document.addEventListener('change',function(e){
-  var id=e.target.id,map={cfgSimples:'simples',cfgAutoDest:'autoDest',cfgClima:'clima',cfgChuva:'chuva'};
+  var id=e.target.id,map={cfgSimples:'simples',cfgAutoDest:'autoDest',cfgClima:'clima',cfgChuva:'chuva',cfgTelaCheia:'telaCheia'};
   if(!map[id])return;
   CFG[map[id]]=e.target.checked;saveCfg();
   if(id==='cfgSimples')applySimples();
@@ -4716,5 +4717,35 @@ select=function(kind,id,scroll){
 };
 wifiChip();
 
+
+/* ======================= v16: tela cheia no primeiro toque ======================= */
+var FSE=document.documentElement;
+function fsOk(){return !!(FSE.requestFullscreen||FSE.webkitRequestFullscreen)}
+function fsOn(){return !!(document.fullscreenElement||document.webkitFullscreenElement)}
+function fsWanted(){return typeof CFG.telaCheia==='boolean'?CFG.telaCheia:window.matchMedia('(pointer:coarse)').matches}
+function fsEnter(){
+  if(!fsOk()||fsOn())return;
+  try{var r=(FSE.requestFullscreen||FSE.webkitRequestFullscreen).call(FSE,{navigationUI:'hide'});if(r&&r.catch)r.catch(function(){})}catch(e){}
+}
+function fsExit(){try{var f=document.exitFullscreen||document.webkitExitFullscreen;if(f){var r=f.call(document);if(r&&r.catch)r.catch(function(){})}}catch(e){}}
+function fsCfgHTML(){
+  if(!fsOk())return '<div class="faixa-w"><p class="balvo-t"><b>Tela cheia</b></p><p class="muted small">Este navegador não deixa o site abrir em tela cheia. No iPhone, use Compartilhar › Adicionar à Tela de Início: o app abre sem a barra de endereço.</p></div>';
+  return tg('cfgTelaCheia',fsWanted(),'Abrir em tela cheia','No primeiro toque em cada visita, o app esconde a barra de endereço. O navegador exige esse toque; não dá para ser antes. Sai com o gesto de voltar ou Esc.')+
+    '<div class="faixa-w"><button type="button" class="fs-btn" id="fsNow">'+(fsOn()?'Sair da tela cheia':'Entrar em tela cheia agora')+'</button></div>';
+}
+var fsTried=false;
+function fsFirstTap(){
+  if(fsTried)return;fsTried=true;
+  document.removeEventListener('click',fsFirstTap,true);document.removeEventListener('touchend',fsFirstTap,true);
+  if(fsWanted())fsEnter();
+}
+document.addEventListener('click',fsFirstTap,true);
+document.addEventListener('touchend',fsFirstTap,true);
+document.addEventListener('click',function(e){
+  var b=e.target.closest&&e.target.closest('#fsNow');if(!b)return;
+  fsTried=true;if(fsOn())fsExit();else fsEnter();
+});
+function fsLabel(){var b=document.getElementById('fsNow');if(b)b.textContent=fsOn()?'Sair da tela cheia':'Entrar em tela cheia agora'}
+document.addEventListener('fullscreenchange',fsLabel);document.addEventListener('webkitfullscreenchange',fsLabel);
 
 })();
