@@ -159,10 +159,3 @@ Navegador ──"Entrar com Google"──▶ Firebase Authentication ──▶ u
   usa a foto cadastrada para aquele e-mail no Gravatar (gravatar.com), se existir. Dá para desligar em
   *Ajustes › Perfil*. O botão *Sair* do perfil fecha a sessão e a conta; *Esquecer este perfil* apaga o
   perfil e a biometria do aparelho.
-- **Serviços no mapa:** na gestão, aba *Serviços e horários*, dá para mudar o lugar de cada ícone da
-  camada Serviços (banco, farmácia, lanchonete, táxi…), mudar a referência "perto de", esconder e
-  adicionar novos.
-- No **claude.ai** os botões do Google e de e-mail não aparecem: lá a própria conta do Claude identifica a pessoa e os
-  ajustes já ficam salvos na conta, de forma privada.
-- A biometria usa o padrão WebAuthn (o mesmo das chaves de acesso): Face ID, Touch ID, digital ou Windows Hello. O rosto ou a digital nunca saem do aparelho; o app guarda só a chave pública e confere a assinatura a cada entrada. Funciona em endereço https (GitHub Pages) e em localhost.
-- A tela de gestão, fora do claude.ai, funciona em modo demonstração (salva só no aparelho).
