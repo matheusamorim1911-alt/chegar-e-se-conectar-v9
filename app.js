@@ -695,7 +695,7 @@ function nightHTML(now){
       var b=L[0],d=Math.round(b.dep)-now;
       top='<div class="next lastbig"><p class="eyebrow">Último ônibus daqui para a Estação BRT</p>'+
         '<div class="nx-top">'+badge(b.lid)+'<span>Linha '+b.lid+' · '+LINES[b.lid].name+'</span></div>'+
-        '<div class="nx-big"><span class="nx-min">'+tilde(b.lid)+bt(b.dep)+'</span>'+lastPill(b.dep,now)+'</div>'+faixaGraf(b.dep,now)+
+        '<div class="nx-big"><span class="nx-min">'+tilde(b.lid)+bt(b.dep)+'</span>'+lastPill(b.dep,now)+'</div>'+faixaGraf(b.dep,now,b.lid)+
         '<p class="muted small">'+(d>=0?(CFG.faixa?'Passa '+relB(b.dep,now).pre+' '+relB(b.dep,now).val:'Faltam '+(d>=60?Math.floor(d/60)+' h '+(d%60)+' min':d+' min'))+'. ':'Este horário já passou hoje. ')+'Chega na Estação '+(CFG.faixa?atTxt(b.arr):'por volta de '+fmt(b.arr))+'.</p>'+
         (L.length>1?'<div class="later"><span class="lab">Outras</span>'+L.slice(1).map(function(c){return badge(c.lid)+' <span class="mono">'+tilde(c.lid)+bt(c.dep)+'</span>'}).join(' ')+'</div>':'')+'</div>';
     }
@@ -742,12 +742,12 @@ function stopItem(id){return '<button class="item" type="button" data-kind="stop
 /* na faixa: quantos minutos faltam para o começo e o fim da janela */
 function relB(t,now){if(!CFG.faixa)return rel(t,now);var f=faixaOf(t),a=Math.max(0,f[0]-now),b=f[1]-now;if(b<=0)return {pre:'',val:'Agora'};if(a<=0)return {pre:'até',val:b+' min'};if(b<60)return {pre:'em',val:a+'–'+b+' min'};return {pre:'em',val:rel(t,now).val}}
 /* gráfico da janela: uma barra por minuto; a altura é a chance de o ônibus passar naquele minuto */
-function faixaGraf(m,now){
+function faixaGraf(m,now,lid){
   if(!CFG.faixa)return '';var f=faixaOf(m),w=f[1]-f[0],sd=Math.max(1.2,w/3.2),bars='';
   for(var t=f[0];t<=f[1];t++){var z=(t-m)/sd,h=Math.exp(-z*z/2);
     bars+='<i class="'+(t<now?'past':'')+(t===Math.round(m)?' pk':'')+'" style="height:'+Math.round(18+h*82)+'%"></i>'}
   var nowIn=now>=f[0]&&now<=f[1];
-  return '<figure class="fxg" role="img" aria-label="O ônibus deve passar entre '+fmt(f[0])+' e '+fmt(f[1])+'. As barras mais altas são os minutos mais prováveis.">'+
+  return '<figure class="fxg"'+(lid&&LINES[lid]?' style="--fx:var(--l'+lid+')"':'')+' role="img" aria-label="O ônibus deve passar entre '+fmt(f[0])+' e '+fmt(f[1])+'. As barras mais altas são os minutos mais prováveis.">'+
     '<div class="fxg-b" aria-hidden="true">'+bars+(nowIn?'<b class="fxg-now" style="left:'+((now-f[0]+.5)/(w+1)*100).toFixed(1)+'%"><span>agora</span></b>':'')+'</div>'+
     '<figcaption aria-hidden="true"><span class="mono">'+fmt(f[0])+'</span><span>mais provável no meio</span><span class="mono">'+fmt(f[1])+'</span></figcaption></figure>';
 }
@@ -778,7 +778,7 @@ function renderPlan(focusSel){
       var more=passesAt(b.lid,f,now,5).filter(function(g){return g.to===b.to&&!g.last})[0];
       var later=more?more.times.filter(function(tm){return tm>b.dep+0.5}).slice(0,3):[];
       body='<div class="next"><div class="nx-top">'+badge(b.lid)+'<span>Linha '+b.lid+' · sentido '+b.to+'</span></div>'+
-        '<div class="nx-big">'+(x.pre?'<span class="nx-in">passa '+x.pre+'</span>':'')+'<span class="nx-min">'+x.val+'</span></div>'+faixaGraf(b.dep,now)+
+        '<div class="nx-big">'+(x.pre?'<span class="nx-in">passa '+x.pre+'</span>':'')+'<span class="nx-min">'+x.val+'</span></div>'+faixaGraf(b.dep,now,b.lid)+
         '<p>Embarque em <b>'+STOPS[f].name+'</b> '+(CFG.faixa?atT(b.dep):'às <span class="mono">'+tilde(b.lid)+fmt(b.dep)+'</span>')+'</p>'+
         '<p class="muted">Chega em '+STOPS[t].name+' '+(CFG.faixa?atT(b.arr):'por volta de <span class="mono">'+fmt(b.arr)+'</span>')+' · cerca de '+Math.max(1,Math.round(b.arr-b.dep))+' min</p></div>'+
         (later.length?'<p class="later"><span class="lab">Depois</span>'+later.map(function(tm){return '<span class="mono">'+tilde(b.lid)+bt(tm)+'</span>'}).join(' · ')+'</p>':'')+
@@ -939,7 +939,7 @@ function setLayer(key,btn){
   renderAll();
 }
 $('#chBus').addEventListener('click',function(){setLayer('bus',this)});
-function openNight(){state.nightFrom=state.nightFrom||state.to;select('night','x',true)}
+function openNight(){setTab('trajeto');try{history.replaceState(null,'','#trajeto')}catch(e){}state.nightFrom=state.nightFrom||state.to;select('night','x',true)}
 detail.addEventListener('click',function(e){
   var c=e.target.closest('[data-copy]');if(!c)return;
   var txt=c.dataset.copy,lab=c.textContent;
@@ -1959,7 +1959,7 @@ glM.addEventListener('click',function(e){
   var a=g.dataset.glgo,k=a.slice(0,1),v=a.slice(2);
   closeGloss(function(){
     if(k==='s'){setTab('trajeto');try{history.replaceState(null,'','#trajeto')}catch(err){}select('stop',v,false);scrollToMap()}
-    else{if(k==='b'){pstate.bld=v;pstate.pl=null;pstate.pf=undefined;pstate.bldOpen=true}else{pstate.cat=v;pstate.q=''}
+    else{if(k==='b'){pstate.bld=v;pstate.pl=null;pstate.pf=undefined;pstate.bldOpen=true}else{pstate.cat=v;pstate.q='';pstate.hrsOpen=true}
       setTab('predios');try{history.replaceState(null,'','#predios')}catch(err){}
       var el=k==='b'?$('#planbox'):$('#pHours');if(el)el.scrollIntoView({behavior:'auto',block:'start'})}
   });
@@ -3328,7 +3328,7 @@ var _locStopC=locStop;locStop=function(){_locStopC();if(CMP.on)cmpSchedule()};
 
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261104-2150';
+var APP_VERSION='20261104-2241';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
@@ -4635,6 +4635,17 @@ function pWifiHTML(){
     '<button class="item tint" type="button" style="--c:var(--good)" data-wedu><span class="lb" style="--c:var(--good)">Wi-Fi</span><span class="grow">Tutorial do eduroam<small>Wi-Fi global das universidades, com o login da UFRJ</small></span></button>';
 }
 function renderWifiPane(){var el=$('#pWifi');if(el&&!pPane.hidden)el.innerHTML=pWifiHTML()}
+/* "Onde fica e quando abre" vira uma seção recolhível, fechada por padrão */
+pstate.hrsOpen=(function(){try{return localStorage.getItem('cse-fold-hrs')==='1'}catch(e){return false}})();
+var _hoursInnerV15=hoursHTML;
+hoursHTML=function(now){
+  var we=isWeekend()&&!state.manual,nOpen=Object.keys(PL).filter(function(k){var it=PL[k];if(it.cat==='aula')return false;var st=statusOf(it,now);return !(st.c==='bad'||/Confirmar|Sem horário/.test(st.t))}).length;
+  var body=pstate.hrsOpen?_hoursInnerV15(now).replace(/^<div><p class="eyebrow">[^<]*<\/p><h2>Onde fica e quando abre<\/h2><\/div>/,''):'';
+  return foldHTML('fdHrs',pstate.hrsOpen,'Onde fica e quando abre','<span class="fsum muted">'+nOpen+' abertos agora · '+(we?'fim de semana':'dia útil')+', '+fmt(now)+'</span>',body);
+};
+pPane.addEventListener('toggle',function(e){var d=e.target;if(!d||d.id!=='fdHrs'||pstate.hrsOpen===d.open)return;
+  pstate.hrsOpen=d.open;try{localStorage.setItem('cse-fold-hrs',d.open?'1':'0')}catch(x){}
+  if(d.open){var b=d.querySelector('.fold-b');if(b&&!b.firstChild){pH.innerHTML=hoursHTML(nowMin());var s2=$('#fdHrs summary');if(s2)s2.focus({preventScroll:true})}}},true);
 var _renderPrediosV13=renderPredios;
 renderPredios=function(f){_renderPrediosV13(f);renderWifiPane()};
 
