@@ -3,7 +3,7 @@
 var FBMODE=!!(window.CSE_FIREBASE&&window.CSE_FIREBASE.apiKey&&window.CSE_FIREBASE.projectId)&&!(window.claude&&typeof window.claude.use==='function');
 var LITE=(function(){try{return window.matchMedia('(pointer:coarse), (max-width:820px)').matches||(navigator.hardwareConcurrency||8)<=4||!!(navigator.connection&&navigator.connection.saveData)}catch(e){return false}})();
 document.documentElement.classList.toggle('lite',LITE);
-var CFG={cover:'folha',banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'sistema',bussola:false,foto:true,perf:'auto',perfV:0,bldn:true,simples:false,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true};
+var CFG={cover:'folha',banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'sistema',bussola:false,foto:true,perf:'auto',perfV:0,bldn:true,simples:false,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true,faixa:0};
 try{var _c=JSON.parse(localStorage.getItem('cse-cfg'));if(_c)CFG=Object.assign(CFG,_c)}catch(e){}
 /* desempenho: automático, leve (sem transparência nem efeitos), intermediário (o antigo "completo") e completo
    (intermediário + vidro e animações em Ajustes, glossário e gestão). Automático: computador = completo; o resto = intermediário. */
@@ -263,7 +263,7 @@ function stopsNearWifi(wid){if(!WIFI[wid])return [];return Object.keys(STOPS).fi
 
 /* ---------- estado ---------- */
 var SORTED=Object.keys(STOPS).sort(function(a,b){if(a==='est')return -1;if(b==='est')return 1;return STOPS[a].name.localeCompare(STOPS[b].name,'pt')});
-var state={layers:{bus:true,wifi:true},sel:null,
+var state={layers:{bus:true,wifi:(function(){try{return localStorage.getItem('cse-lay-wifi')==='1'}catch(e){return false}})()},sel:null,
   from:STOPS[prefs.from]?prefs.from:'est',to:STOPS[prefs.to]?prefs.to:'ctl',manual:false,clk:''};
 if(state.from===state.to)state.to=state.from==='ctl'?'est':'ctl';
 function realNow(){var d=new Date();return d.getHours()*60+d.getMinutes()}
@@ -285,9 +285,11 @@ function rose(cx,cy,r,deg){
   return s+'</g>';
 }
 /* ---------- mapa vetorial (traçado a partir do mapa da Prefeitura Universitária) ---------- */
-var MAPIMG='mapa-bordas.jpg';
+/* tema claro usa as versões claras do mapa; decide já na carga, para não baixar as duas */
+var MAPSUF=(function(){try{var t=(JSON.parse(localStorage.getItem('cse-cfg')||'{}')||{}).tema||'sistema';if(t==='claro')return '-claro';if(t==='escuro'||t==='horario')return '';return window.matchMedia('(prefers-color-scheme: light)').matches?'-claro':''}catch(e){return ''}})();
+var MAPIMG='mapa-bordas'+MAPSUF+'.jpg';
 /* mapa base: planta cadastral da Cidade Universitária (ETU/UFRJ), vetorizada; JPG para a visão geral, SVG nítido no zoom */
-var MAPHD=window.MAPHD_URL='mapa-campus.jpg',MAPVEC='mapa-campus.svg',MAPMINI='mapa-mini.jpg',MAPBLUR='mapa-blur.jpg';
+var MAPHD=window.MAPHD_URL='mapa-campus'+MAPSUF+'.jpg',MAPVEC='mapa-campus'+MAPSUF+'.svg',MAPMINI='mapa-mini'+MAPSUF+'.jpg',MAPBLUR='mapa-blur'+MAPSUF+'.jpg',MAPVEC0='mapa-campus.svg';
 /* nomes recriados como texto: [texto, x, y, classe, nível de zoom, rotação] */
 var MAPLABELS=[
   ['Baía de Guanabara',720,232,'ml-w',1,0],
@@ -693,15 +695,15 @@ function nightHTML(now){
       var b=L[0],d=Math.round(b.dep)-now;
       top='<div class="next lastbig"><p class="eyebrow">Último ônibus daqui para a Estação BRT</p>'+
         '<div class="nx-top">'+badge(b.lid)+'<span>Linha '+b.lid+' · '+LINES[b.lid].name+'</span></div>'+
-        '<div class="nx-big"><span class="nx-min">'+tilde(b.lid)+fmt(b.dep)+'</span>'+lastPill(b.dep,now)+'</div>'+
-        '<p class="muted small">'+(d>=0?'Faltam '+(d>=60?Math.floor(d/60)+' h '+(d%60)+' min':d+' min')+'. ':'Este horário já passou hoje. ')+'Chega na Estação por volta de '+fmt(b.arr)+'.</p>'+
-        (L.length>1?'<div class="later"><span class="lab">Outras</span>'+L.slice(1).map(function(c){return badge(c.lid)+' <span class="mono">'+tilde(c.lid)+fmt(c.dep)+'</span>'}).join(' ')+'</div>':'')+'</div>';
+        '<div class="nx-big"><span class="nx-min">'+tilde(b.lid)+bt(b.dep)+'</span>'+lastPill(b.dep,now)+'</div>'+faixaGraf(b.dep,now)+
+        '<p class="muted small">'+(d>=0?(CFG.faixa?'Passa '+relB(b.dep,now).pre+' '+relB(b.dep,now).val:'Faltam '+(d>=60?Math.floor(d/60)+' h '+(d%60)+' min':d+' min'))+'. ':'Este horário já passou hoje. ')+'Chega na Estação '+(CFG.faixa?atTxt(b.arr):'por volta de '+fmt(b.arr))+'.</p>'+
+        (L.length>1?'<div class="later"><span class="lab">Outras</span>'+L.slice(1).map(function(c){return badge(c.lid)+' <span class="mono">'+tilde(c.lid)+bt(c.dep)+'</span>'}).join(' ')+'</div>':'')+'</div>';
     }
   }
   var rows=linesAt(from).map(function(lid){
     if(!nightOK(lid))return '<div class="lastrow">'+badge(lid)+'<span class="grow">'+LINES[lid].name+'</span><span class="pill bad">Só seg. a sex.</span></div>';
     return lastAt(lid,from).map(function(g){
-      return '<div class="lastrow">'+badge(lid)+'<span class="grow">Sentido '+g.to+'</span><span class="mono">'+tilde(lid)+fmt(g.t)+'</span>'+lastPill(g.t,now)+'</div>';
+      return '<div class="lastrow">'+badge(lid)+'<span class="grow">Sentido '+g.to+'</span><span class="mono">'+tilde(lid)+bt(g.t)+'</span>'+lastPill(g.t,now)+'</div>';
     }).join('');
   }).join('');
   return '<button class="back" type="button" data-go="home">← Voltar</button>'+
@@ -737,8 +739,25 @@ function badge(id){return '<span class="lb" style="--c:var('+LINES[id].color+')"
 function barsSvg(n,w,h){var hs=[3.5,6,8.5,11],s='<svg class="bars" viewBox="0 0 14 12" width="'+(w||22)+'" height="'+(h||19)+'" aria-hidden="true">';for(var i=0;i<4;i++)s+='<rect class="'+(i<n?'bf':'bo')+'" x="'+(i*3.7)+'" y="'+(12-hs[i])+'" width="2.6" height="'+hs[i]+'" rx=".7"/>';return s+'</svg>'}
 function wifiItem(id){var a=avgOf(id),q=info(a);return '<button class="item" type="button" data-kind="wifi" data-id="'+id+'">'+barsSvg(q.bars)+'<span class="grow">'+WIFI[id].name+'</span><span class="mono">'+br(a)+'</span></button>'}
 function stopItem(id){return '<button class="item" type="button" data-kind="stop" data-id="'+id+'"><span class="grow">'+STOPS[id].name+'</span>'+linesAt(id).map(badge).join('')+'</button>'}
+/* na faixa: quantos minutos faltam para o começo e o fim da janela */
+function relB(t,now){if(!CFG.faixa)return rel(t,now);var f=faixaOf(t),a=Math.max(0,f[0]-now),b=f[1]-now;if(b<=0)return {pre:'',val:'Agora'};if(a<=0)return {pre:'até',val:b+' min'};if(b<60)return {pre:'em',val:a+'–'+b+' min'};return {pre:'em',val:rel(t,now).val}}
+/* gráfico da janela: uma barra por minuto; a altura é a chance de o ônibus passar naquele minuto */
+function faixaGraf(m,now){
+  if(!CFG.faixa)return '';var f=faixaOf(m),w=f[1]-f[0],sd=Math.max(1.2,w/3.2),bars='';
+  for(var t=f[0];t<=f[1];t++){var z=(t-m)/sd,h=Math.exp(-z*z/2);
+    bars+='<i class="'+(t<now?'past':'')+(t===Math.round(m)?' pk':'')+'" style="height:'+Math.round(18+h*82)+'%"></i>'}
+  var nowIn=now>=f[0]&&now<=f[1];
+  return '<figure class="fxg" role="img" aria-label="O ônibus deve passar entre '+fmt(f[0])+' e '+fmt(f[1])+'. As barras mais altas são os minutos mais prováveis.">'+
+    '<div class="fxg-b" aria-hidden="true">'+bars+(nowIn?'<b class="fxg-now" style="left:'+((now-f[0]+.5)/(w+1)*100).toFixed(1)+'%"><span>agora</span></b>':'')+'</div>'+
+    '<figcaption aria-hidden="true"><span class="mono">'+fmt(f[0])+'</span><span>mais provável no meio</span><span class="mono">'+fmt(f[1])+'</span></figcaption></figure>';
+}
 function rel(t,now){var d=Math.round(t)-now;if(d<=0)return {pre:'',val:'Agora'};if(d<60)return {pre:'em',val:d+' min'};return {pre:'em',val:Math.floor(d/60)+' h '+(d%60)+' min'}}
-function tilde(lid){return LINES[lid].approx?'~':''}
+function tilde(lid){return CFG.faixa?'':LINES[lid].approx?'~':''}
+/* horário de ônibus: exato ou numa faixa de alguns minutos (Ajustes) */
+function faixaOf(m){var w=+CFG.faixa||0,a=Math.round((m-w/2)/5)*5;return [a,a+w]}
+function bt(m){if(!CFG.faixa)return fmt(m);var f=faixaOf(m);return fmt(f[0])+'–'+fmt(f[1])}
+function atT(m){if(!CFG.faixa)return 'às <span class="mono">'+fmt(m)+'</span>';var f=faixaOf(m);return 'entre <span class="mono">'+fmt(f[0])+'</span> e <span class="mono">'+fmt(f[1])+'</span>'}
+function atTxt(m){if(!CFG.faixa)return 'às '+fmt(m);var f=faixaOf(m);return 'entre '+fmt(f[0])+' e '+fmt(f[1])}
 var weekendNote='<p class="note">Hoje é fim de semana. A página da Prefeitura só informa horários de dias úteis; confirme antes de sair.</p>';
 
 /* ---------- planejador ---------- */
@@ -755,15 +774,15 @@ function renderPlan(focusSel){
         ?'<div class="next"><p><b>Sem mais circulares diretos hoje.</b></p><p class="muted">Mude o horário acima para ver as saídas de amanhã.</p></div>'
         :'<div class="next"><p><b>Nenhuma linha interna liga esses dois pontos direto.</b></p><p class="muted">Tente ir até a Estação BRT ou até o CT e trocar de linha lá.</p></div>';
     }else{
-      var b=o[0],x=rel(b.dep,now);planBest=b;
+      var b=o[0],x=relB(b.dep,now);planBest=b;
       var more=passesAt(b.lid,f,now,5).filter(function(g){return g.to===b.to&&!g.last})[0];
       var later=more?more.times.filter(function(tm){return tm>b.dep+0.5}).slice(0,3):[];
       body='<div class="next"><div class="nx-top">'+badge(b.lid)+'<span>Linha '+b.lid+' · sentido '+b.to+'</span></div>'+
-        '<div class="nx-big">'+(x.pre?'<span class="nx-in">passa '+x.pre+'</span>':'')+'<span class="nx-min">'+x.val+'</span></div>'+
-        '<p>Embarque em <b>'+STOPS[f].name+'</b> às <span class="mono">'+tilde(b.lid)+fmt(b.dep)+'</span></p>'+
-        '<p class="muted">Chega em '+STOPS[t].name+' por volta de <span class="mono">'+fmt(b.arr)+'</span> · cerca de '+Math.max(1,Math.round(b.arr-b.dep))+' min</p></div>'+
-        (later.length?'<p class="later"><span class="lab">Depois</span>'+later.map(function(tm){return '<span class="mono">'+tilde(b.lid)+fmt(tm)+'</span>'}).join(' · ')+'</p>':'')+
-        (o.length>1?'<div class="later"><span class="lab">Outras linhas</span>'+o.slice(1,4).map(function(c){return badge(c.lid)+' <span class="mono">'+tilde(c.lid)+fmt(c.dep)+'</span> <span class="muted small">chega '+fmt(c.arr)+'</span>'}).join(' ')+'</div>':'');
+        '<div class="nx-big">'+(x.pre?'<span class="nx-in">passa '+x.pre+'</span>':'')+'<span class="nx-min">'+x.val+'</span></div>'+faixaGraf(b.dep,now)+
+        '<p>Embarque em <b>'+STOPS[f].name+'</b> '+(CFG.faixa?atT(b.dep):'às <span class="mono">'+tilde(b.lid)+fmt(b.dep)+'</span>')+'</p>'+
+        '<p class="muted">Chega em '+STOPS[t].name+' '+(CFG.faixa?atT(b.arr):'por volta de <span class="mono">'+fmt(b.arr)+'</span>')+' · cerca de '+Math.max(1,Math.round(b.arr-b.dep))+' min</p></div>'+
+        (later.length?'<p class="later"><span class="lab">Depois</span>'+later.map(function(tm){return '<span class="mono">'+tilde(b.lid)+bt(tm)+'</span>'}).join(' · ')+'</p>':'')+
+        (o.length>1?'<div class="later"><span class="lab">Outras linhas</span>'+o.slice(1,4).map(function(c){return badge(c.lid)+' <span class="mono">'+tilde(c.lid)+bt(c.dep)+'</span> <span class="muted small">chega '+fmt(c.arr)+'</span>'}).join(' ')+'</div>':'');
     }
   }
   var ws=wifiNearStop(t);
@@ -789,7 +808,7 @@ function linesHTML(){
     '<div class="list">'+Object.keys(PLACES).map(function(id){
       return '<button class="item tint" type="button" style="--c:var(--ink-3)" data-kind="stop" data-id="'+id+'"><span class="lb" style="--c:var(--ink)">'+PLACES[id].name+'</span><span class="grow">'+PLACES[id].full+'<small>Institutos, bibliotecas e horários de funcionamento</small></span></button>';
     }).join('')+'</div>'+
-    NIGHTITEM+'<button class="item tint" type="button" style="--c:var(--good)" data-kind="guide" data-id="eduroam"><span class="lb" style="--c:var(--good)">Wi-Fi</span><span class="grow">Tutorial do eduroam<small>Wi-Fi global das universidades, com o login da UFRJ</small></span></button>'+
+    NIGHTITEM+
     '<div><p class="eyebrow">Transporte integrado</p><h2>Linhas internas</h2></div>'+
     '<p class="muted small">Toque numa linha para ver o itinerário, ou numa parada do mapa para ver os próximos horários.</p>'+
     '<div class="list">'+Object.keys(LINES).map(function(id){
@@ -805,10 +824,10 @@ function lineHTML(id,now){
       var ps=tr.passes.filter(function(p){return p.half===hi||(hi>0&&p===tr.passes[0])}).filter(function(p,i,arr){return p.half===hi});
       if(hi>0){var prevLast=tr.passes.filter(function(p){return p.half===hi-1}).slice(-1)[0];if(prevLast&&ps[0]&&ps[0].stop!==prevLast.stop)ps=[ps[0]].concat(ps.slice(1));}
       h+='<h3>Sentido '+hf.to+'</h3><ol class="seq" style="--c:var('+l.color+')">'+ps.map(function(p){
-        return '<li><button type="button" data-kind="stop" data-id="'+p.stop+'"><span class="nm">'+STOPS[p.stop].name+'</span><span class="mono muted">'+tilde(id)+fmt(d+p.off)+'</span></button></li>';
+        return '<li><button type="button" data-kind="stop" data-id="'+p.stop+'"><span class="nm">'+STOPS[p.stop].name+'</span><span class="mono muted">'+tilde(id)+bt(d+p.off)+'</span></button></li>';
       }).join('')+'</ol>';
     });
-    h+='<p class="muted small">'+(tomorrow?'Primeira viagem de amanhã':'Próxima viagem')+': saída às <span class="mono">'+fmt(d)+'</span> de '+STOPS[tr.passes[0].stop].name+'. Horários por parada estimados.</p>';
+    h+='<p class="muted small">'+(tomorrow?'Primeira viagem de amanhã':'Próxima viagem')+': saída '+atT(d)+' de '+STOPS[tr.passes[0].stop].name+'. Horários por parada estimados.</p>';
   });
   return '<button class="back" type="button" data-go="home">← Todas as linhas</button>'+
     '<div class="nx-top">'+badge(id)+'<h2>'+l.name+'</h2></div><p class="muted">'+l.sum+'</p>'+lineNote(id)+h;
@@ -819,8 +838,8 @@ function stopHTML(id,now){
     var rows=gs.map(function(g){
       var body;
       if(g.last)return '<div class="tt-row"><span class="tt-dir">Ponto final do sentido '+g.to+'</span></div>';
-      if(!g.times.length)body='<span class="muted small">Sem mais passagens hoje. Primeira de amanhã: <span class="mono">'+tilde(k)+fmt(g.first)+'</span></span>';
-      else{var x=rel(g.times[0],now);body='<div class="tt-times"><span class="mono first">'+tilde(k)+fmt(g.times[0])+'</span><span class="in">'+(x.pre?x.pre+' '+x.val:x.val)+'</span>'+g.times.slice(1).map(function(t){return '<span class="mono">'+tilde(k)+fmt(t)+'</span>'}).join('')+'</div>'}
+      if(!g.times.length)body='<span class="muted small">Sem mais passagens hoje. Primeira de amanhã: <span class="mono">'+tilde(k)+bt(g.first)+'</span></span>';
+      else{var x=relB(g.times[0],now);body='<div class="tt-times"><span class="mono first">'+tilde(k)+bt(g.times[0])+'</span><span class="in">'+(x.pre?x.pre+' '+x.val:x.val)+'</span>'+g.times.slice(1).map(function(t){return '<span class="mono">'+tilde(k)+bt(t)+'</span>'}).join('')+'</div>'}
       return '<div class="tt-row"><span class="tt-dir">Sentido '+g.to+'</span>'+body+'</div>';
     }).join('');
     return '<div class="tt"><button class="item" type="button" data-kind="line" data-id="'+k+'" style="border:0;padding:0;min-height:30px">'+badge(k)+'<span class="grow"><b>'+LINES[k].name+'</b></span>'+(LINES[k].susp?'<span class="pill bad">Suspensa</span>':'')+'</button>'+rows+'</div>';
@@ -914,7 +933,7 @@ plan.addEventListener('change',function(e){
   }
 });
 function setLayer(key,btn){
-  state.layers[key]=!state.layers[key];
+  state.layers[key]=!state.layers[key];if(key==='wifi'){try{localStorage.setItem('cse-lay-wifi',state.layers.wifi?'1':'0')}catch(e){}if(!state.layers.wifi)wifiPopClose()}
   btn.setAttribute('aria-pressed',String(state.layers[key]));
   if(state.sel&&(((state.sel.kind==='stop'||state.sel.kind==='line')&&!state.layers.bus)||(state.sel.kind==='wifi'&&!state.layers.wifi)||(state.sel.kind==='svc'&&!state.layers.svc)))state.sel=null;
   renderAll();
@@ -1006,7 +1025,7 @@ function placeOf(key){
 }
 function liveReps(){var now=Date.now();return SH.reps.filter(function(r){return r.ts>now-REP_TTL&&r.ts<now+5*60000&&placeOf(r.place)&&!(typeof GST!=='undefined'&&GST&&blocked(r.owner))})}
 function aggVotes(docs){
-  var v={};
+  var v={};SH.voteDocs={};docs.forEach(function(d){SH.voteDocs[d.id]=1});
   docs.forEach(function(d){var r=(d.data()||{}).r;if(!r||typeof r!=='object')return;Object.keys(r).forEach(function(w){var n=+r[w];if(!WIFI[w]||!(n>=1&&n<=5))return;if(!v[w])v[w]={s:0,n:0};v[w].s+=n;v[w].n++})});
   return v;
 }
@@ -1116,7 +1135,7 @@ function initShared(){
       if(user)user.canEdit().then(function(o){MUD_OWNER=o;if(o&&cPane&&!cPane.hidden)renderCal();if(o)setGestor(true)});
       db.collection('fila').onSnapshot(function(s){SH.fila=flatFila(s.docs);refreshAll();drawShared();if(gestM&&!gestM.hidden)renderGest()},function(){});
       db.collection('gestao').onSnapshot(function(s){var seen={};s.docs.forEach(function(d){if(GKEYS.indexOf(d.id)<0)return;var v=(d.data()||{}).v;if(v&&typeof v==='object'){GST[d.id]=v;seen[d.id]=1}});
-        GKEYS.forEach(function(k){if(!seen[k])GST[k]=k==='plantas'?{items:[]}:k==='bloqueados'?{ids:[]}:{}});if(!Array.isArray(GST.plantas.items))GST.plantas.items=[];if(!Array.isArray(GST.bloqueados.ids))GST.bloqueados.ids=[];
+        GKEYS.forEach(function(k){if(!seen[k])GST[k]=k==='plantas'?{items:[]}:k==='bloqueados'?{ids:[]}:{}});if(!Array.isArray(GST.plantas.items))GST.plantas.items=[];GST.plantas.items=GST.plantas.items.filter(function(x){return x&&typeof x==='object'});if(!Array.isArray(GST.bloqueados.ids))GST.bloqueados.ids=[];
         rebuildAll();if(!cfgM.hidden)renderCfg()},function(){});
       db.collection('reports').onSnapshot(function(s){SH.reps=flatReps(s.docs);refreshAll();if(gestM&&!gestM.hidden)renderGest()},function(){});
       if(uid){
@@ -1217,8 +1236,8 @@ function gradeNextHTML(now){
   else{
     var r=arriveBy(from,to,n.ini,n.dd===0&&!n.going?now:0);
     if(n.going||(n.dd===0&&!r)){var o=options(from,to,now);r=null;
-      how=o.length?'<p class="small"><b>Vá agora:</b> '+badge(o[0].lid)+' passa às <span class="mono">'+tilde(o[0].lid)+fmt(o[0].dep)+'</span> e chega às <span class="mono">'+fmt(o[0].arr)+'</span>.</p>':'<p class="small">Nenhum circular direto agora entre esses pontos.</p>';}
-    else if(r)how='<p class="small">'+badge(r.lid)+' <b>Linha '+r.lid+'</b> às <span class="mono">'+tilde(r.lid)+fmt(r.dep)+'</span> em '+STOPS[from].name+', chega às <span class="mono">'+fmt(r.arr)+'</span>, antes do início.</p>';
+      how=o.length?'<p class="small"><b>Vá agora:</b> '+badge(o[0].lid)+' passa '+(CFG.faixa?atT(o[0].dep):'às <span class="mono">'+tilde(o[0].lid)+fmt(o[0].dep)+'</span>')+' e chega '+atT(o[0].arr).replace(/<\/span>$/,'')+'</span>.</p>':'<p class="small">Nenhum circular direto agora entre esses pontos.</p>';}
+    else if(r)how='<p class="small">'+badge(r.lid)+' <b>Linha '+r.lid+'</b> às <span class="mono">'+tilde(r.lid)+bt(r.dep)+'</span> em '+STOPS[from].name+', chega às <span class="mono">'+fmt(r.arr)+'</span>, antes do início.</p>';
     else how='<p class="small">Nenhum circular direto chega a tempo. Tente sair da Estação BRT.</p>';
   }
   var plan=(a.bld==='ct'||a.bld==='ccmn')?'<button class="copy" type="button" data-gplan="'+esc(a.id)+'">Ver planta da sala</button>':'';
@@ -1272,7 +1291,7 @@ function warnText(c,tpl,safe){
   var from=STOPS[c.from].name,to=STOPS[c.to].name;
   if(tpl==='cheguei')return 'Cheguei bem em '+to+'.';
   if(tpl==='atraso')return 'O circular atrasou. Ainda estou em '+from+' (UFRJ, Fundão) e te aviso quando embarcar.';
-  var t='Oi! Vou pegar a Linha '+c.lid+' da UFRJ ('+LINES[c.lid].name+') às '+fmt(c.dep)+' em '+from+', na Ilha do Fundão. Devo chegar em '+to+' por volta de '+fmt(c.arr)+'.';
+  var t='Oi! Vou pegar a Linha '+c.lid+' da UFRJ ('+LINES[c.lid].name+') '+atTxt(c.dep)+' em '+from+', na Ilha do Fundão. Devo chegar em '+to+' '+(CFG.faixa?atTxt(c.arr):'por volta de '+fmt(c.arr))+'.';
   return t+(safe?' Se eu não der notícia até '+fmt(c.arr+15)+', me liga. Se eu não atender, avisa a segurança da UFRJ (DISEG): (21) 97380-2554.':' Te aviso quando chegar.');
 }
 function warnHTML(c,key,open){
@@ -1957,6 +1976,7 @@ var GLS='cse-gestao-';
 var ORIG={lines:{},stops:{},wifi:{},pl:{}};
 Object.keys(LINES).forEach(function(id){ORIG.lines[id]={sum:LINES[id].sum,deps:LINES[id].trips.map(function(t){return t.deps.slice()})}});
 Object.keys(STOPS).forEach(function(id){ORIG.stops[id]={name:STOPS[id].name,short:STOPS[id].short,p:STOPS[id].p.slice()}});
+ORIG.seq={};Object.keys(LINES).forEach(function(id){ORIG.seq[id]=LINES[id].trips.map(function(t){return t.halves.map(function(h){return h.seq.slice()})})});
 Object.keys(WIFI).forEach(function(id){ORIG.wifi[id]=JSON.parse(JSON.stringify(WIFI[id]))});
 Object.keys(PL).forEach(function(k){ORIG.pl[k]={wk:PL[k].wk,we:PL[k].we,note:PL[k].note}});
 function cleanTxt(s,n){return String(s==null?'':s).replace(/[<>]/g,'').trim().slice(0,n||120)}
@@ -2006,8 +2026,20 @@ function applyG(){
     l.trips.forEach(function(tr,i){var d=null;try{d=g.hor&&g.hor[i]?parseDeps(g.hor[i]):null}catch(e){}tr.deps=d&&d.length?d:o.deps[i].slice()});
     var d0=l.trips[0].deps;if(PL['bus'+id])PL['bus'+id].wk=[[d0[0],d0[d0.length-1]+1]];
   });
+  Object.keys(STOPS).forEach(function(id){if(!ORIG.stops[id])delete STOPS[id]});
+  Object.keys(LINES).forEach(function(lid){LINES[lid].trips.forEach(function(tr,ti){tr.halves.forEach(function(h,hi){if(ORIG.seq[lid]&&ORIG.seq[lid][ti])h.seq=ORIG.seq[lid][ti][hi].slice()})})});
   Object.keys(STOPS).forEach(function(id){var o=ORIG.stops[id],g=(GST.pontos||{})[id]||{},s=STOPS[id];
     s.name=g.name?cleanTxt(g.name,60):o.name;s.short=g.short?cleanTxt(g.short,24):o.short;s.p=validP(g.p)?g.p.slice():o.p.slice();s.off=!!g.off;s.aviso=cleanTxt(g.aviso,200);
+  });
+  /* pontos novos, criados pela gestão: entram no trajeto das linhas logo depois do ponto escolhido */
+  var gpn=GST.pontos||{};
+  Object.keys(gpn).forEach(function(id){var g=gpn[id];
+    if(!g||!g.novo||ORIG.stops[id]||WP[id]||!/^n[a-z0-9]{3,20}$/.test(id)||!validP(g.p)||!cleanTxt(g.name,60))return;
+    STOPS[id]={name:cleanTxt(g.name,60),short:cleanTxt(g.short,24)||undefined,p:g.p.slice(),off:!!g.off,aviso:cleanTxt(g.aviso,200),novo:true};
+    var lin=g.lin&&typeof g.lin==='object'?g.lin:{};
+    Object.keys(lin).forEach(function(lid){if(!LINES[lid]||!Array.isArray(lin[lid]))return;
+      lin[lid].forEach(function(after,hi){if(!after||!ORIG.stops[after])return;
+        LINES[lid].trips.forEach(function(tr){var h=tr.halves[hi];if(!h||h.seq.indexOf(id)>=0)return;var k=h.seq.indexOf(after);if(k>=0)h.seq.splice(k+1,0,id)})})});
   });
   Object.keys(WIFI).forEach(function(id){if(!ORIG.wifi[id])delete WIFI[id]});
   Object.keys(ORIG.wifi).forEach(function(id){WIFI[id]=JSON.parse(JSON.stringify(ORIG.wifi[id]))});
@@ -2203,7 +2235,7 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape'&&gestM&&!ges
 function setGestor(v){
   GESTOR=v;var b=$('#gestBtn');if(b)b.hidden=!v;
   if(v===true&&SH.on){
-    SH.db.collection('members').onSnapshot(function(s){SH.members=s.docs.map(function(d){var x=d.data()||{};return {id:d.id,first:+x.first||0,last:+x.last||0,visits:+x.visits||0,nome:String(x.nome||'').slice(0,60)}});if(gestM&&!gestM.hidden&&gTab!=='solic')renderGest()},function(){});
+    SH.db.collection('members').onSnapshot(function(s){SH.members=s.docs.map(function(d){var x=d.data()||{};return {id:d.id,first:+x.first||0,last:+x.last||0,visits:+x.visits||0,nome:String(x.nome||'').slice(0,60),email:String(x.email||'').slice(0,120)}});if(gestM&&!gestM.hidden&&gTab!=='solic'&&!(gTab==='admins'&&document.activeElement&&document.activeElement.id==='admBusca'))renderGest()},function(){});
     SH.db.collection('requests').onSnapshot(function(s){SH.req=flatReq(s.docs);if(gestM&&!gestM.hidden)renderGest()},function(){});
   }
 }
@@ -2286,10 +2318,32 @@ function pickMapHTML(p,others){
   var dots=(others||[]).map(function(o){return '<circle cx="'+o[0]+'" cy="'+o[1]+'" r="5" class="pk-o"/>'}).join('');
   return '<div class="pkwrap"><svg class="pkmap" id="pkMap" viewBox="109 -45 1233 701" role="img" aria-label="Toque no mapa para posicionar"><image href="'+MAPHD+'" x="109" y="-45" width="1233" height="701" preserveAspectRatio="none"/>'+dots+(p?'<g transform="translate('+p[0]+','+p[1]+')"><circle r="16" class="pk-h"/><circle r="7" class="pk-p"/></g>':'')+'</svg></div><p class="muted small">Toque no mapa para mudar a posição'+(p?' · x '+Math.round(p[0])+', y '+Math.round(p[1]):'')+'.</p>';
 }
+/* em que linhas o ponto novo entra: um seletor por linha e sentido */
+function pontoLinhasHTML(id){
+  var cur=(((GST.pontos||{})[id]||{}).lin)||{};
+  return '<fieldset class="gf plins"><legend>Linhas que param aqui</legend><p class="muted small">Para cada sentido, escolha depois de qual ponto o ônibus passa por aqui. Deixe "Não para" onde a linha não passa.</p>'+
+    Object.keys(LINES).map(function(lid){var L=LINES[lid];
+      return '<div class="plin">'+badge(lid)+'<div class="plin-s">'+L.trips[0].halves.map(function(h,hi){
+        var seen={},opts=(ORIG.seq[lid]?ORIG.seq[lid][0][hi]:[]).filter(function(x){if(!ORIG.stops[x]||seen[x])return false;seen[x]=1;return true});
+        var sel=(cur[lid]||[])[hi]||'';
+        return '<label class="gf">Sentido '+esc(h.to)+'<select id="gPl_'+lid+'_'+hi+'"><option value="">Não para</option>'+opts.map(function(x){return '<option value="'+x+'"'+(x===sel?' selected':'')+'>Depois de '+esc(ORIG.stops[x].name)+'</option>'}).join('')+'</select></label>'}).join('')+'</div></div>'}).join('')+'</fieldset>';
+}
+function gPontoNovoForm(id){
+  var g=id==='+'?{}:(GST.pontos[id]||{}),sp=STOPS[id]||{};
+  return '<form class="gform" data-gform="ponto" data-id="'+id+'">'+
+    '<label class="gf">Nome<input type="text" id="gPn" maxlength="60" value="'+esc(g.name||'')+'" required placeholder="Ex.: Instituto de Biologia"></label>'+
+    '<label class="gf">Nome curto no mapa<input type="text" id="gPs" maxlength="24" value="'+esc(g.short||'')+'" placeholder="Opcional"></label>'+
+    (id==='+'?'':tg('gPoff',!!g.off,'Ponto desativado','Aparece apagado no mapa, com aviso para os alunos.')+'<label class="gf">Aviso<input type="text" id="gPav" maxlength="200" value="'+esc(g.aviso||'')+'"></label>')+
+    pickMapHTML(pickP||(validP(g.p)?g.p:null),Object.keys(STOPS).filter(function(k){return k!==id}).map(function(k){return STOPS[k].p}))+
+    pontoLinhasHTML(id)+
+    '<p class="err small" id="gErr" role="alert"></p><div class="gbtns"><button type="submit" class="copy primary">'+(id==='+'?'Criar ponto':'Salvar')+'</button>'+(id==='+'?'':'<button type="button" class="copy danger" data-greset="pontos:'+id+'">Remover ponto</button>')+'</div></form>';
+}
 function gPontos(){
-  var ids=Object.keys(STOPS).sort(function(a,b){return STOPS[a].name.localeCompare(STOPS[b].name,'pt')});
-  return '<h3 class="gh">Pontos de ônibus</h3><p class="muted small">Renomeie, mude de lugar ou desative um ponto. Ao mover, o traçado das linhas passa pela nova posição.</p>'+
+  var ids=Object.keys(STOPS).sort(function(a,b){return STOPS[a].name.localeCompare(STOPS[b].name,'pt')}),newOpen=gEdit==='p:+';
+  return '<h3 class="gh">Pontos de ônibus</h3><p class="muted small">Crie um ponto novo, renomeie, mude de lugar ou desative um ponto. Ao mover, o traçado das linhas passa pela nova posição.</p>'+
+  '<div class="gcard'+(newOpen?' open':'')+'"><div class="grow2"><span class="grow"><b>Adicionar ponto de ônibus</b><small>Um ponto que ainda não aparece no mapa</small></span><button type="button" class="copy primary" data-gedit="p:+">'+(newOpen?'Cancelar':'Adicionar')+'</button></div>'+(newOpen?gPontoNovoForm('+'):'')+'</div>'+
   '<div class="glist">'+ids.map(function(id){var s=STOPS[id],open=gEdit==='p:'+id,ls=linesAt(id);
+    if(s.novo)return '<div class="gcard'+(open?' open':'')+'"><div class="grow2"><span class="grow"><b>'+esc(s.name)+'</b><small>'+(ls.length?'Linhas '+ls.join(', '):'Nenhuma linha para aqui ainda')+' · criado pela gestão</small></span>'+(s.off?'<span class="pill bad">Desativado</span>':'')+'<button type="button" class="copy" data-gedit="p:'+id+'">'+(open?'Fechar':'Editar')+'</button></div>'+(open?gPontoNovoForm(id):'')+'</div>';
     return '<div class="gcard'+(open?' open':'')+'"><div class="grow2"><span class="grow"><b>'+esc(s.name)+'</b><small>Linhas '+ls.join(', ')+(GST.pontos[id]?' · alterado':'')+'</small></span>'+(s.off?'<span class="pill bad">Desativado</span>':'')+'<button type="button" class="copy" data-gedit="p:'+id+'">'+(open?'Fechar':'Editar')+'</button></div>'+
       (open?'<form class="gform" data-gform="ponto" data-id="'+id+'">'+
         '<label class="gf">Nome<input type="text" id="gPn" maxlength="60" value="'+esc(s.name)+'" required></label>'+
@@ -2419,6 +2473,13 @@ function onGestSubmit(e){
       if(hor.some(function(h){return h}))g.hor=hor;
       if(!g.susp&&!g.aviso&&!g.sum&&!g.hor)delete o[id];else o[id]=g;
       gEdit=null;saveG('linhas',o);
+    }else if(kind==='ponto'&&(id==='+'||(GST.pontos[id]&&GST.pontos[id].novo))){
+      var nn=cleanTxt(v('gPn'),60);if(!nn)throw new Error('O ponto precisa de um nome.');
+      var np=pickP||(GST.pontos[id]&&GST.pontos[id].p);if(!validP(np))throw new Error('Toque no mapa para marcar onde fica o ponto.');
+      var lin={},any=false;Object.keys(LINES).forEach(function(lid){var a=LINES[lid].trips[0].halves.map(function(h,hi){return v('gPl_'+lid+'_'+hi)||''});if(a.some(function(x){return x})){lin[lid]=a;any=true}});
+      var nid=id==='+'?'n'+Date.now().toString(36):id,opn=clone(GST.pontos);
+      opn[nid]={novo:true,name:nn,short:cleanTxt(v('gPs'),24),p:np.map(function(x){return Math.round(x*10)/10}),off:c('gPoff'),aviso:cleanTxt(v('gPav'),200),lin:lin};
+      gEdit=null;pickP=null;saveG('pontos',opn);if(!any)gToast('Ponto criado. Escolha as linhas que param nele para ele aparecer nos horários.');
     }else if(kind==='ponto'){
       var n=cleanTxt(v('gPn'),60);if(!n)throw new Error('O ponto precisa de um nome.');
       var op=clone(GST.pontos),s0=ORIG.stops[id],p=pickP||STOPS[id].p;
@@ -2678,7 +2739,7 @@ function fbShared(fb){
   db.collection('fila').onSnapshot(function(s){SH.fila=flatFila(s.docs);refreshAll();drawShared();if(gestM&&!gestM.hidden)renderGest()},function(){});
   db.collection('reports').onSnapshot(function(s){SH.reps=flatReps(s.docs);refreshAll();if(gestM&&!gestM.hidden)renderGest()},function(){});
   db.collection('gestao').onSnapshot(function(s){var seen={};s.docs.forEach(function(d){if(GKEYS.indexOf(d.id)<0)return;var v=(d.data()||{}).v;if(v&&typeof v==='object'){GST[d.id]=v;seen[d.id]=1}});
-    GKEYS.forEach(function(k){if(!seen[k])GST[k]=k==='plantas'?{items:[]}:k==='bloqueados'?{ids:[]}:{}});if(!Array.isArray(GST.plantas.items))GST.plantas.items=[];if(!Array.isArray(GST.bloqueados.ids))GST.bloqueados.ids=[];
+    GKEYS.forEach(function(k){if(!seen[k])GST[k]=k==='plantas'?{items:[]}:k==='bloqueados'?{ids:[]}:{}});if(!Array.isArray(GST.plantas.items))GST.plantas.items=[];GST.plantas.items=GST.plantas.items.filter(function(x){return x&&typeof x==='object'});if(!Array.isArray(GST.bloqueados.ids))GST.bloqueados.ids=[];
     rebuildAll();if(!cfgM.hidden)renderCfg()},function(){});
   refreshAll();
 }
@@ -2980,6 +3041,7 @@ function applyTheme(){
   if(v){if(cur!==v)r.setAttribute('data-theme',v)}else if(cur)r.removeAttribute('data-theme');
   var mt=document.querySelector('meta[name="theme-color"]');if(!mt){mt=document.createElement('meta');mt.name='theme-color';document.head.appendChild(mt)}
   var dark=v?v==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;mt.content=dark?'#0B1117':'#E9EDF1';
+  if(typeof mapThemeSync==='function')mapThemeSync(!dark);
   var now=t+':'+(v||'');if(now!==temaAgora){temaAgora=now;var c=$('#temadet');if(c&&!cfgM.hidden){var sm=c.querySelector('.tema-sum');if(sm)sm.textContent=temaResumo()}}
 }
 function temaResumo(){
@@ -3058,12 +3120,33 @@ function gAdmins(){
     var pick;
     if(GESTOR===true&&!FBMODE){var listed=(GST.admins&&GST.admins.list)||{};var cands=SH.members.filter(function(m){return m.id!==SH.uid&&!listed[m.id]});names(cands.map(function(m){return m.id}));
       pick=cands.length?'<label class="gf">Pessoa<select id="admWho">'+cands.map(function(m){return '<option value="'+esc(m.id)+'">'+esc(who(m.id))+'</option>'}).join('')+'</select></label><p class="muted small">Aparecem aqui as pessoas que já abriram o app.</p>':'<p class="muted small">Ninguém novo abriu o app ainda. Compartilhe a página como Editor e peça para a pessoa abrir uma vez.</p>';
-    }else pick='<div class="g2"><label class="gf">E-mail<input type="text" id="admMail" inputmode="email" autocomplete="off" placeholder="nome@gmail.com"></label><label class="gf">Nome<input type="text" id="admNome" maxlength="60" placeholder="Como aparece na lista"></label></div>';
+    }else pick=admBuscaHTML()+'<div class="g2"><label class="gf">E-mail<input type="text" id="admMail" inputmode="email" autocomplete="off" placeholder="nome@gmail.com"></label><label class="gf">Nome<input type="text" id="admNome" maxlength="60" placeholder="Como aparece na lista"></label></div>';
     add='<form class="gcard open gform" data-gform="adminadd"><h4 class="gh4">Adicionar administrador</h4>'+pick+'<p class="small"><b>O que essa pessoa pode fazer</b></p>'+permBoxes('an_',{linhas:true,pontos:true,wifi:true,servicos:true,solicitacoes:true,plantas:true,avisos:true,gps:true,calendario:true})+
       '<p class="err small" id="gErr" role="alert"></p><div class="gbtns"><button type="submit" class="copy primary">Adicionar</button></div></form>';
   }
   return '<h3 class="gh">Administradores</h3><p class="muted small">'+note+'</p><div class="glist">'+(rows||'<p class="muted small">Nenhum administrador além de você.</p>')+'</div>'+(canEditAdm?add:'<p class="muted small">Você não tem permissão para mudar administradores.</p>');
 }
+/* busca entre quem já se cadastrou no app (precisa do privilégio Usuários para ler a lista) */
+function admCands(q){
+  var adm={};(FBMODE?(FB_ADMINS||[]).map(function(a){return a.id}):Object.keys((GST.admins&&GST.admins.list)||{})).forEach(function(k){adm[String(k).toLowerCase()]=1});
+  q=fold(String(q||'').trim());
+  return (SH.members||[]).filter(function(m){return m.id!==SH.uid&&!(m.email&&adm[m.email])&&(!q||fold(m.nome+' '+m.email).indexOf(q)>=0)})
+    .sort(function(a,b){return (b.last||0)-(a.last||0)}).slice(0,8);
+}
+function admResHTML(q){
+  if(!(SH.members||[]).length)return '<p class="muted small">'+(gcan('usuarios')?'Ninguém se cadastrou ainda.':'Para buscar na lista de usuários você precisa também do privilégio Usuários. Sem ele, digite o e-mail abaixo.')+'</p>';
+  var l=admCands(q);if(!l.length)return '<p class="muted small">Ninguém encontrado com esse nome ou e-mail.</p>';
+  return l.map(function(m){var ok=!!m.email;
+    return '<button type="button" class="admpick" data-admpick="'+esc(m.email)+'" data-nome="'+esc(m.nome)+'"'+(ok?'':' disabled')+'><span class="adm-av" aria-hidden="true">'+esc((m.nome||m.email||'?').charAt(0).toUpperCase())+'</span><span class="grow"><b>'+esc(m.nome||'Sem nome')+'</b><small>'+(ok?esc(m.email):'E-mail aparece quando a pessoa abrir o app de novo')+'</small></span></button>'}).join('');
+}
+function admBuscaHTML(){
+  return '<label class="gf">Buscar entre os usuários cadastrados<input type="search" id="admBusca" autocomplete="off" placeholder="Nome ou e-mail"></label><div class="admres" id="admRes">'+admResHTML('')+'</div><p class="muted small">Toque numa pessoa para preencher o e-mail e o nome. Se ela não estiver na lista, digite o e-mail.</p>';
+}
+function fold(t){return String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+document.addEventListener('input',function(e){if(!e.target||e.target.id!=='admBusca')return;var r=$('#admRes');if(r)r.innerHTML=admResHTML(e.target.value)});
+document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-admpick]');if(!b||b.disabled)return;
+  var m=$('#admMail'),n=$('#admNome');if(m)m.value=b.dataset.admpick;if(n)n.value=b.dataset.nome||'';
+  document.querySelectorAll('.admpick.on').forEach(function(x){x.classList.remove('on')});b.classList.add('on');if(m)m.focus()});
 GTABS.splice(GTABS.length,0,['admins','Administradores']);
 function saveAdminLocal(list){return saveG('admins',{list:list})}
 document.addEventListener('click',function(e){
@@ -3245,7 +3328,7 @@ var _locStopC=locStop;locStop=function(){_locStopC();if(CMP.on)cmpSchedule()};
 
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261102-1054';
+var APP_VERSION='20261104-2129';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
@@ -3268,7 +3351,7 @@ function postFail(){
 var VAGAS={n:null,max:80,ok:false};SH.full=false;SH.member=false;
 function fullMsg(acao){return 'As '+VAGAS.max+' vagas para participar já foram preenchidas. Você continua vendo tudo, mas não consegue '+acao+'.'}
 function vagasRef(){return SH.db.doc('meta/vagas')}
-function memberData(old){var now=Date.now(),o={first:+(old&&old.first)||now,last:now,visits:(+(old&&old.visits)||0)+1};if(ACC.name)o.nome=String(ACC.name).slice(0,60);return o}
+function memberData(old){var now=Date.now(),o={first:+(old&&old.first)||now,last:now,visits:(+(old&&old.visits)||0)+1};if(ACC.name)o.nome=String(ACC.name).slice(0,60);if(ACC.email)o.email=String(ACC.email).toLowerCase().slice(0,120);return o}
 function isGestorEmail(email){
   if(!email)return Promise.resolve(false);
   return SH.db.doc('gestores/'+String(email).toLowerCase()).get().then(function(d){return !!d.exists},function(){return false});
@@ -3340,7 +3423,9 @@ function errLog(msg,src,line){
   if(SH.db)SH.db.collection('erros').add(o).catch(function(){});else ERR.queue.push(o);
 }
 window.addEventListener('error',function(e){if(e&&e.message)errLog(e.message,e.filename,e.lineno)});
-window.addEventListener('unhandledrejection',function(e){var r=e&&e.reason;if(r&&r.code&&/^(auth|permission|firestore)\//.test(String(r.code)))return;errLog('Promessa rejeitada: '+(r&&(r.message||r.code)||r),'',0)});
+window.addEventListener('unhandledrejection',function(e){var r=e&&e.reason;if(r&&r.code&&/^(auth|permission|firestore)\//.test(String(r.code)))return;
+  /* falhas conhecidas do IndexedDB do Safari, dentro do login do Firebase: o login segue funcionando, então não viram erro */
+  if(/Indexed ?Database|IndexedDB|IDBDatabase|in-progress transaction|Connection to Indexed Database server lost/i.test(String(r&&(r.message||r)||''))){try{e.preventDefault()}catch(x){}return}errLog('Promessa rejeitada: '+(r&&(r.message||r.code)||r),'',0)});
 var _fbSharedE=fbShared;
 fbShared=function(fb){_fbSharedE(fb);ERR.queue.splice(0).forEach(function(o){SH.db.collection('erros').add(o).catch(function(){})})};
 var ERRL=null;
@@ -3362,26 +3447,48 @@ document.addEventListener('click',function(e){
 
 /* ---------- modo apresentação: exemplos de fila e avisos ---------- */
 var DEMO_ID='exemplo-apresentacao';
+function demoHasVotes(){return !!(SH.voteDocs&&SH.voteDocs[DEMO_ID])}
+function demoClearMed(){if(!FBMODE||!SH.db)return Promise.resolve();return SH.db.collection('medicoes').where('ver','==','exemplo').get().then(function(q){if(!q.docs.length)return;var b=SH.db.batch();q.docs.forEach(function(x){b.delete(x.ref)});return b.commit()})}
 function demoCard(){
   if(!SH.on||!gcan('avisos'))return '';
-  var has=SH.fila.some(function(r){return r.owner===DEMO_ID})||SH.reps.some(function(r){return r.owner===DEMO_ID});
-  return '<h3 class="gh">Modo apresentação</h3><div class="gcard"><p class="small">Preenche a fila do RU e os avisos ao vivo com exemplos, para as telas não ficarem vazias na hora de mostrar. Os exemplos somem sozinhos (filas em 45 min, avisos em 4 h) ou com o botão Limpar.</p>'+
+  var has=SH.fila.some(function(r){return r.owner===DEMO_ID})||SH.reps.some(function(r){return r.owner===DEMO_ID})||demoHasVotes();
+  return '<h3 class="gh">Modo apresentação</h3><div class="gcard"><p class="small">Preenche com exemplos tudo o que os alunos informam: fila dos RUs, um aviso de cada tipo, notas para todas as redes Wi-Fi, medições do mapa de cobertura e pedidos de correção. Filas somem em 45 min e avisos em 4 h; o resto sai com o botão Limpar.</p>'+
     '<p class="muted small">Dica: no campo Horário, escolha 22:00 para mostrar a Volta à noite a qualquer hora.</p><div class="gbtns"><button type="button" class="copy primary" id="gDemoOn">'+(has?'Renovar exemplos':'Preencher exemplos')+'</button>'+(has?'<button type="button" class="copy danger" id="gDemoOff">Limpar exemplos</button>':'')+'</div></div>';
 }
 function demoItems(){
   var now=Date.now(),m=60000,f=[],r=[];
-  var ru=RUS.slice(0,4),lv=[3,1,2,0];
-  ru.forEach(function(k,i){f.push({id:'fx'+i,ru:k,n:lv[i]||1,ts:now-(3+i*4)*m})});
+  var lv=[3,1,2,0,2,1];
+  RUS.forEach(function(k,i){f.push({id:'fx'+i,ru:k,n:lv[i%lv.length],ts:now-(3+i*4)*m})});
   var st=Object.keys(STOPS),wf=Object.keys(WIFI),pl=Object.keys(PL).filter(function(k){return PL[k].p&&PL[k].cat!=='aula'});
-  if(st[1])r.push({id:'rx0',k:'onibus',place:'stop:'+(STOPS.ctl?'ctl':st[1]),txt:'Linha 1 passou lotada',ts:now-6*m});
-  if(wf[0])r.push({id:'rx1',k:'wifi',place:'wifi:'+wf[0],txt:'Rede caiu depois das 10h',ts:now-18*m});
-  if(pl[0])r.push({id:'rx2',k:'fila',place:'pl:'+(PL.ru_central?'ru_central':pl[0]),txt:'Fila até a porta',ts:now-9*m});
-  return {f:f,r:r};
+  var pick=function(a,i){return a.length?a[i%a.length]:null};
+  var ex={onibus:['stop:'+(STOPS.ctl?'ctl':pick(st,1)),'Linha 1 passou lotada'],wifi:['wifi:'+pick(wf,0),'Rede caiu depois das 10h'],
+    fila:['pl:'+(PL.ru_central?'ru_central':pick(pl,0)),'Fila até a porta'],fechado:['pl:'+pick(pl,3),'Fechado sem aviso hoje'],
+    elevador:['pl:'+pick(pl,5),'Elevador parado no bloco A'],limpeza:['pl:'+pick(pl,7),'Banheiro do 2º andar sem papel'],
+    seguranca:['stop:'+pick(st,6),'Pouca luz no ponto à noite'],outro:['stop:'+pick(st,9),'Obra na calçada perto do ponto']};
+  REP_K.forEach(function(k,i){var e=ex[k[0]];if(!e||/null$/.test(e[0]))return;r.push({id:'rx'+i,k:k[0],place:e[0],txt:e[1],ts:now-(5+i*7)*m})});
+  /* uma nota para cada rede Wi-Fi, de 1 a 5, variando */
+  var v={},nt=[4,2,5,3,1,4,3,5,2,4];wf.forEach(function(id,i){v[id]=nt[i%nt.length]});
+  /* pedidos de correção, um de cada tipo */
+  var q=REQ_T.slice(0,6).map(function(t,i){var al={onibus:'Linha 2',ponto:STOPS[pick(st,4)]?STOPS[pick(st,4)].name:'Ponto',wifi:WIFI[pick(wf,1)]?WIFI[pick(wf,1)].name:'Wi-Fi',servico:'RU Central',planta:'CT, bloco H',outro:'App'}[t[0]]||'';
+    var tx={onibus:'O horário das 18h mudou para 18h10.',ponto:'O ponto mudou para o outro lado da rua.',wifi:'A senha da rede mudou.',servico:'O RU abre às 10h30 nas sextas.',planta:'Falta a planta do 3º andar.',outro:'Seria bom ter o horário do bandejão no fim de semana.'}[t[0]]||'';
+    return {id:'qx'+i,t:t[0],alvo:al,txt:tx,ts:now-(20+i*30)*m}});
+  /* medições do mapa de cobertura em volta dos pontos de Wi-Fi */
+  var md=wf.slice(0,8).map(function(id,i){var p=WIFI[id].p,c=cellOf([p[0]+(i%3-1)*12,p[1]+(i%2)*10]),ok=i%4!==3;
+    return {cell:c.k,x:c.x,y:c.y,ok:ok,edu:ok?(i%2===0):null,mb:ok?[42,8.5,25,3.2,60,15,4.1,33][i]:0,ms:ok?[40,180,70,450,30,95,380,55][i]:0,tipo:'wifi',acc:20,t:Math.floor(now/600000)*600000,ver:'exemplo'}});
+  return {f:f,r:r,v:v,q:q,md:md};
 }
 document.addEventListener('click',function(e){
-  if(e.target.closest('#gDemoOn')){var d=demoItems();
-    Promise.all([SH.db.doc('fila/'+DEMO_ID).set({items:d.f}),SH.db.doc('reports/'+DEMO_ID).set({items:d.r})]).then(function(){gToast('Exemplos publicados. Todos que abrirem o app vão ver.')},function(){gToast('Não deu para publicar os exemplos. Você precisa do privilégio Avisos e filas.',1)});return}
-  if(e.target.closest('#gDemoOff')){Promise.all([SH.db.doc('fila/'+DEMO_ID).delete(),SH.db.doc('reports/'+DEMO_ID).delete()]).then(function(){gToast('Exemplos removidos.')},function(){gToast('Não deu para remover.',1)})}
+  if(e.target.closest('#gDemoOn')){var d=demoItems(),falhou=[];
+    var job=function(nome,p){return Promise.resolve(p).then(function(){return true},function(){falhou.push(nome);return false})};
+    var tasks=[job('fila',SH.db.doc('fila/'+DEMO_ID).set({items:d.f})),job('avisos',SH.db.doc('reports/'+DEMO_ID).set({items:d.r})),
+      job('notas de Wi-Fi',SH.db.doc('votes/'+DEMO_ID).set({r:d.v,ts:Date.now()})),job('pedidos de correção',SH.db.doc('requests/'+DEMO_ID).set({items:d.q}))];
+    if(FBMODE)tasks.push(job('medições',demoClearMed().then(function(){return Promise.all(d.md.map(function(x){return SH.db.collection('medicoes').add(x)}))})));
+    else{try{localStorage.setItem('cse-demo-med',JSON.stringify(d.md))}catch(x){}}
+    Promise.all(tasks).then(function(){if(!falhou.length)gToast('Exemplos publicados. Todos que abrirem o app vão ver.');
+      else gToast('Exemplos publicados, menos: '+falhou.join(', ')+'. Confira os privilégios e publique as regras novas do Firestore.',1);if(typeof COV!=='undefined'){COV.real=null;if(COV.on&&FBMODE)covLoadReal()}if(FBMODE&&SH.db&&gcan('solicitacoes'))SH.db.collection('requests').get().then(function(x){SH.req=flatReq(x.docs);if(gestM&&!gestM.hidden)renderGest()},function(){})});return}
+  if(e.target.closest('#gDemoOff')){var ps=[SH.db.doc('fila/'+DEMO_ID).delete(),SH.db.doc('reports/'+DEMO_ID).delete(),SH.db.doc('votes/'+DEMO_ID).delete(),SH.db.doc('requests/'+DEMO_ID).delete()].map(function(x){return Promise.resolve(x).catch(function(){})});
+    if(FBMODE)ps.push(demoClearMed().catch(function(){}));try{localStorage.removeItem('cse-demo-med')}catch(x){}
+    Promise.all(ps).then(function(){gToast('Exemplos removidos.');if(typeof COV!=='undefined'){COV.real=null;if(COV.on&&FBMODE)covLoadReal()}})}
 });
 var _gGeralV=gGeral;
 gGeral=function(){return _gGeralV()+demoCard()+errCard()};
@@ -3662,7 +3769,7 @@ function covAgg(list){var c={n:0,ok:0,okn:0,mb:0,last:0};list.forEach(function(s
 /* prédios: contornos lidos do mapa vetorial */
 function covLoadBld(){
   if(COV.bld||COV.bldLoading||typeof MAPVEC==='undefined')return;COV.bldLoading=true;
-  fetch(MAPVEC).then(function(r){return r.text()}).then(function(t){
+  fetch(MAPVEC0).then(function(r){return r.text()}).then(function(t){
     var m=t.match(/<path fill="#4d5967"[^>]*\sd="([^"]+)"/);if(!m){COV.bld=[];return}
     COV.bld=m[1].split('M').filter(function(x){return x.trim()}).map(function(seg){
       var n=seg.replace(/Z/g,'').trim().split(/[\s,]+/).map(Number),pts=[];for(var i=0;i+1<n.length;i+=2)pts.push([n[i],n[i+1]]);
@@ -3736,6 +3843,29 @@ function inCidr(ip,c){var a=String(c).trim().split('/'),base=ip2n(a[0]),bits=a.l
 function cidrList(t){return String(t||'').split(/[\s,;]+/).filter(function(x){return /^\d+\.\d+\.\d+\.\d+(\/\d+)?$/.test(x)})}
 function ufrjRanges(){return ['146.164.0.0/16'].concat(cidrList((GST.redes||{}).ufrj))}
 function eduRanges(){return cidrList((GST.redes||{}).eduroam)}
+/* endereços já confirmados: pela gestão (vale para todos) e por este aparelho */
+function eduKnown(ip){
+  if(!ip)return null;var g=(GST.redes||{}).eduIps||{};if(g[ip]===true||g[ip]===false)return g[ip];
+  try{var l=JSON.parse(localStorage.getItem('cse-edu-ips')||'{}');if(l[ip]===true||l[ip]===false)return l[ip]}catch(e){}
+  return null;
+}
+function eduRememberLocal(ip,v){if(!ip)return;try{var l=JSON.parse(localStorage.getItem('cse-edu-ips')||'{}');l[ip]=v;var k=Object.keys(l);if(k.length>40)delete l[k[0]];localStorage.setItem('cse-edu-ips',JSON.stringify(l))}catch(e){}}
+function eduSaveG(ip,v){
+  if(!ip||!gcan('wifi'))return Promise.resolve(false);
+  var R=clone(GST.redes||{});R.eduIps=Object.assign({},R.eduIps||{});R.eduIps[ip]=v;
+  var ks=Object.keys(R.eduIps);if(ks.length>200)delete R.eduIps[ks[0]];
+  return saveG('redes',R);
+}
+function eduMarkHTML(r){
+  if(!r||!r.ip||r.ip.indexOf(':')>=0||r.ufrj!==true||!gcan('wifi'))return '';
+  var k=eduKnown(r.ip);
+  return '<div class="edumark"><p class="small">'+(k===true?'Este endereço já está salvo como <b>eduroam</b>.':k===false?'Este endereço já está salvo como <b>outra rede da UFRJ</b>.':'Salve este endereço para o app não perguntar mais aos alunos nesta rede.')+'</p>'+
+    '<div class="gbtns"><button type="button" class="copy'+(k===true?'':' primary')+'" data-edusave="1" data-ip="'+esc(r.ip)+'">É o eduroam</button><button type="button" class="copy" data-edusave="0" data-ip="'+esc(r.ip)+'">É outra rede da UFRJ</button></div></div>';
+}
+document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-edusave]');if(!b)return;
+  var ip=b.dataset.ip,v=b.dataset.edusave==='1';eduRememberLocal(ip,v);
+  eduSaveG(ip,v).then(function(ok){if(ok)gToast(v?'Endereço salvo como eduroam.':'Endereço salvo como outra rede da UFRJ.');if(NET.last&&NET.last.ip===ip){NET.last.edu=v;var o=$('#gNetRes');if(o)o.innerHTML=netHTML(NET.last,true)+eduMarkHTML(NET.last)}});
+});
 function connType(){try{var c=navigator.connection;return c&&c.type?c.type:''}catch(e){return ''}}
 function withTimeout(p,ms){return Promise.race([p,new Promise(function(_,rej){setTimeout(function(){rej(new Error('tempo'))},ms)})])}
 function getIP(){
@@ -3748,14 +3878,15 @@ function speedTest(){
     var t2=performance.now(),ms=Math.round(t1-t0),sec=Math.max(.05,(t2-t0)/1000);return {ms:ms,mb:+(b.byteLength*8/sec/1e6).toFixed(1),kb:Math.round(b.byteLength/1024)}}),15000);
 }
 function netCheck(){
-  if(NET.busy)return Promise.resolve(NET.last);NET.busy=true;
+  if(NET.busy&&NET.p)return NET.p;NET.busy=true;
   var tipo=connType(),res={t:Date.now(),tipo:tipo,ip:null,ufrj:null,edu:null,ms:null,mb:null,erro:''};
-  return getIP().then(function(ip){res.ip=ip||null;
+  NET.p=getIP().then(function(ip){res.ip=ip||null;
     if(ip&&ip.indexOf(':')>=0){res.ufrj=null;res.erro='Endereço IPv6: ainda não dá para saber se é da UFRJ.'}
-    else if(ip){res.ufrj=ufrjRanges().some(function(c){return inCidr(ip,c)});var e=eduRanges();res.edu=res.ufrj&&e.length?e.some(function(c){return inCidr(ip,c)}):null}
+    else if(ip){res.ufrj=ufrjRanges().some(function(c){return inCidr(ip,c)});var e=eduRanges(),kn=eduKnown(ip);res.edu=!res.ufrj?null:kn!==null?kn:e.length?e.some(function(c){return inCidr(ip,c)}):null}
   },function(){res.erro=ON_SITE?'Não deu para consultar o endereço de internet. Pode ser falta de conexão ou um bloqueador.':'No claude.ai o app não pode consultar serviços externos. Teste pelo site do GitHub.'})
   .then(function(){return speedTest().then(function(s){res.ms=s.ms;res.mb=s.mb},function(){})})
-  .then(function(){NET.busy=false;NET.last=res;return res});
+  .then(function(){NET.busy=false;NET.p=null;NET.last=res;return res},function(){NET.busy=false;NET.p=null;NET.last=res;return res});
+  return NET.p;
 }
 function netLabel(r){
   if(!r)return 'Ainda não testado';
@@ -3787,6 +3918,7 @@ function covMeasure(manual){
     var p=ll2map(pos.coords.latitude,pos.coords.longitude);
     if(p[0]<BASE.x||p[0]>BASE.x+BASE.w||p[1]<BASE.y||p[1]>BASE.y+BASE.h){COVCOL.msg='Fora do campus: nada foi enviado.';return false}
     return netCheck().then(function(r){
+      if(!r){COVCOL.msg='Não deu para medir a rede agora.';return false}
       if(r.tipo==='cellular'){COVCOL.msg='Você está nos dados móveis: nada foi enviado.';return false}
       if(r.ufrj===null){COVCOL.msg='Não deu para identificar a rede: nada foi enviado.';return false}
       var edu=r.edu;if(edu===null&&r.ufrj&&NET.ask!==null)edu=NET.ask;
@@ -3803,7 +3935,8 @@ function covAskEdu(){
   if($('#eduAsk'))return;
   document.body.insertAdjacentHTML('beforeend','<div class="newver eduask" id="eduAsk" role="dialog" aria-label="Confirmar a rede"><span>Você está conectado ao <b>eduroam</b>?</span><button type="button" class="copy primary" data-edu="1">Sim</button><button type="button" class="copy" data-edu="0">Não</button><button type="button" class="copy" data-edu="">Não sei</button></div>');
 }
-document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-edu]');if(!b)return;NET.asked=true;NET.ask=b.dataset.edu==='1'?true:b.dataset.edu==='0'?false:null;var a=$('#eduAsk');if(a)a.remove();gToast('Obrigado! Isso melhora o mapa de cobertura.')});
+document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-edu]');if(!b)return;NET.asked=true;NET.ask=b.dataset.edu==='1'?true:b.dataset.edu==='0'?false:null;
+  var ipx=NET.last&&NET.last.ip;if(ipx&&NET.ask!==null){eduRememberLocal(ipx,NET.ask);if(GESTOR===true&&gcan('wifi'))eduSaveG(ipx,NET.ask);NET.last.edu=NET.ask}var a=$('#eduAsk');if(a)a.remove();gToast('Obrigado! Isso melhora o mapa de cobertura.')});
 function covLoop(){
   clearTimeout(NET.timer);if(!covCanCollect())return;
   if(!document.hidden&&Date.now()-COVCOL.last>5*60000)covMeasure(false);
@@ -3853,7 +3986,7 @@ renderCfg=function(f){_renderCfgNet(f);var R=$('#cfgR');if(!R||R.querySelector('
 function renderCfgKeep(){var y=$('#pane-cfg .cfgsheet');var t=y?y.scrollTop:0;renderCfg();if(y)y.scrollTop=t}
 document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('#netTest,#gNetTest');if(!b)return;
   var full=b.id==='gNetTest',out=full?$('#gNetRes'):$('#netRes');b.disabled=true;b.textContent='Testando…';
-  netCheck().then(function(r){b.disabled=false;b.textContent=full?'Medir de novo':'Testar de novo';if(out)out.innerHTML=netHTML(r,full)})});
+  netCheck().then(function(r){b.disabled=false;b.textContent=full?'Medir de novo':'Testar de novo';if(out)out.innerHTML=netHTML(r,full)+(full?eduMarkHTML(r):'')})});
 /* ---------- Gestão › Rede ---------- */
 GTABS.push(['rede','Rede e Wi-Fi']);TAB_PERM.rede='wifi';
 var GNET={n:null};
@@ -3865,15 +3998,21 @@ function gRede(){
     '<h3 class="gh">Faixas de endereço</h3><form class="gform" data-gform="redes">'+
     '<label class="gf">Faixas extras da UFRJ<input type="text" id="gRu" class="mono" value="'+esc(R.ufrj||'')+'" placeholder="Ex.: 200.20.10.0/24"></label><p class="muted small">A faixa 146.164.0.0/16 já vale sempre.</p>'+
     '<label class="gf">Faixa do eduroam<input type="text" id="gRe" class="mono" value="'+esc(R.eduroam||'')+'" placeholder="Ex.: 146.164.200.0/22"></label><p class="muted small">Com a faixa preenchida, o app diferencia o eduroam das outras redes da UFRJ. Sem ela, mostra "Rede da UFRJ" e pergunta ao aluno.</p>'+
-    '<p class="err small" id="gErr" role="alert"></p><div class="gbtns"><button type="submit" class="copy primary">Salvar faixas</button></div></form>'+
+    '<p class="err small" id="gErr" role="alert"></p><div class="gbtns"><button type="submit" class="copy primary">Salvar faixas</button></div></form>'+eduListHTML()+
     '<h3 class="gh">Medições dos alunos</h3>'+(FBMODE?'<p class="small">'+(n===null||n<0?'Carregando…':n+' medição(ões) guardadas.')+'</p><div class="gbtns"><button type="button" class="copy danger" id="gNetOld">Apagar medições com mais de 30 dias</button></div>':'<p class="muted small">As medições ficam no Firebase, no site do app. Aqui no claude.ai o mapa usa dados de exemplo.</p>');
 }
+function eduListHTML(){
+  var m=(GST.redes||{}).eduIps||{},k=Object.keys(m);
+  return '<h3 class="gh">Endereços confirmados</h3>'+(k.length?'<div class="glist">'+k.map(function(ip){return '<div class="gcard"><div class="grow2"><span class="grow"><b class="mono">'+esc(ip)+'</b><small>'+(m[ip]?'eduroam':'Outra rede da UFRJ')+'</small></span><button type="button" class="copy" data-edudel="'+esc(ip)+'">Remover</button></div></div>'}).join('')+'</div>'
+    :'<p class="muted small">Nenhum ainda. Meça a rede acima, no campus, e toque em "É o eduroam" ou "É outra rede da UFRJ". O app deixa de perguntar aos alunos nesses endereços.</p>');
+}
+document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-edudel]');if(!b)return;var R=clone(GST.redes||{});R.eduIps=Object.assign({},R.eduIps||{});delete R.eduIps[b.dataset.edudel];saveG('redes',R)});
 var _renderGestNet=renderGest;
-renderGest=function(){_renderGestNet();if(gTab==='rede'&&$('#gBody'))$('#gBody').innerHTML=gRede()};
+renderGest=function(){_renderGestNet();if(gTab==='rede'&&$('#gBody')){$('#gBody').innerHTML=gRede();var o=$('#gNetRes');if(o&&NET.last)o.insertAdjacentHTML('beforeend',eduMarkHTML(NET.last))}};
 document.addEventListener('submit',function(e){var f=e.target.closest&&e.target.closest('form[data-gform="redes"]');if(!f)return;e.preventDefault();e.stopPropagation();
   var u=$('#gRu').value.trim(),ed=$('#gRe').value.trim(),bad=[u,ed].join(' ').split(/[\s,;]+/).filter(function(x){return x&&!/^\d+\.\d+\.\d+\.\d+(\/\d+)?$/.test(x)});
   if(bad.length){$('#gErr').textContent='Formato inválido: '+bad[0]+'. Use como 146.164.0.0/16.';return}
-  saveG('redes',{ufrj:cidrList(u).join(' '),eduroam:cidrList(ed).join(' ')});
+  saveG('redes',Object.assign(clone(GST.redes||{}),{ufrj:cidrList(u).join(' '),eduroam:cidrList(ed).join(' ')}));
 },true);
 document.addEventListener('click',function(e){if(!(e.target.closest&&e.target.closest('#gNetOld'))||!GNET.docs)return;
   var lim=Date.now()-30*864e5,old=GNET.docs.filter(function(d){return (+(d.data()||{}).t||0)<lim});if(!old.length){gToast('Nenhuma medição antiga.');return}
@@ -3966,7 +4105,9 @@ function closeCover(then){
   setTimeout(function(){cover.hidden=true;cover.classList.remove('enter');cover.classList.add('pre');document.documentElement.style.overflow='';if(then)then()},rm?0:420);
 }
 cover.addEventListener('click',function(e){
-  var b=e.target.closest('[data-cv]');if(!b)return;var a=b.dataset.cv;
+  var b=e.target.closest('[data-cv]');
+  if(!b&&e.target.closest('a,button,input,select,textarea,summary,label,[role="button"]'))return;
+  var a=b?b.dataset.cv:'mapa';
   closeCover(function(){
     if(a==='trajeto'){setTab('trajeto');try{history.replaceState(null,'','#trajeto')}catch(err){}var s=$('#to');if(s){s.scrollIntoView({block:'center'});s.focus()}}
     else if(a==='grade'||a==='cal'){setTab(a);try{history.replaceState(null,'','#'+a)}catch(err){}var pn=$('#pane-'+a);if(pn)pn.scrollIntoView({block:'start'})}
@@ -4125,7 +4266,7 @@ document.addEventListener('click',function(e){
 
 /* ======================= só quem tem perfil informa ======================= */
 function needProfileHTML(acao){
-  return '<div class="needprof"><p class="small"><b>Crie seu perfil para '+acao+'.</b> Sem perfil, o app só mostra as informações.</p><button type="button" class="copy" data-needprof>Criar perfil</button></div>';
+  return '<div class="needprof"><p class="small"><b>Crie seu perfil para '+acao+'.</b> <span class="aux">Sem perfil, o app só mostra as informações.</span></p><button type="button" class="copy" data-needprof>Criar perfil</button></div>';
 }
 document.addEventListener('click',function(e){if(e.target.closest('[data-needprof]')){e.preventDefault();openLogin();if(!PERFIL)lgShow('new')}});
 var _closeLoginB=closeLogin;
@@ -4336,7 +4477,7 @@ document.addEventListener('visibilitychange',function(){if(!document.hidden&&CFG
 function v10CfgHTML(){
   return '<div><p class="eyebrow">Ajustes</p><h2>Tela e navegação</h2></div>'+
     '<div class="tgls">'+
-    tg('cfgSimples',CFG.simples,'Modo simplificado','Esconde as explicações, dicas e legendas, deixando só o essencial na tela.')+
+    tg('cfgSimples',CFG.simples,'Modo simplificado','Esconde os textos que explicam cada função e as dicas. A legenda do mapa continua.')+'<div class="faixa-w"><p class="balvo-t"><b>Horário dos ônibus</b></p><div class="seg cl-alvo" role="group" aria-label="Como mostrar o horário dos ônibus">'+[[0,'Exato'],[5,'Faixa de 5 min'],[10,'Faixa de 10 min']].map(function(o){return '<button type="button" data-faixa="'+o[0]+'" aria-pressed="'+((+CFG.faixa||0)===o[0])+'">'+o[1]+'</button>'}).join('')+'</div><p class="muted small">Na faixa, o app mostra um intervalo (ex.: entre 07:35 e 07:45) em vez da hora exata, já que o ônibus pode adiantar ou atrasar.</p></div>'+
     tg('cfgAutoDest',CFG.autoDest,'Ponto do mapa vira destino','Ao tocar num ponto do mapa, ele entra como destino em Seu trajeto e a origem passa a ser a parada mais perto de você.')+
     '</div>'+
     '<div><p class="eyebrow">Ajustes</p><h2>Previsão do tempo</h2></div>'+
@@ -4363,6 +4504,10 @@ renderCfg=function(f){
     Rr.insertAdjacentHTML('beforeend',v10CfgHTML()+tabsCfgHTML());
   }
 };
+document.addEventListener('click',function(e){
+  var f=e.target.closest&&e.target.closest('[data-faixa]');if(!f)return;
+  CFG.faixa=+f.dataset.faixa||0;saveCfg();renderAll();renderCfgKeep();gToast(CFG.faixa?'Horários em faixas de '+CFG.faixa+' min.':'Horários exatos.');
+});
 document.addEventListener('click',function(e){
   var b=e.target.closest('[data-balvo]');if(!b)return;
   CFG.bussolaAlvo=b.dataset.balvo;saveCfg();if(typeof cmpSchedule==='function'&&CMP.on)cmpSchedule();renderCfgKeep();
@@ -4432,7 +4577,9 @@ var _gGeralV11=gGeral;gGeral=function(){return _gGeralV11()+acessoCard()};
 document.addEventListener('change',function(e){
   if(!e.target||e.target.id!=='gAcessoLogin')return;
   var v=e.target.checked,box=e.target;
-  var volta=function(){box.checked=!v;gToast('Não deu para salvar. Só o administrador principal muda isso.',1)};
+  var volta=function(err){box.checked=!v;
+    var neg=err&&(err.code==='permission-denied'||/permission/i.test(String(err.message||'')));
+    gToast(neg?'O Firebase recusou. Publique o firestore.rules novo (ele libera meta/acesso) e confira se seu e-mail está em gestores, sem o campo perms.':'Não deu para salvar agora. Confira a conexão e tente de novo.',1)};
   if(FBMODE){
     if(!SH.db){volta();return}
     SH.db.doc('meta/acesso').set({login:v,ts:Date.now(),by:SH.uid||''}).then(function(){gToast(v?'Login obrigatório ligado.':'Login obrigatório desligado.')},volta);
@@ -4441,5 +4588,105 @@ document.addEventListener('change',function(e){
   }
 });
 gateUpdate();
+/* ======================= v12: mapa claro no tema claro ======================= */
+function mapThemeSync(light){
+  var suf=light?'-claro':'';if(suf===MAPSUF)return;MAPSUF=suf;
+  var oldVec=MAPVEC;
+  MAPIMG='mapa-bordas'+suf+'.jpg';MAPHD=window.MAPHD_URL='mapa-campus'+suf+'.jpg';MAPVEC='mapa-campus'+suf+'.svg';MAPMINI='mapa-mini'+suf+'.jpg';MAPBLUR='mapa-blur'+suf+'.jpg';
+  var im=document.querySelector('#baseimg image');if(im)im.setAttribute('href',MAPIMG);
+  var hd=$('#imgHD');if(hd)hd.setAttribute('href',MAPHD);
+  var vc=$('#imgVec');if(vc&&vc.getAttribute('href')===oldVec)vc.setAttribute('href',MAPVEC);
+  var pk=document.querySelector('#pkMap image');if(pk)pk.setAttribute('href',MAPHD);
+  var r=document.documentElement;r.style.setProperty('--bgmap-sw','url('+MAPMINI+')');if(CFG.bg==='mapa')r.style.setProperty('--bgmap','url('+MAPBLUR+')');
+  r.classList.toggle('mapclaro',!!light);
+}
+document.documentElement.classList.toggle('mapclaro',MAPSUF==='-claro');
+/* ======================= v13: Wi-Fi em Lugares, balão no mapa e Volta à noite visível ======================= */
+var WSEL=null;
+function wScale(id){var m=mine[id],h='';for(var i=1;i<=5;i++)h+='<button type="button" data-wrate="'+i+'" data-wid="'+id+'" aria-pressed="'+(m===i)+'" aria-label="Nota '+i+' de 5">'+i+'</button>';
+  return '<div class="scale wscale" role="group" aria-label="Nota do sinal">'+h+'</div><div class="ends"><span>Fraco</span><span>Forte</span></div>'}
+function pWifiHTML(){
+  var ids=Object.keys(WIFI).sort(function(a,b){return avgOf(b)-avgOf(a)});
+  return '<div><p class="eyebrow">Lugares</p><h2>Wi-Fi</h2></div>'+
+    '<p class="muted small">Redes abertas do campus, com a nota dos alunos. Toque numa rede para dar sua nota ou ver no mapa.</p>'+
+    '<div class="list wlist">'+ids.map(function(id){var w=WIFI[id],a=avgOf(id),q=info(a),open=WSEL===id;
+      return '<div class="wrow'+(open?' open':'')+'" id="wrow-'+id+'"><button class="item tint wsel" type="button" data-wsel="'+id+'" aria-expanded="'+open+'" style="--c:var(--good)">'+barsSvg(q.bars,24,20)+
+        '<span class="grow">'+esc(w.name)+'<small>'+esc(w.ssid||'Rede aberta')+' · '+q.label+'</small></span><span class="mono wnota">'+br(a)+'</span></button>'+
+        (open?'<div class="wbody"><dl class="kv"><dt>Rede</dt><dd>'+esc(w.ssid||'Nome a confirmar no local')+'</dd><dt>Acesso</dt><dd>'+esc(w.acesso||'Sem senha')+'</dd><dt>Dica</dt><dd>'+esc(w.note||'—')+'</dd><dt>Nota</dt><dd>'+br(a)+' de 5 · '+votesOf(id)+' avaliações</dd></dl>'+
+          (PERFIL?'<p><b>Como está o sinal aqui agora?</b></p>'+wScale(id):needProfileHTML('dar nota ao sinal'))+
+          '<div class="gbtns"><button type="button" class="copy" data-wmap="'+id+'">Ver no mapa</button></div></div>':'')+'</div>'}).join('')+'</div>'+
+    '<button class="item tint" type="button" style="--c:var(--good)" data-wedu><span class="lb" style="--c:var(--good)">Wi-Fi</span><span class="grow">Tutorial do eduroam<small>Wi-Fi global das universidades, com o login da UFRJ</small></span></button>';
+}
+function renderWifiPane(){var el=$('#pWifi');if(el&&!pPane.hidden)el.innerHTML=pWifiHTML()}
+var _renderPrediosV13=renderPredios;
+renderPredios=function(f){_renderPrediosV13(f);renderWifiPane()};
+
+/* balão no mapa ao tocar num ícone de Wi-Fi */
+function wifiPopClose(){var p=$('#wPop');if(p)p.remove()}
+function wifiPopHTML(id){
+  var w=WIFI[id],a=avgOf(id),q=info(a);
+  return '<button type="button" class="wpop-x" data-wpopx aria-label="Fechar">×</button>'+
+    '<div class="wpop-h">'+barsSvg(q.bars,26,22)+'<span><b>'+esc(w.name)+'</b><small>'+br(a)+' de 5 · '+votesOf(id)+' avaliações · '+q.label+'</small></span></div>'+
+    (PERFIL?'<p class="wpop-q">Como está o sinal agora?</p>'+wScale(id)+(mine[id]?'<p class="wpop-ok">Sua nota: '+mine[id]+'</p>':'')
+      :'<button type="button" class="copy" data-needprof>Criar perfil para dar nota</button>')+
+    '<button type="button" class="linkbtn" data-wmore="'+id+'">Mais sobre esta rede</button>';
+}
+function wifiPop(id){
+  if(!WIFI[id])return;var mw=document.querySelector('.mapwrap');if(!mw)return;
+  var mk=svg.querySelector('.mk.wifi[data-id="'+id+'"]');if(!mk){wifiPopClose();return}
+  var p=$('#wPop');if(!p){mw.insertAdjacentHTML('beforeend','<div class="wpop" id="wPop" role="dialog" aria-label="Rede Wi-Fi"></div>');p=$('#wPop')}
+  p.dataset.id=id;p.innerHTML=wifiPopHTML(id);
+  var r=mk.getBoundingClientRect(),R=mw.getBoundingClientRect(),pw=p.offsetWidth,ph=p.offsetHeight;
+  var x=r.left+r.width/2-R.left,y=r.top-R.top;
+  x=Math.max(pw/2+8,Math.min(R.width-pw/2-8,x));
+  var below=y-ph-14<8;p.classList.toggle('below',below);
+  p.style.left=x+'px';p.style.top=(below?r.bottom-R.top+14:y-14)+'px';
+  var f=p.querySelector('[data-wrate],[data-needprof]');if(f)f.focus({preventScroll:true});
+}
+svg.addEventListener('click',function(e){
+  if(suppressClick)return;
+  var g=e.target.closest&&e.target.closest('.mk.wifi');
+  if(g)setTimeout(function(){wifiPop(g.dataset.id)},0);else wifiPopClose();
+},true);
+svg.addEventListener('pointerdown',function(e){if(!(e.target.closest&&e.target.closest('.mk.wifi')))wifiPopClose()},true);
+document.addEventListener('keydown',function(e){if(e.key==='Escape')wifiPopClose()});
+
+document.addEventListener('click',function(e){
+  var t=e.target.closest&&e.target.closest('[data-wrate],[data-wsel],[data-wmap],[data-wmore],[data-wedu],[data-wpopx],[data-nightoff]');if(!t)return;
+  if(t.dataset.wpopx!==undefined){wifiPopClose();return}
+  if(t.dataset.nightoff!==undefined){state.sel=null;renderAll();return}
+  if(t.dataset.wedu!==undefined){setTab('trajeto');select('guide','eduroam',true);return}
+  if(t.dataset.wsel){WSEL=WSEL===t.dataset.wsel?null:t.dataset.wsel;renderWifiPane();var b=$('#pWifi [data-wsel="'+t.dataset.wsel+'"]');if(b)b.focus({preventScroll:true});return}
+  if(t.dataset.wrate){
+    var id=t.dataset.wid,n=+t.dataset.wrate;if(!PERFIL||!WIFI[id])return;
+    mine[id]=n;saveMine();writeVotes();drawShared();updateMap();
+    if(state.sel&&state.sel.kind==='wifi'&&state.sel.id===id)renderDetail();
+    renderWifiPane();if($('#wPop'))wifiPop(id);
+    gToast('Obrigado! Sua nota para '+WIFI[id].name+': '+n+'.');return}
+  if(t.dataset.wmap){var wid=t.dataset.wmap;
+    if(!state.layers.wifi){var c=$('#chWifi');if(c)setLayer('wifi',c)}
+    select('wifi',wid,false);scrollToMap();setTimeout(function(){wifiPop(wid)},450);return}
+  if(t.dataset.wmore){var wm=t.dataset.wmore;wifiPopClose();WSEL=wm;setTab('predios');try{history.replaceState(null,'','#predios')}catch(x){}
+    setTimeout(function(){var r=$('#wrow-'+wm);if(r)r.scrollIntoView({behavior:'smooth',block:'center'})},60)}
+});
+
+/* Volta à noite: a lua aparece no mapa, o mapa escurece e o painel vem para a tela */
+function nightBadge(){
+  var on=!!state.sel&&(state.sel.kind==='night'||state.sel.kind==='guard'),mw=document.querySelector('.mapwrap');if(!mw)return;
+  mw.classList.toggle('noite',on);var b=$('#nightBadge');
+  if(on&&!b)mw.insertAdjacentHTML('beforeend','<div class="nightbadge" id="nightBadge" role="status">'+MOON+'<span>Volta à noite</span><button type="button" data-nightoff>Sair</button></div>');
+  else if(!on&&b)b.remove();
+}
+var _updateMapV13=updateMap;
+updateMap=function(){var r=_updateMapV13.apply(this,arguments);nightBadge();return r};
+var _selectV13=select;
+select=function(kind,id,scroll){
+  _selectV13(kind,id,scroll);
+  if(kind!=='wifi')wifiPopClose();
+  if(kind==='night'){nightBadge();setTimeout(function(){var d=$('#detail');if(!d)return;var r=d.getBoundingClientRect();
+    if(r.top>window.innerHeight*.55||r.bottom<80)d.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'})},80)}
+};
+wifiChip();
+
 
 })();

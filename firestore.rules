@@ -43,7 +43,8 @@ service cloud.firestore {
     match /data/users/{uid}/{doc=**} { allow read, write: if dono(uid); }
 
     // compartilhado: todos leem, cada um grava o seu; quem tem o privilégio "avisos" modera
-    match /votes/{uid}   { allow read: if leitura(); allow write: if dono(uid) && membro(); }
+    // notas de Wi-Fi; o documento "exemplo-apresentacao" é escrito pela gestão (Modo apresentação)
+    match /votes/{uid}   { allow read: if leitura(); allow write: if (dono(uid) && membro()) || (uid == 'exemplo-apresentacao' && pode('avisos')); }
     match /reports/{uid} {
       allow read: if leitura();
       allow create, update: if (dono(uid) && membro() && lista(5) && intervalo(30)) || pode('avisos');
@@ -58,8 +59,8 @@ service cloud.firestore {
     // pedidos de correção e lista de usuários
     match /requests/{uid} {
       allow read: if dono(uid) || pode('solicitacoes');
-      allow create, update: if dono(uid) && membro() && lista(10) && intervalo(60);
-      allow delete: if dono(uid);
+      allow create, update: if (dono(uid) && membro() && lista(10) && intervalo(60)) || (uid == 'exemplo-apresentacao' && pode('avisos') && lista(10));
+      allow delete: if dono(uid) || (uid == 'exemplo-apresentacao' && pode('avisos'));
     }
 
     // quem participa. Entrar ocupa uma vaga: o app cria members/<uid> e soma 1 em meta/vagas
