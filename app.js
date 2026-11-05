@@ -3,7 +3,7 @@
 var FBMODE=!!(window.CSE_FIREBASE&&window.CSE_FIREBASE.apiKey&&window.CSE_FIREBASE.projectId)&&!(window.claude&&typeof window.claude.use==='function');
 var LITE=(function(){try{return window.matchMedia('(pointer:coarse), (max-width:820px)').matches||(navigator.hardwareConcurrency||8)<=4||!!(navigator.connection&&navigator.connection.saveData)}catch(e){return false}})();
 document.documentElement.classList.toggle('lite',LITE);
-var CFG={cover:'folha',banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'sistema',bussola:false,foto:true,perf:'auto',perfV:0,bldn:true,simples:false,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true,faixa:0};
+var CFG={cover:'folha',banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'sistema',bussola:false,foto:true,perf:'auto',perfV:0,bldn:true,simples:true,simplesV:0,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true,faixa:10,faixaV:0};
 try{var _c=JSON.parse(localStorage.getItem('cse-cfg'));if(_c)CFG=Object.assign(CFG,_c)}catch(e){}
 /* desempenho: automático, leve (sem transparência nem efeitos), intermediário (o antigo "completo") e completo
    (intermediário + vidro e animações em Ajustes, glossário e gestão). Automático: computador = completo; o resto = intermediário. */
@@ -3328,7 +3328,7 @@ var _locStopC=locStop;locStop=function(){_locStopC();if(CMP.on)cmpSchedule()};
 
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261104-2129';
+var APP_VERSION='20261104-2150';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
@@ -3447,12 +3447,25 @@ document.addEventListener('click',function(e){
 
 /* ---------- modo apresentação: exemplos de fila e avisos ---------- */
 var DEMO_ID='exemplo-apresentacao';
+/* malha de cobertura de exemplo: parte da mesma simulação da prévia, agrupada em hexágonos de 30 m; quase toda com eduroam */
+function demoMesh(){
+  var src=typeof _covSamplesR==='function'?_covSamplesR():[],cells={},t=Math.floor(Date.now()/600000)*600000,r=covRand(4242),out=[];
+  src.forEach(function(s){var c=cellOf(s.p),o=cells[c.k]||(cells[c.k]={c:c,n:0,ok:0,mb:0});o.n++;if(s.ok){o.ok++;o.mb+=s.mb}});
+  Object.keys(cells).forEach(function(k){var o=cells[k],ok=o.ok/o.n>=.5,mb=ok?Math.min(999,Math.round(o.mb/Math.max(1,o.ok)*10)/10):0,reps=o.n>=8?3:o.n>=4?2:1;
+    for(var i=0;i<reps;i++)out.push({cell:k,x:o.c.x,y:o.c.y,ok:ok,edu:ok?r()<.85:null,mb:mb,ms:ok?Math.round(30+r()*150):0,tipo:'wifi',acc:20,t:t,ver:'exemplo'})});
+  return out.slice(0,1200);
+}
+function demoWriteMed(list){
+  if(typeof SH.db.batch!=='function')return Promise.all(list.map(function(x){return SH.db.collection('medicoes').add(x)}));
+  var ps=[],tag=Date.now().toString(36);for(var i=0;i<list.length;i+=400){var b=SH.db.batch();list.slice(i,i+400).forEach(function(x,j){b.set(SH.db.doc('medicoes/exemplo-'+tag+'-'+(i+j)),x)});ps.push(b.commit())}
+  return Promise.all(ps);
+}
 function demoHasVotes(){return !!(SH.voteDocs&&SH.voteDocs[DEMO_ID])}
-function demoClearMed(){if(!FBMODE||!SH.db)return Promise.resolve();return SH.db.collection('medicoes').where('ver','==','exemplo').get().then(function(q){if(!q.docs.length)return;var b=SH.db.batch();q.docs.forEach(function(x){b.delete(x.ref)});return b.commit()})}
+function demoClearMed(){if(!FBMODE||!SH.db)return Promise.resolve();return SH.db.collection('medicoes').where('ver','==','exemplo').get().then(function(q){if(!q.docs.length)return;var ps=[];for(var i=0;i<q.docs.length;i+=400){var b=SH.db.batch();q.docs.slice(i,i+400).forEach(function(x){b.delete(x.ref)});ps.push(b.commit())}return Promise.all(ps)})}
 function demoCard(){
   if(!SH.on||!gcan('avisos'))return '';
   var has=SH.fila.some(function(r){return r.owner===DEMO_ID})||SH.reps.some(function(r){return r.owner===DEMO_ID})||demoHasVotes();
-  return '<h3 class="gh">Modo apresentação</h3><div class="gcard"><p class="small">Preenche com exemplos tudo o que os alunos informam: fila dos RUs, um aviso de cada tipo, notas para todas as redes Wi-Fi, medições do mapa de cobertura e pedidos de correção. Filas somem em 45 min e avisos em 4 h; o resto sai com o botão Limpar.</p>'+
+  return '<h3 class="gh">Modo apresentação</h3><div class="gcard"><p class="small">Preenche com exemplos tudo o que os alunos informam: fila dos RUs, um aviso de cada tipo, notas para todas as redes Wi-Fi, a malha do mapa de cobertura (com eduroam) e pedidos de correção. Filas somem em 45 min e avisos em 4 h; o resto sai com o botão Limpar.</p>'+
     '<p class="muted small">Dica: no campo Horário, escolha 22:00 para mostrar a Volta à noite a qualquer hora.</p><div class="gbtns"><button type="button" class="copy primary" id="gDemoOn">'+(has?'Renovar exemplos':'Preencher exemplos')+'</button>'+(has?'<button type="button" class="copy danger" id="gDemoOff">Limpar exemplos</button>':'')+'</div></div>';
 }
 function demoItems(){
@@ -3473,8 +3486,7 @@ function demoItems(){
     var tx={onibus:'O horário das 18h mudou para 18h10.',ponto:'O ponto mudou para o outro lado da rua.',wifi:'A senha da rede mudou.',servico:'O RU abre às 10h30 nas sextas.',planta:'Falta a planta do 3º andar.',outro:'Seria bom ter o horário do bandejão no fim de semana.'}[t[0]]||'';
     return {id:'qx'+i,t:t[0],alvo:al,txt:tx,ts:now-(20+i*30)*m}});
   /* medições do mapa de cobertura em volta dos pontos de Wi-Fi */
-  var md=wf.slice(0,8).map(function(id,i){var p=WIFI[id].p,c=cellOf([p[0]+(i%3-1)*12,p[1]+(i%2)*10]),ok=i%4!==3;
-    return {cell:c.k,x:c.x,y:c.y,ok:ok,edu:ok?(i%2===0):null,mb:ok?[42,8.5,25,3.2,60,15,4.1,33][i]:0,ms:ok?[40,180,70,450,30,95,380,55][i]:0,tipo:'wifi',acc:20,t:Math.floor(now/600000)*600000,ver:'exemplo'}});
+  var md=demoMesh();
   return {f:f,r:r,v:v,q:q,md:md};
 }
 document.addEventListener('click',function(e){
@@ -3482,7 +3494,7 @@ document.addEventListener('click',function(e){
     var job=function(nome,p){return Promise.resolve(p).then(function(){return true},function(){falhou.push(nome);return false})};
     var tasks=[job('fila',SH.db.doc('fila/'+DEMO_ID).set({items:d.f})),job('avisos',SH.db.doc('reports/'+DEMO_ID).set({items:d.r})),
       job('notas de Wi-Fi',SH.db.doc('votes/'+DEMO_ID).set({r:d.v,ts:Date.now()})),job('pedidos de correção',SH.db.doc('requests/'+DEMO_ID).set({items:d.q}))];
-    if(FBMODE)tasks.push(job('medições',demoClearMed().then(function(){return Promise.all(d.md.map(function(x){return SH.db.collection('medicoes').add(x)}))})));
+    if(FBMODE)tasks.push(job('malha de cobertura',demoClearMed().then(function(){return demoWriteMed(d.md)})));
     else{try{localStorage.setItem('cse-demo-med',JSON.stringify(d.md))}catch(x){}}
     Promise.all(tasks).then(function(){if(!falhou.length)gToast('Exemplos publicados. Todos que abrirem o app vão ver.');
       else gToast('Exemplos publicados, menos: '+falhou.join(', ')+'. Confira os privilégios e publique as regras novas do Firestore.',1);if(typeof COV!=='undefined'){COV.real=null;if(COV.on&&FBMODE)covLoadReal()}if(FBMODE&&SH.db&&gcan('solicitacoes'))SH.db.collection('requests').get().then(function(x){SH.req=flatReq(x.docs);if(gestM&&!gestM.hidden)renderGest()},function(){})});return}
@@ -4601,6 +4613,11 @@ function mapThemeSync(light){
   r.classList.toggle('mapclaro',!!light);
 }
 document.documentElement.classList.toggle('mapclaro',MAPSUF==='-claro');
+/* v14: horário em faixa de 10 min passa a ser o padrão */
+if(CFG.faixaV!==1){CFG.faixa=10;CFG.faixaV=1;try{saveCfg()}catch(e){}}
+/* v14: modo simplificado ligado por padrão */
+if(CFG.simplesV!==1){CFG.simples=true;CFG.simplesV=1;try{saveCfg()}catch(e){}applySimples()}
+renderAll();
 /* ======================= v13: Wi-Fi em Lugares, balão no mapa e Volta à noite visível ======================= */
 var WSEL=null;
 function wScale(id){var m=mine[id],h='';for(var i=1;i<=5;i++)h+='<button type="button" data-wrate="'+i+'" data-wid="'+id+'" aria-pressed="'+(m===i)+'" aria-label="Nota '+i+' de 5">'+i+'</button>';
