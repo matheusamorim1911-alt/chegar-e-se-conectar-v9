@@ -3352,7 +3352,7 @@ var _locStopC=locStop;locStop=function(){_locStopC();if(CMP.on)cmpSchedule()};
 
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261107-1409';
+var APP_VERSION='20261107-1438';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
@@ -5630,7 +5630,7 @@ snapBus=function(n,p){
 /* posição ao vivo também passa pela calibração nova */
 var _ll2mapLive=ll2map;
 liveDraw=(function(prev){return function(){var keep=ll2map;ll2map=function(a,b,G){return G?keep(a,b,G):llx(a,b)};try{prev()}finally{ll2map=keep}}})(liveDraw);
-LV.st={};var gl=$('#gLive');if(gl)gl.remove();if(LIVE.bus.length)liveDraw();
+LV.st={};(function(){var g=$('#gLive');if(g)g.remove()})();if(LIVE.bus.length)liveDraw();/* v36: antes usava "var gl", que apagava o estado do glossário (mesmo nome) e impedia o glossário de abrir */
 
 /* ======================= v32: ônibus ao vivo com posição prevista (velocidade + traçado), atraso visível e busca a cada 15 s ======================= */
 var LV2={st:{},raf:0,last:0};
@@ -5819,7 +5819,7 @@ function lvmCarrega(){
     Object.keys(LV2.st).forEach(function(v){var O=LV2.st[v].obs;if(O)O.ve=null});
   },function(){});
 }
-if(LIVE.url)setTimeout(lvmCarrega,2500);
+if(LIVE.url)setTimeout(function(){lvmCarrega()},2500);
 /* aviso "ao vivo" conta quanto a previsão já aprendeu */
 liveStatusHTML=(function(prev){return function(){var h=prev(),n=lvmTotal();if(n>=20&&LIVE.t&&LIVE.bus.length)h=h.replace('ajustadas pela velocidade','ajustadas pela velocidade e por '+n.toLocaleString('pt-BR')+' trajetos já medidos');return h}})(liveStatusHTML);
 
@@ -5884,6 +5884,151 @@ document.addEventListener('click',function(e){
     if(!ids.length){gToast('Nenhuma medição com mais de 90 dias.');return}
     fbInit().then(function(fb){return Promise.all(ids.map(function(id){return fb.db.collection('desvios').doc(id).delete()}))}).then(function(){gToast(ids.length+' lotes antigos apagados.');LVG.am=null;renderGest()},function(){gToast('Não deu para apagar.',1)});
   }
+});
+
+
+/* ======================= v36: previsão dos ônibus mais honesta =======================
+   As medições reais (07/11) mostraram que o aprendizado da v35 piorava a previsão: média de velocidade puxada por poucos
+   casos extremos, ônibus parados "andando" sozinhos e saltos para trás (o ônibus encaixado no trecho errado do traçado).
+   Agora: (1) encaixe no traçado respeita o sentido em que o ônibus anda e a posição anterior; (2) parado fica parado;
+   (3) o modelo escolhe o fator de velocidade que minimiza o erro em metros e só é usado onde já provou ser melhor
+   que a velocidade informada (pelo menos 30 medições e 8% de ganho); (4) saltos para trás não entram no aprendizado. */
+var LVF=[0.5,0.6,0.7,0.8,0.9,1,1.1,1.25],LVF1=5,LVF_MIN=100,LVF_GANHO=0.9;
+LVM.loc=(function(){try{return JSON.parse(localStorage.getItem('cse-lv-m2')||'{}')||{}}catch(e){return {}}})();LVM.pub={};
+try{localStorage.removeItem('cse-lv-modelo')}catch(e){}
+lvmSalva=function(){try{
+  var ks=Object.keys(LVM.loc);if(ks.length>3000){ks.sort(function(a,b){return LVM.loc[a][0]-LVM.loc[b][0]});ks.slice(0,ks.length-2500).forEach(function(k){delete LVM.loc[k]})}
+  localStorage.setItem('cse-lv-m2',JSON.stringify(LVM.loc));localStorage.setItem('cse-lv-fila',JSON.stringify(LVM.fila.slice(-600)));localStorage.setItem('cse-lv-hist',JSON.stringify(LVM.hist.slice(-600)));
+}catch(e){}};
+function lvfChaves(cel,dir,vb,per){return ['c|'+cel+'|'+dir+'|'+vb,'g|'+vb+'|'+per]}
+function lvfSoma(M,ks,real,raw){ks.forEach(function(k){var s=M[k]||(M[k]=[0].concat(LVF.map(function(){return 0})));s[0]++;for(var i=0;i<LVF.length;i++)s[i+1]=Math.round((s[i+1]+Math.abs(real-LVF[i]*raw))*10)/10})}
+function lvfEscolhe(get,ks){/* do mais específico ao geral; só usa um fator que já se provou melhor que 1,0 */
+  for(var j=0;j<ks.length;j++){var s=get(ks[j]);if(!s||s[0]<LVF_MIN)continue;
+    var b=LVF1;for(var i=0;i<LVF.length;i++)if(s[i+1]<s[b+1])b=i;
+    if(b!==LVF1&&s[b+1]<=s[LVF1+1]*LVF_GANHO)return LVF[b];if(j===0)return 1}
+  return 1;
+}
+function lvmSt2(k){var a=LVM.pub[k],b=LVM.loc[k];if(!a&&!b)return null;if(!a)return b;if(!b)return a;return a.map(function(x,i){return x+b[i]})}
+lvmVel=function(O){
+  if(lvmVb(O.v)===0)return 0;/* parado fica parado: nas medições, 3 de cada 4 continuavam no mesmo lugar */
+  return O.v*lvfEscolhe(lvmSt2,lvfChaves(lvmCel(O),lvmDir(O),lvmVb(O.v),lvmPer(O.t)));
+};
+lvmTotal=function(){var n=0;[LVM.pub,LVM.loc].forEach(function(M){Object.keys(M).forEach(function(k){if(k.indexOf('g|')===0)n+=M[k][0]})});return n};
+/* a v31 recalibrava traçados e paradas da prefeitura com 11 paradas (erro de ~50 m). Depois da v34 o mapa já está
+   calibrado pelas ruas (~16 m) e as posições ao vivo usam ll2map: traçados e paradas voltam para a mesma conta,
+   senão o ônibus fica ~50 m fora do traçado e cai no trecho errado. */
+LLX=null;
+Object.keys(SHP_EXT).forEach(function(i){var d=EXT.shp[i],a=-2280000,o=-4320000,P=[];for(var k=0;k<d.length;k+=2){a+=d[k];o+=d[k+1];P.push(ll2map(a/1e5,o/1e5))}var cum=[0];for(var j=1;j<P.length;j++)cum.push(cum[j-1]+Math.hypot(P[j][0]-P[j-1][0],P[j][1]-P[j-1][1]));SHP[SHP_EXT[i]]={P:P,c:cum}});
+Object.keys(EXTS).forEach(function(g){var G=EXTS[g];if(G.stop)return;var k=Object.keys(EXT.stops).filter(function(k){return EXT.stops[k][0]===G.name})[0];if(k){var s=EXT.stops[k];G.p=ll2map(s[1],s[2])}});
+extDraw();
+/* encaixe no traçado da própria linha, considerando o sentido em que o ônibus anda e onde ele estava antes */
+function snapBusX(n,p,o,P,dt){
+  var ids=((EXT.sh||{})[n]||[]).map(function(i){return SHP_EXT[i]}).filter(function(i){return i!=null&&SHP[i]}),best=null,M=MPU,comp=o&&o.vel>2?((angN()+o.dir)%360+360)%360:null;
+  ids.forEach(function(i){var S=SHP[i];
+    for(var j=1;j<S.P.length;j++){var a=S.P[j-1],b=S.P[j],dx=b[0]-a[0],dy=b[1]-a[1],L2=dx*dx+dy*dy||1e-9,t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L2)),x=a[0]+t*dx,y=a[1]+t*dy,d=Math.hypot(p[0]-x,p[1]-y);
+      if(d>120*M)continue;
+      var s=S.c[j-1]+t*Math.sqrt(L2),ang=Math.atan2(dx,-dy)*180/Math.PI,pen=0;
+      if(comp!=null&&Math.abs(((ang-comp)%360+540)%360-180)>100)pen+=40*M;/* o traçado vai no sentido contrário ao do ônibus */
+      if(P&&P.i!=null&&dt>0){if(P.i!==i)pen+=20*M;else{var ds=(s-P.s)*(P.sign||1)/M;if(ds<-40||ds>25*dt+80)pen+=60*M}}
+      var c=d+pen;if(!best||c<best.c)best={c:c,d:d,x:x,y:y,i:i,s:s,ang:ang}}});
+  return best||snapBus(n,p);/* sem traçado da linha por perto: ruas do campus */
+}
+function liveDrawCore(){
+  var g=$('#gExt');if(!g)return;var G=$('#gLive');if(!G){g.insertAdjacentHTML('beforeend','<g id="gLive"></g>');G=$('#gLive')}
+  var seen={},now=Date.now();
+  LIVE.bus.forEach(function(o){
+    var raw=ll2map(o.la,o.lo),S=LV2.st[o.v],prev=S&&S.obs,dt=prev?(o.t-prev.t)/1000:0;
+    var sn=(prev&&prev.t===o.t)?(prev.i!=null?{i:prev.i,s:prev.s,x:prev.x,y:prev.y,ang:0}:null):snapBusX(o.l,raw,o,prev,dt);
+    seen[o.v]=1;
+    var obs={t:o.t,v:Math.min(70,Math.max(0,o.vel||0))/3.6,x:sn?sn.x:raw[0],y:sn?sn.y:raw[1],ang:o.vel>2?((angN()+o.dir)%360+360)%360:null};
+    if(sn){obs.i=sn.i;obs.s=sn.s;obs.sign=(prev&&prev.t===o.t)?prev.sign:lvSign(o,sn,prev)}else obs.i=null;
+    if(obs.v<0.6)obs.v=0;
+    var idade=Math.round((now-o.t)/1000),tit='Ônibus '+o.l+' · posição de '+idade+' s atrás'+(obs.v>0?', '+Math.round(o.vel)+' km/h':', parado');
+    if(!S||!S.el||!S.el.isConnected){
+      G.insertAdjacentHTML('beforeend',mk('ext',liveNearStop([obs.x,obs.y]),[obs.x,obs.y],tit,'<title>'+esc(tit)+'</title><circle class="hit" r="16"/><path class="lv-dir" d="M0 -18l5.5 6.5h-11z"/><circle class="lv-dot" r="11" style="fill:'+liveColor(o.l)+'"/><text class="lv-t" y="3.5">'+esc(o.l.replace(/^S[A-Z]*/,'').slice(0,3))+'</text>').replace('class="mk ext"','class="mk ext xlive" data-v="'+esc(o.v)+'"'));
+      S=LV2.st[o.v]={el:G.lastElementChild};
+    }else if(!prev||prev.t!==o.t){
+      S.blend={x:S.x,y:S.y,t0:Date.now()};
+    }
+    var tt=S.el.querySelector('title');if(tt)tt.textContent=tit;S.el.setAttribute('aria-label',tit);
+    S.obs=obs;S.age=idade;S.el.dataset.id=liveNearStop([obs.x,obs.y]);
+  });
+  Object.keys(LV2.st).forEach(function(v){if(!seen[v]){if(LV2.st[v].el)LV2.st[v].el.remove();delete LV2.st[v]}});
+}
+lvmMede=function(o,P,O){
+  if(!P||!O||P.i==null||O.i==null||P.i!==O.i||!(O.t>P.t))return;
+  var dt=(O.t-P.t)/1000;if(dt<5||dt>120)return;
+  var real=(O.s-P.s)*P.sign/MPU;
+  if(Math.abs(real)>25*dt+60)return;
+  var h=Math.min(dt,60),dRaw=P.v*h,dMod=lvV(P)*h,dReal=real*(h/dt);
+  var amostra=[Math.round(P.t/1000),o.l,lvmCel(P),lvmDir(P),lvmVb(P.v),lvmPer(P.t),Math.round(dt),Math.round(P.v*36),Math.round(real),Math.round(dRaw),Math.round(dMod)].join('|');
+  LVM.fila.push(amostra);LVM.hist.push(amostra);
+  /* aprende só com ônibus em movimento, intervalos normais e sem salto para trás (erro de encaixe, não movimento) */
+  if(dt<=75&&real>=-50&&lvmVb(P.v)>0)lvfSoma(LVM.loc,lvfChaves(lvmCel(P),lvmDir(P),lvmVb(P.v),lvmPer(P.t)),dReal,dRaw);
+  LVM.ult={erroRaw:Math.abs(dReal-dRaw),erroMod:Math.abs(dReal-dMod)};
+};
+liveDraw=function(){
+  var antes={};Object.keys(LV2.st).forEach(function(v){antes[v]=LV2.st[v].obs});
+  liveDrawCore();
+  var mudou=false;
+  LIVE.bus.forEach(function(o){var S=LV2.st[o.v];if(!S||!S.obs)return;var O=S.obs,P=antes[o.v];
+    if(P&&P.t===O.t){O.signOk=P.signOk;O.ve=P.ve;return}
+    O.signOk=o.vel>2||!!(P&&P.i===O.i&&Math.abs(O.s-P.s)/MPU>5)||!!(P&&P.signOk);
+    if(P){lvmMede(o,P,O);mudou=true}
+    O.ve=null;lvV(O);
+  });
+  if(mudou){lvmSalva();lvmEnvia(false)}
+  if(LV2.raf)cancelAnimationFrame(LV2.raf);LV2.raf=0;lvFrame();
+};
+lvmCarrega=function(){
+  if(!FB_ON)return;
+  fbInit().then(function(fb){return fb.db.collection('gestao').doc('previsao').get()}).then(function(d){
+    var o=d&&d.exists?d.data():null;if(!o||!o.b2)return;
+    LVM.pub={};Object.keys(o.b2).forEach(function(k){var v=o.b2[k];if(Array.isArray(v)&&v.length===LVF.length+1)LVM.pub[k]=v});LVM.pubN=o.n||0;LVM.pubAt=o.at||0;
+    var vis=0;try{vis=+localStorage.getItem('cse-lv-pubat2')||0}catch(e){}
+    if(LVM.pubAt>vis){LVM.loc=lvgModelo2(LVM.fila.map(lvmParse).filter(Boolean));try{localStorage.setItem('cse-lv-pubat2',String(LVM.pubAt))}catch(e){}lvmSalva()}
+    Object.keys(LV2.st).forEach(function(v){var O=LV2.st[v].obs;if(O)O.ve=null});
+  },function(){});
+};
+function lvgModelo2(A){var M={};A.forEach(function(a){if(a.dt>75||a.real<-50||a.vb===0)return;var h=Math.min(a.dt,60);lvfSoma(M,lvfChaves(a.cel,a.d,a.vb,a.per),a.real*h/a.dt,a.v*h)});return M}
+/* simulação honesta: refaz as medições em ordem, aprendendo só com o passado, e mede o erro que o modelo novo teria */
+function lvgSimula(A){
+  var M={},B=A.slice().sort(function(x,y){return x.t-y.t}),e0=0,e1=0,n=0;
+  B.forEach(function(a){if(a.dt>75||a.real<-50)return;var h=Math.min(a.dt,60),real=a.real*h/a.dt,raw=a.v*h;
+    var f=a.vb===0?0:lvfEscolhe(function(k){return M[k]},lvfChaves(a.cel,a.d,a.vb,a.per));
+    e0+=Math.abs(real-raw);e1+=Math.abs(real-f*raw);n++;
+    if(a.vb>0)lvfSoma(M,lvfChaves(a.cel,a.d,a.vb,a.per),real,raw)});
+  return n?{n:n,raw:e0/n,mod:e1/n}:null;
+}
+gPrevisao=function(){
+  if(!LVG.am){lvgCarrega();return '<h3 class="gh">Previsão dos ônibus</h3><p class="muted small keep">Carregando as medições…</p>'}
+  var A=LVG.am,f=function(x){return x==null?'—':Math.round(x)+' m'},h=function(a){return Math.min(a.dt,60)/a.dt};
+  var saltos=A.filter(function(a){return a.real<-50}).length,cur=A.filter(function(a){return a.dt<=75&&a.real>=-50});
+  var maeRaw=lvgMae(cur,function(a){return a.real*h(a)-a.raw}),maeMod=lvgMae(cur,function(a){return a.real*h(a)-a.mod}),sim=lvgSimula(A);
+  var faixas=['parado','até 15 km/h','15 a 35 km/h','acima de 35 km/h'],linhas={};A.forEach(function(a){linhas[a.l]=1});
+  var porVb=faixas.map(function(nm,i){var B=cur.filter(function(a){return a.vb===i});return '<tr><td>'+nm+'</td><td>'+B.length+'</td><td>'+f(lvgMae(B,function(a){return a.real*h(a)-a.raw}))+'</td><td>'+f(lvgMae(B,function(a){return a.real*h(a)-a.mod}))+'</td></tr>'}).join('');
+  var pub=LVM.pubAt?'Modelo publicado em '+new Date(LVM.pubAt).toLocaleString('pt-BR')+' com '+(LVM.pubN||0).toLocaleString('pt-BR')+' medições.':'Nenhum modelo publicado ainda: cada aparelho usa só o que aprendeu sozinho.';
+  var simTxt=sim?'Se publicar agora, o erro médio estimado passa de '+f(sim.raw)+' (só a velocidade) para '+f(sim.mod)+(sim.mod<sim.raw*0.98?'. Vale publicar.':sim.mod>sim.raw*1.02?'. Ainda não vale publicar.':': quase igual. Os dados ainda não mostram ganho; o app continua usando a velocidade informada onde não há ganho comprovado.'):'';
+  return '<h3 class="gh">Previsão dos ônibus</h3>'+
+    '<p class="small keep">Cada vez que chega a posição nova de um ônibus, o app compara onde previu que ele estaria com onde ele estava de fato. O ajuste de velocidade só é usado num trecho depois de '+LVF_MIN+' medições ali e se reduzir o erro em pelo menos '+Math.round((1-LVF_GANHO)*100)+'%; fora isso, vale a velocidade informada pelo ônibus.</p>'+
+    (LVG.err?'<p class="small keep">Sem acesso às medições do Firestore. Publique as regras novas (firestore.rules) no console do Firebase. Mostrando só as deste aparelho.</p>':'')+
+    (!FB_ON?'<p class="muted small keep">Sem Firebase aqui: mostrando só as medições deste aparelho.</p>':'')+
+    '<div class="la-nums fbk-sum"><span><b>'+A.length.toLocaleString('pt-BR')+'</b>medições</span><span><b>'+Object.keys(linhas).length+'</b>linhas</span><span><b>'+f(maeRaw)+'</b>erro médio só com a velocidade</span><span><b>'+f(maeMod)+'</b>erro médio do que o app mostrou</span></div>'+
+    '<p class="small keep"><b>'+simTxt+'</b></p>'+
+    (saltos?'<p class="muted small keep">'+saltos+' medições ('+Math.round(saltos/A.length*100)+'%) foram descartadas: o ônibus pareceu voltar mais de 50 m, sinal de que foi encaixado no trecho errado do traçado.</p>':'')+
+    '<table class="lvg-t"><thead><tr><th>Velocidade informada</th><th>Medições</th><th>Erro só com a velocidade</th><th>Erro do que o app mostrou</th></tr></thead><tbody>'+porVb+'</tbody></table>'+
+    '<p class="muted small keep">Erro medido quando chega a posição nova (até 60 s de previsão). Medições feitas antes desta versão usaram o ajuste antigo.</p>'+
+    '<p class="small keep">'+pub+'</p>'+
+    '<div class="row gbtns">'+(FB_ON?'<button type="button" class="copy primary" id="lvgPub2"'+(A.length?'':' disabled')+'>Recalcular e publicar o modelo</button>':'')+
+    '<button type="button" class="copy" id="lvgCsv"'+(A.length?'':' disabled')+'>Baixar medições (CSV)</button><button type="button" class="copy" id="lvgRe">Atualizar</button>'+
+    (FB_ON&&LVG.docs?'<button type="button" class="linkbtn" id="lvgOld">Apagar medições com mais de 90 dias</button>':'')+'</div>';
+};
+document.addEventListener('click',function(e){
+  var t=e.target.closest&&e.target.closest('#lvgPub2');if(!t)return;
+  var A=LVG.am||[],b=lvgModelo2(A),n=A.filter(function(a){return a.dt<=75&&a.real>=-50&&a.vb>0}).length,o={b2:b,n:n,at:Date.now()};
+  if(JSON.stringify(o).length>900000){gToast('Modelo grande demais para um documento. Apague medições antigas.',1);return}
+  t.disabled=true;
+  fbInit().then(function(fb){return fb.db.collection('gestao').doc('previsao').set(o)}).then(function(){LVM.pub=b;LVM.pubN=n;LVM.pubAt=o.at;LVM.loc={};try{localStorage.setItem('cse-lv-pubat2',String(o.at))}catch(x){}lvmSalva();Object.keys(LV2.st).forEach(function(v){var O=LV2.st[v].obs;if(O)O.ve=null});gToast('Modelo publicado: todos os aparelhos passam a usar.');renderGest()},function(){t.disabled=false;gToast('Não deu para publicar. Confira as regras do Firestore.',1)});
 });
 
 })();
