@@ -53,8 +53,8 @@ function filaBody(){
   if(SH.on&&blocked(SH.uid))why='Sua conta não pode informar filas no momento (decisão da gestão).';
   else if(SH.on&&FBMODE&&SH.full&&GESTOR!==true)why=fullMsg('informar a fila');
   else if(SH.on&&(SH.denied||SH.write===false))why=FBMODE?'Você pode ver as filas. Para informar, toque em Informar e entre com sua conta.':'Você pode ver as filas. Para informar, o dono da página precisa te dar acesso de colaborador.';
-  if(!PERFIL)return '<div class="filabox flat" id="filabox"><div class="fila-l">'+RUS.map(function(k){return filaRow(k,now)}).join('')+'</div>'+needProfileHTML('informar a fila')+'</div>';
-  return '<div class="filabox flat" id="filabox"><div class="fila-l">'+RUS.map(function(k){return filaRow(k,now)}).join('')+'</div>'+
+  if(!PERFIL)return '<div class="filabox flat" id="filabox"><div class="fila-l">'+RUS.map(function(k){return filaRow(k,now)}).join('')+'</div><div class="row bdj-row">'+bandejaLinkHTML()+'</div>'+needProfileHTML('informar a fila')+'</div>';
+  return '<div class="filabox flat" id="filabox"><div class="fila-l">'+RUS.map(function(k){return filaRow(k,now)}).join('')+'</div><div class="row bdj-row">'+bandejaLinkHTML()+'</div>'+
     (filaMsg?'<p class="small fila-ok" role="status">'+esc(filaMsg)+'</p>':'')+
     '<p class="muted small keep">'+(why||'Está na fila? Toque em Informar e escolha o tamanho. Seu nome não aparece, e os avisos mais recentes pesam mais.')+'</p></div>';
 }

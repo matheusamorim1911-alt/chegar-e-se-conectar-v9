@@ -173,7 +173,7 @@ function pill(s){return '<span class="pill '+s.c+'">'+s.t+'</span>'}
 function placeCard(id,now,bare){
   var it=PL[id];if(!it)return '';
   var we=isWeekend()&&!state.manual,extra='';
-  if(RUS.indexOf(id)>=0)extra+='<div class="fila-in"><p class="small"><b>Fila agora</b></p>'+filaRow(id,now)+'</div>';
+  if(RUS.indexOf(id)>=0)extra+='<div class="fila-in"><p class="small"><b>Fila agora</b></p>'+filaRow(id,now)+'</div><div class="row bdj-row">'+bandejaLinkHTML()+'</div>';
   if(it.fechadoTemp)extra+='<div class="warnbox"><b>Fechado temporariamente</b>Informado pela gestão do app.</div>';
   extra+='<button type="button" class="linkbtn sugg" data-req="servico||'+esc(it.name)+'">Sugerir correção</button>';
   return '<div class="plcard"><div class="plc-h"><div><p class="eyebrow">'+({comida:'Alimentação',biblio:'Biblioteca',atend:'Atendimento',seg:'Segurança',onibus:'Ônibus',aula:'Sua aula'})[it.cat]+'</p><h3 class="plc-t">'+it.name+'</h3></div>'+pill(statusOf(it,now))+'</div>'+

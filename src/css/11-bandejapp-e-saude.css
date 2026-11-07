@@ -1,0 +1,7 @@
+/* atalho para o BandejApp */
+.bdj-row{margin-top:2px}
+a.bdj-link{text-decoration:none;display:inline-flex;align-items:center}
+/* gestão › saúde e estatísticas */
+.sd-list .grow2{align-items:center}
+.sd-ms{font-variant-numeric:tabular-nums;color:var(--muted,inherit);font-size:12px;margin-right:6px}
+.sd-sec{margin-top:6px}

@@ -1,0 +1,36 @@
+// Gestão › Saúde e estatísticas: confere cada serviço (simulado) e mostra a cota do Worker; atalho do BandejApp no RU.
+const { chromium } = require('playwright');const fs=require('fs');const path=require('path');const servir=require('./servidor');
+const mock=fs.readFileSync(path.join(__dirname,'firebase-mock.js'),'utf8');
+(async()=>{const srv=await servir(8813);const b=await chromium.launch();let falhou=false;const ok=(c,m)=>{console.log((c?'ok   ':'FALHA')+'  '+m);if(!c)falhou=true};
+ const agora=Date.now(),J=(r,o)=>r.fulfill({contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(o)});
+ const c=await b.newContext({viewport:{width:1100,height:900},serviceWorkers:'block'});
+ await c.route(/gstatic\.com\/firebasejs\/.*app-compat\.js/,r=>r.fulfill({contentType:'text/javascript',body:mock}));
+ await c.route(/gstatic\.com\/firebasejs\/.*(auth|firestore)-compat\.js/,r=>r.fulfill({contentType:'text/javascript',body:''}));
+ await c.route(/open-meteo/,r=>J(r,{current:{temperature_2m:27.5}}));
+ await c.route(/ipify/,r=>J(r,{ip:'146.164.1.1'}));
+ await c.route('**workers.dev/tiroteios**',r=>J(r,{t:agora,disponivel:true,janelaH:6,atualizado:new Date(agora-3600e3).toISOString(),ocorrencias:[]}));
+ await c.route('**workers.dev/saude**',r=>J(r,{t:agora,cloudflareConfigurado:true,cloudflare:{pedidos:42000,erros:2,limite:100000,desde:new Date(new Date().setUTCHours(0,0,0,0)).toISOString()}}));
+ await c.route('**workers.dev/',r=>J(r,{t:agora,onibus:[{v:'A1',l:'321',la:-22.84,lo:-43.24,vel:20,dir:90,t:agora-30000}]}));
+ await c.addInitScript(()=>{window.__fbstore={'meta/vagas':{n:1,max:80},'gestores/gestor@ufrj.br':{},'members/uG':{nome:'Gestora',email:'gestor@ufrj.br',first:Date.now()-86400e3,last:Date.now(),visits:5},
+   'feedback/f1':{nota:4,tipo:'elogio',ts:Date.now()-3600e3},'erros/e1':{msg:'x',ts:Date.now()-3600e3}};
+   window.__nextUser={uid:'uG',displayName:'Gestora',email:'gestor@ufrj.br',photoURL:'',emailVerified:true,providerData:[{providerId:'google.com'}]};
+   localStorage.setItem('cse-cfg',JSON.stringify({cover:'none',banner:false,login:false,flow:false}))});
+ const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+ await p.goto('http://localhost:8813/');await p.waitForTimeout(2000);
+ await p.click('[data-tab="predios"]');await p.waitForTimeout(500);await p.evaluate(()=>{const d=document.getElementById('fdFila');if(d&&!d.open)d.querySelector('summary').click()});await p.waitForTimeout(400);
+ ok(await p.evaluate(()=>{const a=document.querySelector('#filabox a.bdj-link');return !!a&&a.href.indexOf('devmobufrj.github.io/BandejApp')>=0&&a.target==='_blank'}),'atalho do BandejApp junto à fila do RU');
+ await p.route('**gravatar.com**',r=>r.abort());await p.click('#tab-cfg');await p.waitForTimeout(400);await p.click('#accsec [data-goo]');await p.waitForTimeout(1500);
+ await p.evaluate(()=>document.getElementById('cfgClose').click());await p.waitForTimeout(300);
+ await p.click('#gestBtn');await p.waitForTimeout(500);await p.click('.gtab[data-gtab="saude"]');await p.waitForTimeout(4000);
+ const t=await p.evaluate(()=>document.getElementById('gBody').innerText);
+ ok(/Saúde e estatísticas/.test(t)&&!/Verificando…/.test(t),'aba Saúde verifica todos os serviços');
+ ok(/1 ônibus na região/.test(t)&&/Posição mais nova de 30 s/.test(t),'Worker e GPS da prefeitura');
+ ok(/42\.000 de 100\.000 pedidos hoje \(42%\)/.test(t),'cota do Worker');
+ ok(/Cota do Firebase/.test(t)&&/Abrir o console/.test(t),'Firebase: status e atalho para o uso no console');
+ ok(/27,5 °C/.test(t)&&/0 registro\(s\) nas últimas 6 h/.test(t),'previsão do tempo e Fogo Cruzado');
+ ok(/pessoas no total/.test(t)&&/nota média do app/.test(t),'estatísticas de uso e participação');
+ const pills=await p.evaluate(()=>[...document.querySelectorAll('#gBody .sd-list .pill')].map(e=>e.textContent));
+ ok(pills.length>=10&&!pills.includes('Fora do ar'),'nenhum serviço simulado aparece fora do ar '+JSON.stringify(pills));
+ ok(errs.length===0,'sem erros de JavaScript '+JSON.stringify(errs));
+ await (await p.$('#gBody')).screenshot({path:process.env.FOTO||'/tmp/saude.png'});
+ await b.close();srv.close();process.exit(falhou?1:0)})();

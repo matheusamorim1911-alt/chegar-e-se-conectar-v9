@@ -32,3 +32,13 @@ Para ativar, no painel da Cloudflare, abra o Worker › **Settings** › **Varia
 
 Salve (Deploy). O e-mail e a senha ficam só ali: não vão para o app, para o GitHub nem para ninguém.
 Sem os segredos, `/tiroteios` responde `{"disponivel":false,"motivo":"sem-conta"}` e o app avisa que o serviço não foi ativado.
+
+## Uso da cota na aba Saúde (opcional)
+
+Para a gestão ver, em Gestão › Saúde e estatísticas, quantos dos 100 mil pedidos diários do plano grátis já foram usados:
+1. Na Cloudflare, em **My Profile › API Tokens › Create Token**, use **Create Custom Token** com a permissão
+   **Account › Account Analytics › Read** (só leitura) e crie o token.
+2. Copie o **Account ID** (aparece na página inicial da conta, à direita).
+3. No Worker › **Settings** › **Variables and Secrets**, crie dois segredos: `CF_CONTA` (o Account ID) e `CF_TOKEN` (o token).
+
+O Worker responde em `/saude` só os números; o token não sai da Cloudflare.
