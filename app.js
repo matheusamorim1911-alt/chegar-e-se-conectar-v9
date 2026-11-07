@@ -3,8 +3,10 @@
 var FBMODE=!!(window.CSE_FIREBASE&&window.CSE_FIREBASE.apiKey&&window.CSE_FIREBASE.projectId)&&!(window.claude&&typeof window.claude.use==='function');
 var LITE=(function(){try{return window.matchMedia('(pointer:coarse), (max-width:820px)').matches||(navigator.hardwareConcurrency||8)<=4||!!(navigator.connection&&navigator.connection.saveData)}catch(e){return false}})();
 document.documentElement.classList.toggle('lite',LITE);
-var CFG={cover:'folha',banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'sistema',bussola:false,foto:true,perf:'auto',perfV:0,bldn:true,simples:true,simplesV:0,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true,faixa:10,faixaV:0,telaCheia:null};
+var CFG={cover:'folha',banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'escuro',temaV:0,bussola:false,foto:true,perf:'auto',perfV:0,bldn:true,simples:true,simplesV:0,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true,faixa:10,faixaV:0,telaCheia:null,alOn:false,alMin:10,alChuva:true,alFila:false};
 try{var _c=JSON.parse(localStorage.getItem('cse-cfg'));if(_c)CFG=Object.assign(CFG,_c)}catch(e){}
+/* v22: tema escuro é o padrão; quem estava em "Do aparelho" passa para escuro uma vez (claro ou pelo horário escolhidos ficam) */
+if(CFG.temaV!==1){if(!CFG.tema||CFG.tema==='sistema')CFG.tema='escuro';CFG.temaV=1;try{localStorage.setItem('cse-cfg',JSON.stringify(CFG))}catch(e){}}
 /* desempenho: automático, leve (sem transparência nem efeitos), intermediário (o antigo "completo") e completo
    (intermediário + vidro e animações em Ajustes, glossário e gestão). Automático: computador = completo; o resto = intermediário. */
 var LITE_AUTO=LITE;
@@ -286,7 +288,7 @@ function rose(cx,cy,r,deg){
 }
 /* ---------- mapa vetorial (traçado a partir do mapa da Prefeitura Universitária) ---------- */
 /* tema claro usa as versões claras do mapa; decide já na carga, para não baixar as duas */
-var MAPSUF=(function(){try{var t=(JSON.parse(localStorage.getItem('cse-cfg')||'{}')||{}).tema||'sistema';if(t==='claro')return '-claro';if(t==='escuro'||t==='horario')return '';return window.matchMedia('(prefers-color-scheme: light)').matches?'-claro':''}catch(e){return ''}})();
+var MAPSUF=(function(){try{var t=CFG.tema||'escuro';if(t==='claro')return '-claro';if(t==='escuro'||t==='horario')return '';return window.matchMedia('(prefers-color-scheme: light)').matches?'-claro':''}catch(e){return ''}})();
 var MAPIMG='mapa-bordas'+MAPSUF+'.jpg';
 /* mapa base: planta cadastral da Cidade Universitária (ETU/UFRJ), vetorizada; JPG para a visão geral, SVG nítido no zoom */
 var MAPHD=window.MAPHD_URL='mapa-campus'+MAPSUF+'.jpg',MAPVEC='mapa-campus'+MAPSUF+'.svg',MAPMINI='mapa-mini'+MAPSUF+'.jpg',MAPBLUR='mapa-blur'+MAPSUF+'.jpg',MAPVEC0='mapa-campus.svg';
@@ -861,7 +863,7 @@ function wifiHTML(id){
     '<dl class="kv"><dt>Rede</dt><dd>'+esc(w.ssid||'Nome a confirmar no local')+'</dd><dt>Acesso</dt><dd>'+esc(w.acesso||'Sem senha')+'</dd><dt>Dica</dt><dd>'+esc(w.note||'—')+'</dd></dl>'+
     '<div class="warnbox"><b>Atenção</b>Rede aberta não tem criptografia. Evite entrar no banco ou digitar senhas importantes aqui. Para isso, use os dados móveis.</div>'+
     (PERFIL?'':needProfileHTML('dar nota ao sinal'))+'<div class="rate"'+(PERFIL?'':' hidden')+'><p><b>Como está o sinal aqui agora?</b></p><div class="scale" role="group" aria-label="Nota do sinal">'+scale+'</div><div class="ends"><span>Fraco</span><span>Forte</span></div>'+
-    (m?'<p class="muted small">Sua nota: '+m+'. '+(SH.on&&SH.uid&&!SH.denied?'Entra na média de todos.':'Salva só neste aparelho.')+'</p>':'')+(SH.on&&(SH.denied||SH.write===false)?'<p class="muted small">'+(FBMODE?'Para sua nota contar na média, entre com Google ou e-mail em Ajustes › Conta.':'Para sua nota contar na média, o dono da página precisa te dar acesso de colaborador.')+'</p>':'')+'</div>'+
+    (m?'<p class="muted small">Sua nota: '+m+'. '+(SH.on&&SH.uid&&!SH.denied?'Entra na média de todos.':'Salva só neste aparelho.')+'</p>':'')+(SH.on&&(SH.denied||SH.write===false)?(FBMODE?'<p class="small keep la-cta">Para sua nota contar na média, entre com sua conta. '+askBtn('wifi','Entrar')+'</p>':'<p class="muted small">'+'Para sua nota contar na média, o dono da página precisa te dar acesso de colaborador.</p>'):'')+'</div>'+
     '<button class="item tint" type="button" style="--c:var(--good)" data-kind="guide" data-id="eduroam"><span class="lb" style="--c:var(--good)">Wi-Fi</span><span class="grow">Prefira o eduroam<small>Rede segura com o login da UFRJ. Veja como conectar.</small></span></button>'+
     (ss.length?'<h3>Paradas por perto</h3><div class="list">'+ss.map(stopItem).join('')+'</div>':'');
 }
@@ -1084,6 +1086,7 @@ function repFormHTML(defPlace){
   if(SH.on&&typeof GST!=='undefined'&&GST&&blocked(SH.uid))return '<p class="muted small">Sua conta não pode enviar avisos no momento (decisão da gestão).</p>';
   if(!SH.on)return '<p class="muted small">Os avisos aparecem quando a página está aberta no claude.ai com sua conta.</p>';
   if(FBMODE&&SH.full&&GESTOR!==true)return '<p class="muted small">'+fullMsg('enviar avisos')+'</p>';
+  if(FBMODE&&!SH.denied&&SH.write===false&&!SH.uid)return '<p class="small keep la-cta">Você pode ler os avisos. Para enviar, entre com sua conta. '+askBtn('avisos','Entrar para enviar')+'</p>';
   if(SH.denied||SH.write===false)return '<p class="muted small">'+(FBMODE?'Você pode ler os avisos. Para enviar, entre com Google ou e-mail em Ajustes › Conta.':'Você pode ler os avisos. Para enviar, o dono da página precisa te dar acesso de colaborador.')+'</p>';
   var places=[];
   Object.keys(STOPS).forEach(function(k){places.push(['stop:'+k,'Parada · '+STOPS[k].name])});
@@ -2108,7 +2111,7 @@ function filaHTML(){
   var now=nowMin(),why='';
   if(SH.on&&blocked(SH.uid))why='Sua conta não pode informar filas no momento (decisão da gestão).';
   else if(SH.on&&FBMODE&&SH.full&&GESTOR!==true)why=fullMsg('informar a fila');
-  else if(SH.on&&(SH.denied||SH.write===false))why=FBMODE?'Você pode ver as filas. Para informar, entre com Google ou e-mail em Ajustes › Conta.':'Você pode ver as filas. Para informar, o dono da página precisa te dar acesso de colaborador.';
+  else if(SH.on&&(SH.denied||SH.write===false))why=FBMODE?'Você pode ver as filas. Para informar, toque em Informar e entre com sua conta.':'Você pode ver as filas. Para informar, o dono da página precisa te dar acesso de colaborador.';
   return '<div class="filabox" id="filabox"><div class="plc-h"><div><p class="eyebrow">Ao vivo · últimos 45 min</p><h3 class="plc-t">Fila do RU agora</h3></div>'+(SH.on?'<span class="pill good">Compartilhado</span>':'<span class="pill warn">Só neste aparelho</span>')+'</div>'+
     '<div class="fila-l">'+RUS.map(function(k){return filaRow(k,now)}).join('')+'</div>'+
     (filaMsg?'<p class="small fila-ok" role="status">'+esc(filaMsg)+'</p>':'')+
@@ -2596,7 +2599,7 @@ function filaBody(){
   var now=nowMin(),why='';
   if(SH.on&&blocked(SH.uid))why='Sua conta não pode informar filas no momento (decisão da gestão).';
   else if(SH.on&&FBMODE&&SH.full&&GESTOR!==true)why=fullMsg('informar a fila');
-  else if(SH.on&&(SH.denied||SH.write===false))why=FBMODE?'Você pode ver as filas. Para informar, entre com Google ou e-mail em Ajustes › Conta.':'Você pode ver as filas. Para informar, o dono da página precisa te dar acesso de colaborador.';
+  else if(SH.on&&(SH.denied||SH.write===false))why=FBMODE?'Você pode ver as filas. Para informar, toque em Informar e entre com sua conta.':'Você pode ver as filas. Para informar, o dono da página precisa te dar acesso de colaborador.';
   if(!PERFIL)return '<div class="filabox flat" id="filabox"><div class="fila-l">'+RUS.map(function(k){return filaRow(k,now)}).join('')+'</div>'+needProfileHTML('informar a fila')+'</div>';
   return '<div class="filabox flat" id="filabox"><div class="fila-l">'+RUS.map(function(k){return filaRow(k,now)}).join('')+'</div>'+
     (filaMsg?'<p class="small fila-ok" role="status">'+esc(filaMsg)+'</p>':'')+
@@ -3278,16 +3281,36 @@ function drawRose(){
   if(needle!=null)s+='<g class="cmp-needle" transform="rotate('+needle.toFixed(1)+')"><path d="M0,-60 L11,-38 L0,-44 L-11,-38Z"/><line x1="0" y1="-14" x2="0" y2="-40"/></g>';
   rb.innerHTML=s+'</svg>';
   var rc=$('#rosecard');if(rc){rc.hidden=false;var full=txt+(sub?' · '+sub:'');
-    rc.innerHTML='<b>'+esc(txt)+'</b>'+(sub?'<small>'+esc(sub)+'</small>':'')+(hasH?'':'<small class="cmp-hint">'+(CMP.got?'':'Sem bússola neste aparelho: a seta segue o mapa.')+'</small>');
+    rc.innerHTML='<b>'+esc(txt)+'</b>'+(sub?'<small>'+esc(sub)+'</small>':'')+(hasH?(CMP.acc!=null&&(CMP.acc<0||CMP.acc>25)?'<small class="cmp-cal">Bússola imprecisa: mova o celular desenhando um 8 no ar.</small>':''):'<small class="cmp-hint">'+(CMP.got?'':'Sem bússola neste aparelho: a seta segue o mapa.')+'</small>');
     if(full!==CMP.lastTxt){CMP.lastTxt=full}}
 }
 function cmpSchedule(){if(CMP.raf)return;CMP.raf=requestAnimationFrame(function(){CMP.raf=0;drawRose()})}
+/* v24: bússola corrigida.
+   1) o sensor dá o norte MAGNÉTICO; no Fundão ele fica ~23,5° a oeste do norte verdadeiro (declinação, modelo WMM).
+   2) no Android o "alpha" só vale com o celular deitado; com o celular em pé ou inclinado, calculamos a direção
+      para onde a pessoa está olhando (parte de cima da tela + traseira do aparelho), já levando em conta a rotação da tela. */
+var DECL=-23.5;
+function scrAng(){return (screen.orientation&&typeof screen.orientation.angle==='number')?screen.orientation.angle:(+window.orientation||0)}
+function headingFromEuler(al,be,ga,so){
+  var r=Math.PI/180,ca=Math.cos(al*r),sa=Math.sin(al*r),cb=Math.cos(be*r),sb=Math.sin(be*r),cg=Math.cos(ga*r),sg=Math.sin(ga*r);
+  var yE=-sa*cb,yN=ca*cb,xE=ca*cg-sa*sg*sb,xN=sa*cg+ca*sg*sb,zE=ca*sg+sa*sb*cg,zN=sa*sg-ca*sb*cg;
+  var t=so*r,uE=Math.cos(t)*yE+Math.sin(t)*xE,uN=Math.cos(t)*yN+Math.sin(t)*xN;/* "para cima" na tela */
+  var fE=uE-zE,fN=uN-zN;/* + traseira do aparelho (para onde a câmera aponta) */
+  if(Math.hypot(fE,fN)<1e-3)return null;
+  return (Math.atan2(fE,fN)*180/Math.PI+360)%360;
+}
 function onOri(e){
-  var h=null;
-  if(typeof e.webkitCompassHeading==='number'&&!isNaN(e.webkitCompassHeading))h=e.webkitCompassHeading;
-  else if(e.absolute===true&&typeof e.alpha==='number')h=360-e.alpha;
-  if(h==null)return;
-  var so=(screen.orientation&&typeof screen.orientation.angle==='number')?screen.orientation.angle:(window.orientation||0);h=((h+so)%360+360)%360;
+  var h=null,so=scrAng();
+  if(typeof e.webkitCompassHeading==='number'&&!isNaN(e.webkitCompassHeading)&&e.webkitCompassHeading>=0){
+    h=e.webkitCompassHeading+so;CMP.acc=typeof e.webkitCompassAccuracy==='number'?e.webkitCompassAccuracy:null;CMP.src='ios';
+  }else if(e.absolute===true&&typeof e.alpha==='number'){
+    if(typeof e.beta==='number'&&typeof e.gamma==='number')h=headingFromEuler(e.alpha,e.beta,e.gamma,so);
+    if(h==null)h=360-e.alpha+so;
+    CMP.src='abs';
+  }
+  if(h==null||(CMP.src==='ios'&&e.type==='deviceorientationabsolute'))return;
+  h=((h+DECL)%360+360)%360;CMP.hRaw=h;CMP.tRaw=Date.now();
+  if(CMP.offN>=5)h=((h+CMP.off)%360+360)%360;/* v25: ajuste fino aprendido com o GPS */
   if(CMP.h==null)CMP.h=h;else{var d=norm180(h-CMP.h);CMP.h=((CMP.h+d*0.25)%360+360)%360}/* suaviza a agulha */
   CMP.got=true;cmpSchedule();
 }
@@ -3328,7 +3351,7 @@ var _locStopC=locStop;locStop=function(){_locStopC();if(CMP.on)cmpSchedule()};
 
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261104-2309';
+var APP_VERSION='20261106-2209';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
@@ -4747,5 +4770,500 @@ document.addEventListener('click',function(e){
 });
 function fsLabel(){var b=document.getElementById('fsNow');if(b)b.textContent=fsOn()?'Sair da tela cheia':'Entrar em tela cheia agora'}
 document.addEventListener('fullscreenchange',fsLabel);document.addEventListener('webkitfullscreenchange',fsLabel);
+
+/* ======================= v18: motivos para entrar com uma conta ======================= */
+function contaOk(){return ACC.kind==='google'||ACC.kind==='claude'}
+function semConta(){return FB_ON&&!contaOk()}
+function askBtn(why,label,cls){return '<button type="button" class="copy primary la-ask'+(cls?' '+cls:'')+'" data-ask="'+why+'">'+label+'</button>'}
+var LA_WHY={
+  fila:['Entre para informar a fila','Para evitar relatos falsos, só quem tem conta informa a fila. Seu nome não aparece para ninguém.'],
+  wifi:['Entre para sua nota contar','Sem conta, a nota fica só neste aparelho. Com conta, ela entra na média que todo mundo vê.'],
+  avisos:['Entre para enviar avisos','Com conta, seus avisos aparecem para todos no mapa. Seu nome não aparece.'],
+  alertas:['Entre para receber alertas','Alertas do seu ônibus, de chuva e da fila do RU ficam ligados à sua conta.'],
+  noite:['Entre para avisar alguém','Com conta, você manda para alguém de confiança de onde saiu, qual ônibus pegou e quando deve chegar.'],
+  lembrete:['Leve o app com você','Com uma conta, nada do que você configurou se perde ao trocar de celular.']};
+var LA_BEN=[['sync','Ajustes, trajeto favorito e grade em qualquer aparelho'],['bell','Alertas do seu ônibus, de chuva e da fila do RU'],['moon','Volta à noite: avise alguém de confiança'],['users','Informe fila, Wi-Fi e avisos para todo mundo']];
+var LA_IC={sync:'<path d="M21 12a9 9 0 0 1-15.5 6.2L3 16M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M3 21v-5h5"/>',bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/>',moon:'<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>',users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>'};
+function laBenHTML(){return '<ul class="la-ben">'+LA_BEN.map(function(b){return '<li><svg viewBox="0 0 24 24" aria-hidden="true">'+LA_IC[b[0]]+'</svg><span>'+b[1]+'</span></li>'}).join('')+'</ul>'}
+function loginAsk(why){
+  var w=LA_WHY[why]||LA_WHY.lembrete,el=$('#laSheet');
+  if(!el){document.body.insertAdjacentHTML('beforeend','<div class="la-wrap" id="laSheet" role="dialog" aria-modal="true" aria-labelledby="laT" hidden><div class="la-box"></div></div>');el=$('#laSheet')}
+  el.querySelector('.la-box').innerHTML='<p class="eyebrow keep">Conta</p><h2 id="laT">'+w[0]+'</h2><p class="la-p">'+w[1]+'</p>'+laBenHTML()+
+    (FB_ON?'<div class="la-btns"><button type="button" class="lg-btn pri" data-goo data-laclose>Entrar com Google</button><button type="button" class="copy la-mail" data-mail data-laclose>Entrar com e-mail</button></div>':'<p class="la-p">Abra o app pelo site publicado para entrar com uma conta.</p>')+
+    '<button type="button" class="la-no" data-laclose>Agora não</button><p class="la-priv">Usamos seu nome e e-mail só para guardar seus dados. Veja tudo em Ajustes › Conta › Seus dados.</p>';
+  el.hidden=false;LA_PREV=document.activeElement;setTimeout(function(){var b=el.querySelector('[data-goo],.la-no');if(b)b.focus({preventScroll:true})},30);
+}
+var LA_PREV=null;
+function loginAskClose(){var el=$('#laSheet');if(el&&!el.hidden){el.hidden=true;if(LA_PREV&&LA_PREV.focus)try{LA_PREV.focus({preventScroll:true})}catch(e){}}}
+document.addEventListener('click',function(e){
+  var a=e.target.closest&&e.target.closest('[data-ask]');if(a){e.preventDefault();loginAsk(a.dataset.ask);return}
+  var c=e.target.closest&&e.target.closest('[data-laclose]');if(c){setTimeout(loginAskClose,0)}
+  var s=$('#laSheet');if(s&&!s.hidden&&e.target===s)loginAskClose();
+});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')loginAskClose()});
+
+/* fila: o botão Informar aparece também para quem não entrou e leva ao pedido de conta */
+var _filaRow18=filaRow;
+filaRow=function(k,now){var h=_filaRow18(k,now);if(canPost()||!semConta()||!SH.on)return h;var p=filaPill(k);return h.replace(p,p+askBtn('fila','Informar','la-sm'))};
+
+/* contribuições: contagem guardada na conta */
+var CONTRIB={fila:0,avisos:0,pedidos:0};try{var _c=JSON.parse(localStorage.getItem('cse-contrib'));if(_c&&typeof _c==='object')Object.keys(CONTRIB).forEach(function(k){CONTRIB[k]=+_c[k]||0})}catch(e){}
+function saveContrib(){try{localStorage.setItem('cse-contrib',JSON.stringify(CONTRIB))}catch(e){}}
+var _postDone18=postDone;
+postDone=function(k){_postDone18(k);var m={fila:'fila',rep:'avisos',req:'pedidos'}[k];if(m){CONTRIB[m]++;saveContrib();if(contaOk())accQueue()}};
+function contribTotal(){return CONTRIB.fila+CONTRIB.avisos+CONTRIB.pedidos+Object.keys(mine||{}).length}
+function seloOf(n){return n>=20?['Guia do Fundão','good']:n>=5?['Colaborador frequente','good']:n>=1?['Colaborador','']:['Ainda sem contribuições','']}
+function contribHTML(){
+  var n=contribTotal(),s=seloOf(n),nx=n<1?1:n<5?5:n<20?20:0;
+  return '<div class="la-contrib"><div class="la-ch"><b>Suas contribuições</b><span class="pill '+s[1]+'">'+s[0]+'</span></div>'+
+    '<div class="la-nums"><span><b>'+CONTRIB.fila+'</b>filas</span><span><b>'+Object.keys(mine||{}).length+'</b>notas de Wi-Fi</span><span><b>'+CONTRIB.avisos+'</b>avisos</span><span><b>'+CONTRIB.pedidos+'</b>pedidos</span></div>'+
+    '<p class="small keep la-p">'+(n?'Obrigado! Cada aviso ajuda quem está chegando agora.':'Informe a fila do RU ou dê nota a uma rede Wi-Fi para começar.')+(nx?' Faltam '+(nx-n)+' para o selo “'+seloOf(nx)[0]+'”.':'')+'</p></div>';
+}
+
+/* contato de confiança (Volta à noite) */
+var CONT={nome:'',tel:''};try{var _ct=JSON.parse(localStorage.getItem('cse-contato'));if(_ct&&typeof _ct==='object'){CONT.nome=String(_ct.nome||'').slice(0,40);CONT.tel=String(_ct.tel||'').slice(0,20)}}catch(e){}
+function saveCont(){try{localStorage.setItem('cse-contato',JSON.stringify(CONT))}catch(e){}if(contaOk())accQueue()}
+function telDig(t){var d=String(t||'').replace(/\D/g,'');if(d.length===10||d.length===11)d='55'+d;return d.length>=12?d:''}
+function nightMsg(kind,from,now){
+  var hi=CONT.nome?'Oi, '+CONT.nome+'! ':'';
+  if(kind==='cheguei')return hi+'Cheguei bem na Estação BRT. (Chegar e se conectar · UFRJ)';
+  if(from==='est')return hi+'Estou na Estação BRT do Fundão saindo agora. Te aviso quando chegar. (Chegar e se conectar · UFRJ)';
+  var o=options(from,'est',now)[0]||lastTo(from,'est')[0];
+  return hi+'Estou saindo de '+STOPS[from].name+' agora'+(o?'. Vou pegar a Linha '+o.lid+' ('+LINES[o.lid].name+') por volta de '+hm(Math.round(o.dep))+' e devo chegar na Estação BRT perto de '+hm(Math.round(o.arr)):'')+'. Te aviso quando chegar. (Chegar e se conectar · UFRJ)';
+}
+function hm(m){m=((m%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')}
+function nightSend(kind){
+  var txt=nightMsg(kind,state.nightFrom||state.to,nowMin()),d=telDig(CONT.tel);
+  if(d){window.open('https://wa.me/'+d+'?text='+encodeURIComponent(txt),'_blank','noopener');return}
+  if(navigator.share){navigator.share({text:txt}).catch(function(){});return}
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(function(){gToast('Mensagem copiada. Cole no app de mensagens.')},function(){gToast(txt)});else gToast(txt);
+}
+function nightShareHTML(){
+  var h='<h3>Avise alguém de confiança</h3>';
+  if(!contaOk())return h+'<div class="la-lock"><p class="small keep">Mande para alguém de onde você está saindo, qual ônibus vai pegar e quando deve chegar. Depois, avise que chegou bem.</p>'+(FB_ON?askBtn('noite','Entrar para usar'):'')+'</div>';
+  return h+'<div class="la-night"><p class="small keep">'+(CONT.nome||CONT.tel?'Enviar para <b>'+esc(CONT.nome||'seu contato')+'</b>'+(telDig(CONT.tel)?' pelo WhatsApp':'')+'.':'Escolha o app na hora de enviar, ou cadastre um contato.')+' <button type="button" class="linkbtn" data-ctedit>'+(CONT.nome||CONT.tel?'Trocar':'Cadastrar contato')+'</button></p>'+
+    '<div class="row"><button type="button" class="copy primary" data-nsend="saindo">Avisar que estou saindo</button><button type="button" class="copy" data-nsend="cheguei">Avisar que cheguei</button></div></div>';
+}
+var _nightHTML18=nightHTML;
+nightHTML=function(now){var h=_nightHTML18(now),k='<h3>Telefones da segurança</h3>';return h.indexOf(k)>=0?h.replace(k,nightShareHTML()+k):h+nightShareHTML()};
+document.addEventListener('click',function(e){
+  var s=e.target.closest&&e.target.closest('[data-nsend]');if(s){if(contaOk())nightSend(s.dataset.nsend);else loginAsk('noite');return}
+  if(e.target.closest&&e.target.closest('[data-ctedit]')){openCfg();setTimeout(function(){var f=$('#ctNome');if(f){f.scrollIntoView({block:'center'});f.focus({preventScroll:true})}},120)}
+});
+
+/* alertas (só com conta): funcionam com o app aberto, mesmo em outra aba */
+function alertasHTML(){
+  var h='<div class="accsec la-al" id="alsec"><h2>Alertas</h2>';
+  if(!contaOk())return h+'<div class="la-lock"><p class="small keep">Receba um aviso quando o ônibus do seu trajeto estiver chegando, quando for chover e quando a fila do RU estiver curta.</p>'+(FB_ON?askBtn('alertas','Entrar para ativar'):'<p class="muted small keep">Disponível ao entrar com uma conta.</p>')+'</div></div>';
+  var perm=('Notification' in window)?Notification.permission:'na';
+  h+='<div class="tgls">'+tg('cfgAlOn',CFG.alOn,'Meu ônibus está chegando','Do seu trajeto favorito: '+esc(STOPS[state.from].name)+' → '+esc(STOPS[state.to].name)+'.')+
+    (CFG.alOn?'<div class="faixa-w"><p class="balvo-t"><b>Avisar com antecedência de</b></p><div class="seg cl-alvo" role="group" aria-label="Antecedência do alerta">'+[5,10,15].map(function(m){return '<button type="button" data-almin="'+m+'" aria-pressed="'+(+CFG.alMin===m)+'">'+m+' min</button>'}).join('')+'</div></div>':'')+
+    tg('cfgAlChuva',CFG.alChuva,'Chuva chegando','Quando a chance de chuva passar de 60% na próxima hora.')+
+    tg('cfgAlFila',CFG.alFila,'Fila do RU curta','Entre 11h e 14h, quando alguém informar fila pequena ou sem fila.')+'</div>'+
+    (perm==='default'?'<div class="accmail"><div class="row"><button type="button" class="copy primary" id="alPerm">Permitir notificações do aparelho</button></div></div>':'')+
+    '<p class="muted small keep">Os alertas aparecem enquanto o app estiver aberto, mesmo em outra aba'+(perm==='granted'?', também como notificação':'')+'. Com o app fechado, ainda não.</p>';
+  h+='<h3 class="la-h3">Contato de confiança</h3><p class="muted small keep">Usado em Volta à noite. Com telefone, a mensagem abre no WhatsApp.</p>'+
+    '<div class="la-ct"><label class="fld">Nome<input id="ctNome" type="text" maxlength="40" autocomplete="off" value="'+esc(CONT.nome)+'" placeholder="Ex.: Mãe"></label><label class="fld">Celular (opcional)<input id="ctTel" type="tel" inputmode="tel" maxlength="20" autocomplete="off" value="'+esc(CONT.tel)+'" placeholder="(21) 9…"></label></div>';
+  return h+'</div>';
+}
+document.addEventListener('input',function(e){if(e.target.id==='ctNome'){CONT.nome=e.target.value.slice(0,40);saveCont()}else if(e.target.id==='ctTel'){CONT.tel=e.target.value.slice(0,20);saveCont()}});
+document.addEventListener('change',function(e){
+  var m={cfgAlOn:'alOn',cfgAlChuva:'alChuva',cfgAlFila:'alFila'}[e.target.id];if(!m)return;
+  CFG[m]=e.target.checked;saveCfg();if(m==='alChuva'&&CFG.alChuva&&!CLIMA.d)climaLoad(false);
+  if(e.target.checked&&('Notification' in window)&&Notification.permission==='default')try{Notification.requestPermission().then(renderCfgKeep)}catch(x){}
+  renderCfgKeep();alCheck();
+});
+document.addEventListener('click',function(e){
+  var b=e.target.closest&&e.target.closest('[data-almin]');if(b){CFG.alMin=+b.dataset.almin;saveCfg();renderCfgKeep();return}
+  if(e.target.closest&&e.target.closest('#alPerm')){try{Notification.requestPermission().then(renderCfgKeep)}catch(x){}}
+});
+var ALF={};try{ALF=JSON.parse(sessionStorage.getItem('cse-alf'))||{}}catch(e){ALF={}}
+function alFire(key,title,body){
+  if(ALF[key])return false;ALF[key]=Date.now();try{sessionStorage.setItem('cse-alf',JSON.stringify(ALF))}catch(e){}
+  gToast(title+' · '+body);try{if(navigator.vibrate)navigator.vibrate([120,60,120])}catch(e){}
+  if(document.hidden&&('Notification' in window)&&Notification.permission==='granted')try{new Notification(title,{body:body,tag:key})}catch(e){}
+  return true;
+}
+function alCheck(){
+  if(!contaOk())return;
+  var now=nowMin(),day=new Date().toISOString().slice(0,10);
+  if(CFG.alOn&&STOPS[state.from]&&STOPS[state.to]&&state.from!==state.to){
+    var o=(options(state.from,state.to,now)||[])[0];
+    if(o){var d=Math.round(o.dep)-now;if(d>=0&&d<=(+CFG.alMin||10))alFire('bus:'+day+':'+o.lid+':'+Math.round(o.dep),'Linha '+o.lid+' passa em '+(d?'~'+d+' min':'instantes'),'Em '+STOPS[state.from].name+', sentido '+STOPS[state.to].name+'.')}
+  }
+  if(CFG.alChuva){var c=climaChuva();if(c&&c.h*60-now<=60&&c.h*60-now>=-30)alFire('chuva:'+day+':'+c.h,'Chuva chegando',c.p+'% de chance por volta das '+String(c.h).padStart(2,'0')+'h. Leve guarda-chuva.')}
+  if(CFG.alFila&&now>=660&&now<=840)RUS.forEach(function(k){var f=filaOf(k);if(f&&f.n<=1)alFire('fila:'+day+':'+k,PL[k].name+': '+(f.n?'fila pequena':'sem fila'),'Informado '+agoTxt(f.last)+'.')});
+}
+setInterval(alCheck,30000);setTimeout(alCheck,4000);
+
+/* Ajustes › Conta: contribuições, benefícios e seus dados */
+function dadosHTML(){
+  var g=ACC.kind==='google';
+  return '<details class="la-dados"><summary>Seus dados e privacidade</summary><div class="la-dd">'+
+    '<p class="small keep"><b>O que fica guardado na sua conta:</b></p><ul class="small">'+
+    (g?'<li>Nome, e-mail e o link da foto (vindos do Google ou do seu cadastro).</li><li>Data da primeira e da última visita e quantas vezes entrou (para controlar as vagas).</li>':'<li>Seu nome e foto, vindos da conta do claude.ai.</li>')+
+    '<li>Ajustes, trajeto favorito'+(g?', grade de aulas':'')+', contato de confiança e a contagem de contribuições.</li>'+
+    '<li>Filas, avisos, notas de Wi-Fi e pedidos que você enviou. Os outros veem esses dados sem o seu nome; a gestão consegue ligar cada um à sua conta para combater abuso.</li></ul>'+
+    '<p class="small keep"><b>O que não guardamos:</b> sua localização exata. O mapeamento do Wi-Fi é opcional e envia só a área aproximada (30 m), sem dizer quem você é.</p>'+
+    '<p class="small keep">Nada disso é vendido ou repassado. O uso é só o funcionamento do app (LGPD, art. 7º).</p>'+
+    (g?'<div class="row"><button type="button" class="copy" id="laExport">Baixar meus dados</button><button type="button" class="copy la-del" id="laDelete">Apagar meus dados e a conta</button></div>':'')+'</div></details>';
+}
+var _accHTML18=accHTML;
+accHTML=function(){
+  var h=_accHTML18(),i=h.lastIndexOf('</div>');
+  if(contaOk())return h.slice(0,i)+contribHTML()+dadosHTML()+h.slice(i);
+  if(FB_ON)return h.slice(0,i)+'<p class="small keep la-p"><b>Com uma conta você também tem:</b></p>'+laBenHTML()+h.slice(i);
+  return h;
+};
+var _renderCfg18=renderCfg;
+renderCfg=function(f){_renderCfg18(f);var a=$('#accsec');if(a&&!$('#alsec'))a.insertAdjacentHTML('afterend',alertasHTML())};
+function myDocs(){var u=SH.uid||ACC.uid;return ['usuarios/'+u,'votes/'+u,'fila/'+u,'reports/'+u,'requests/'+u]}
+function laExport(){
+  var db=ACC.fb&&ACC.fb.db;if(!db)return;
+  Promise.all(myDocs().map(function(p){return db.doc(p).get().then(function(d){return [p.split('/')[0],d.exists?d.data():null]},function(){return [p.split('/')[0],'sem acesso']})})).then(function(r){
+    var o={app:'Chegar e se conectar',geradoEm:new Date().toISOString(),conta:{uid:ACC.uid,nome:ACC.name,email:ACC.email,foto:ACC.photo},nesteAparelho:{ajustes:CFG,contato:CONT,contribuicoes:CONTRIB}};
+    r.forEach(function(x){o[x[0]]=x[1]});
+    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'}));a.download='meus-dados-chegar-e-se-conectar.json';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000);
+    gToast('Arquivo com seus dados baixado.');
+  });
+}
+var LA_DEL=0;
+function laDelete(b){
+  if(Date.now()-LA_DEL>6000){LA_DEL=Date.now();b.textContent='Toque de novo para apagar tudo';b.classList.add('arm');setTimeout(function(){if(b.isConnected){b.textContent='Apagar meus dados e a conta';b.classList.remove('arm')}},6000);return}
+  LA_DEL=0;var fb=ACC.fb,u=fb&&fb.auth.currentUser;if(!u)return;b.disabled=true;b.textContent='Apagando…';
+  Promise.all(myDocs().map(function(p){return fb.db.doc(p).delete().catch(function(){})})).then(function(){
+    CONTRIB={fila:0,avisos:0,pedidos:0};saveContrib();CONT={nome:'',tel:''};try{localStorage.removeItem('cse-contato')}catch(e){}
+    return u.delete().then(function(){gToast('Seus dados e a sua conta foram apagados.')},function(e){
+      if(e&&e.code==='auth/requires-recent-login'){gToast('Seus dados foram apagados. Para apagar também a conta, saia, entre de novo e repita.',1)}else gToast('Seus dados foram apagados, mas a conta não. Tente de novo mais tarde.',1);
+      b.disabled=false;b.textContent='Apagar meus dados e a conta'});
+  });
+}
+document.addEventListener('click',function(e){
+  if(e.target.closest&&e.target.closest('#laExport'))laExport();
+  var d=e.target.closest&&e.target.closest('#laDelete');if(d)laDelete(d);
+});
+/* conta guarda contato e contribuições junto com os ajustes */
+var _accPush18=accPush;
+accPush=function(){
+  var p=_accPush18();
+  try{if(ACC.kind==='google'&&ACC.fb)ACC.fb.db.collection('usuarios').doc(ACC.uid).set({contato:CONT,contrib:CONTRIB},{merge:true}).catch(function(){});
+    else if(ACC.kind==='claude'&&SH.db)SH.db.doc('data/users/'+ACC.uid+'/extra').set({contato:CONT,contrib:CONTRIB,ts:Date.now()}).catch(function(){})}catch(e){}
+  return p;
+};
+function applyExtra(d){
+  if(!d||typeof d!=='object')return;
+  if(d.contato&&typeof d.contato==='object'&&!CONT.nome&&!CONT.tel){CONT.nome=String(d.contato.nome||'').slice(0,40);CONT.tel=String(d.contato.tel||'').slice(0,20);try{localStorage.setItem('cse-contato',JSON.stringify(CONT))}catch(e){}}
+  if(d.contrib&&typeof d.contrib==='object'){Object.keys(CONTRIB).forEach(function(k){CONTRIB[k]=Math.max(CONTRIB[k],+d.contrib[k]||0)});saveContrib()}
+}
+var _applyRemote18=applyRemote;
+applyRemote=function(d){_applyRemote18(d);applyExtra(d)};
+var _accClaude18=accClaude;
+accClaude=function(user,uid){_accClaude18(user,uid);try{if(uid&&SH.db)SH.db.doc('data/users/'+uid+'/extra').get().then(function(d){if(d.exists){applyExtra(d.data());if(!cfgM.hidden)renderCfgKeep()}},function(){})}catch(e){}};
+
+/* lembrete leve: a partir da 3ª visita (em dias diferentes), sem conta; "Agora não" some por 5 dias */
+var VIS={n:0,d:''};try{VIS=JSON.parse(localStorage.getItem('cse-visitas'))||VIS}catch(e){}
+(function(){var d=new Date().toISOString().slice(0,10);if(VIS.d!==d){VIS.n=(+VIS.n||0)+1;VIS.d=d;try{localStorage.setItem('cse-visitas',JSON.stringify(VIS))}catch(e){}}})();
+function nudgeShow(){
+  if(!semConta()||(+VIS.n||0)<3||(typeof AUTH_READY!=='undefined'&&!AUTH_READY))return;
+  var until=0;try{until=+localStorage.getItem('cse-nudge-ate')||0}catch(e){}if(Date.now()<until)return;
+  if(!login.hidden||!cover.hidden||!cfgM.hidden||$('#laNudge')||document.documentElement.classList.contains('gated'))return;
+  document.body.insertAdjacentHTML('beforeend','<div class="la-nudge" id="laNudge" role="region" aria-label="Sugestão de conta"><span class="la-ni"><svg viewBox="0 0 24 24" aria-hidden="true">'+LA_IC.sync+'</svg></span><p><b>Salve sua grade e receba alertas</b><small>Entre com uma conta. Leva 10 segundos.</small></p><button type="button" class="copy primary" data-ask="lembrete" data-nudgex>Entrar</button><button type="button" class="la-x" data-nudgeno aria-label="Agora não">Agora não</button></div>');
+}
+document.addEventListener('click',function(e){
+  var n=e.target.closest&&e.target.closest('[data-nudgeno],[data-nudgex]');if(!n)return;
+  if(n.hasAttribute('data-nudgeno'))try{localStorage.setItem('cse-nudge-ate',String(Date.now()+5*864e5))}catch(x){}
+  var el=$('#laNudge');if(el)el.remove();
+});
+setTimeout(nudgeShow,8000);setInterval(function(){if(!$('#laNudge'))nudgeShow();else if(!semConta())$('#laNudge').remove()},20000);
+
+/* ======================= v19: grade só para quem entrou com uma conta ======================= */
+var _gradeList19=gradeList;
+gradeList=function(){return semConta()?[]:_gradeList19.apply(this,arguments)};
+var _renderGrade19=renderGrade;
+renderGrade=function(f){
+  if(!gPane||gPane.hidden)return;
+  if(!semConta()){if(gWeek.hidden)gWeek.hidden=false;gPane.classList.remove('la-gl');return _renderGrade19(f)}
+  gWeek.hidden=true;gPane.classList.add('la-gl');
+  gNext.innerHTML='<div><p class="eyebrow keep">Sua semana</p><h2>Minha grade</h2></div>'+
+    '<div class="la-lock la-glock"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>'+
+    '<p class="keep"><b>Faça login para salvar sua grade.</b></p><p class="small keep la-p">Com uma conta, suas aulas ficam guardadas, aparecem no mapa e vão com você para qualquer aparelho.</p>'+askBtn('grade','Entrar')+'</div>';
+};
+LA_WHY.grade=['Faça login para salvar sua grade','Sua grade fica guardada na sua conta, só você vê, e aparece em qualquer aparelho em que você entrar.'];
+function gradeAuthSync(){try{syncAulas();if(typeof updateMap==='function')updateMap();renderGrade()}catch(e){}}
+var _accGoogle19=accGoogle;accGoogle=function(u){_accGoogle19(u);gradeAuthSync()};
+var _fbUserOff19=fbUserOff;fbUserOff=function(){_fbUserOff19();gradeAuthSync()};
+gradeAuthSync();
+
+/* ======================= v20: botão "Configurar eduroam" (leva ao geteduroam certo para o aparelho) ======================= */
+function eduPlat(){var u=navigator.userAgent||'';
+  if(/android/i.test(u))return 'android';
+  if(/iphone|ipad|ipod/i.test(u)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1))return 'ios';
+  if(/windows/i.test(u))return 'win';if(/mac os/i.test(u))return 'mac';if(/linux|cros/i.test(u))return 'linux';return 'outro'}
+var EDU_APP={
+  android:['Android','https://play.google.com/store/apps/details?id=app.eduroam.geteduroam','Instalar o geteduroam','Google Play'],
+  ios:['iPhone e iPad','https://apps.apple.com/app/geteduroam/id1504076137','Instalar o geteduroam','App Store'],
+  win:['Windows','https://www.geteduroam.app/','Baixar o geteduroam','para Windows'],
+  mac:['Mac','https://www.geteduroam.app/','Baixar o geteduroam','para Mac'],
+  linux:['Linux','https://www.geteduroam.app/','Baixar o geteduroam','para Linux'],
+  outro:['Outro aparelho','https://www.geteduroam.app/','Baixar o geteduroam','site oficial']};
+var EDUC={open:false,plat:null,msg:'',tone:'',busy:false};
+function eduMark(i,v){eduDone[i]=v;try{localStorage.setItem(DKEY,JSON.stringify(eduDone))}catch(e){}}
+function eduCfgHTML(inTut){
+  var pl=EDUC.plat||eduPlat(),a=EDU_APP[pl],c1=!!eduDone[0],c2=!!eduDone[2];
+  var outros=['android','ios','win','mac'].filter(function(k){return k!==pl}).map(function(k){return '<button type="button" class="linkbtn" data-eduplat="'+k+'">'+EDU_APP[k][0]+'</button>'}).join(' · ');
+  return '<div class="educfg" id="educfg">'+
+    (inTut?'':'<div class="educfg-h"><b>Configurar eduroam</b><button type="button" class="la-x" data-educlose aria-label="Fechar">Fechar</button></div>')+
+    '<ol class="educfg-s">'+
+    '<li class="'+(c1?'done':'')+'"><span class="n">1</span><div><b class="keep">Cadastre seu e-mail no eduroam</b><p class="small keep">Na Intranet UFRJ, com CPF e senha. A ativação leva até 24 h.</p><div class="row"><a class="copy" href="https://intranet.ufrj.br/atualizar-email-eduroam" target="_blank" rel="noopener">Abrir a Intranet</a>'+(c1?'<span class="pill good">Feito</span>':'<button type="button" class="copy" data-edustep="0">Já cadastrei</button>')+'</div></div></li>'+
+    '<li class="'+(c2?'done':'')+'"><span class="n">2</span><div><b class="keep">Instale o app oficial do eduroam</b><p class="small keep">'+(EDUC.plat?'Para':'Detectamos')+': <b>'+a[0]+'</b>. O geteduroam configura a rede e o certificado sozinho.</p><a class="educfg-app" href="'+a[1]+'" target="_blank" rel="noopener" data-eduapp><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span>'+a[2]+'<small>'+a[3]+'</small></span></a><p class="small keep">Outro aparelho? '+outros+'</p></div></li>'+
+    '<li><span class="n">3</span><div><b class="keep">No app, escolha a UFRJ</b><p class="small keep">Busque “UFRJ”. Usuário: o e-mail do passo 1. Senha: a da Intranet. Depois toque em Conectar e Permitir.</p></div></li>'+
+    '</ol>'+
+    '<div class="row"><button type="button" class="copy primary" data-educheck'+(EDUC.busy?' disabled':'')+'>'+(EDUC.busy?'Verificando…':'Verificar minha conexão')+'</button>'+(inTut?'':'<button type="button" class="linkbtn" data-wedu>Tutorial completo</button>')+'</div>'+
+    (EDUC.msg?'<p class="small keep educfg-r '+EDUC.tone+'" role="status">'+esc(EDUC.msg)+'</p>':'')+'</div>';
+}
+function eduCfgPaint(){var el=$('#educfg');if(!el)return;var t=document.createElement('div');t.innerHTML=eduCfgHTML(!!el.closest('#detail'));el.replaceWith(t.firstChild)}
+function eduCheck(){
+  if(EDUC.busy)return;EDUC.busy=true;EDUC.msg='';eduCfgPaint();
+  netCheck().then(function(r){
+    EDUC.busy=false;
+    if(!r){EDUC.msg='Não deu para verificar agora.';EDUC.tone='warn'}
+    else if(r.edu===true){EDUC.msg='Você está na eduroam. Tudo certo!';EDUC.tone='good';eduMark(4,true)}
+    else if(r.ufrj&&r.edu===false){EDUC.msg='Você está numa rede da UFRJ, mas não na eduroam. Escolha “eduroam” na lista de Wi-Fi.';EDUC.tone='warn'}
+    else if(r.ufrj){EDUC.msg='Você está numa rede da UFRJ. Confira se o nome do Wi-Fi é “eduroam”.';EDUC.tone='good'}
+    else if(r.ufrj===false){EDUC.msg=(r.tipo==='cellular'?'Você está nos dados móveis. ':'Você não está numa rede da UFRJ agora. ')+'Ligue o Wi-Fi perto de um prédio e tente de novo.';EDUC.tone='warn'}
+    else{EDUC.msg=r.erro||'Não deu para verificar agora.';EDUC.tone='warn'}
+    eduCfgPaint();
+  });
+}
+document.addEventListener('click',function(e){
+  var t=e.target.closest&&e.target.closest('[data-educfg],[data-educlose],[data-eduplat],[data-edustep],[data-educheck],[data-eduapp]');if(!t)return;
+  if(t.hasAttribute('data-eduapp')){eduMark(2,true);setTimeout(eduCfgPaint,300);return}
+  e.preventDefault();
+  if(t.hasAttribute('data-educfg')){EDUC.open=!EDUC.open;renderWifiPane();if(EDUC.open)setTimeout(function(){var c=$('#educfg');if(c)c.scrollIntoView({block:'nearest',behavior:'smooth'})},50);return}
+  if(t.hasAttribute('data-educlose')){EDUC.open=false;renderWifiPane();return}
+  if(t.dataset.eduplat){EDUC.plat=t.dataset.eduplat;eduCfgPaint();return}
+  if(t.dataset.edustep){eduMark(+t.dataset.edustep,true);eduCfgPaint();return}
+  if(t.hasAttribute('data-educheck'))eduCheck();
+},true);
+var _pWifiHTML20=pWifiHTML;
+pWifiHTML=function(){
+  var h=_pWifiHTML20(),i=h.lastIndexOf('<button class="item tint" type="button" style="--c:var(--good)" data-wedu>');
+  var card='<div class="educard"><div class="educard-t"><span class="lb" style="--c:var(--good)">edu</span><span class="grow"><b>eduroam</b><small class="keep">Wi-Fi seguro das universidades, com o login da UFRJ</small></span></div>'+
+    (EDUC.open?eduCfgHTML(false):'<div class="row"><button type="button" class="copy primary" data-educfg>Configurar eduroam</button><button type="button" class="linkbtn" data-wedu>Ver tutorial</button></div>')+'</div>';
+  return i>=0?h.slice(0,i)+card:h+card;
+};
+var _eduHTML20=eduHTML;
+eduHTML=function(){var h=_eduHTML20(),k='<div><p class="small muted" id="eduprog">';var i=h.indexOf(k);return i>=0?h.slice(0,i)+'<h3>Configurar agora</h3>'+eduCfgHTML(true)+'<h3>Passo a passo</h3>'+h.slice(i):h};
+
+/* v21: setas na capa: voltar para o login e avançar para o app */
+$('#cvToLogin').addEventListener('click',function(e){e.stopPropagation();openLogin()});
+
+/* ======================= v23: a gestão define as configurações padrão ======================= */
+GKEYS.push('padrao');GST.padrao=GST.padrao||{};if(!SH.on||!FBMODE){try{var _gp=JSON.parse(localStorage.getItem(GLS+'padrao'));if(_gp)GST.padrao=_gp}catch(e){}}
+GTABS.splice(1,0,['padrao','Padrões do app']);TAB_PERM.padrao='admins';
+var PAD_DEF={tema:'escuro',simples:true,faixa:10,perf:'auto',cover:'folha',fsize:'m',clima:true,telaCheia:null};
+var PAD_OPTS={
+  tema:['Tema',TEMAS.map(function(t){return [t[0],t[1]]})],
+  simples:['Modo simplificado',[[true,'Ligado'],[false,'Desligado']]],
+  faixa:['Horário do ônibus',[[0,'Exato'],[5,'Faixa de 5 min'],[10,'Faixa de 10 min']]],
+  perf:['Desempenho',PERFS.map(function(p){return [p[0],p[1]]})],
+  cover:['Capa ao abrir',COVERS.map(function(c){return [c[0],c[1]]}).concat([['none','Sem capa']])],
+  fsize:['Tamanho do texto',FSIZES.map(function(f){return [f[0],f[1]]})],
+  clima:['Previsão do tempo',[[true,'Mostrar'],[false,'Esconder']]],
+  telaCheia:['Tela cheia no primeiro toque',[[null,'Automático (só no celular)'],[true,'Sempre'],[false,'Nunca']]]};
+var PAD_KEYS=Object.keys(PAD_OPTS);
+function padOk(k,v){return PAD_OPTS[k]&&PAD_OPTS[k][1].some(function(o){return o[0]===v})}
+/* o que o próprio usuário escolheu não é sobrescrito pelo padrão */
+if(!CFG.mine||typeof CFG.mine!=='object')CFG.mine={};
+if(CFG.padV!==1){PAD_KEYS.forEach(function(k){if(k in CFG&&CFG[k]!==PAD_DEF[k]&&!(k==='tema'&&CFG.tema==='escuro'))CFG.mine[k]=1});CFG.padV=1;try{localStorage.setItem('cse-cfg',JSON.stringify(CFG))}catch(e){}}
+var PAD_SNAP=null;
+['click','change','input','keydown'].forEach(function(ev){document.addEventListener(ev,function(e){
+  if(!e.isTrusted)return;if(e.target&&e.target.closest&&e.target.closest('#gestM'))return;
+  var s={};PAD_KEYS.forEach(function(k){s[k]=CFG[k]});PAD_SNAP=s;setTimeout(function(){PAD_SNAP=null},1500)},true)});
+var _saveCfg23=saveCfg;
+saveCfg=function(){
+  if(PAD_SNAP)PAD_KEYS.forEach(function(k){if(CFG[k]!==PAD_SNAP[k])CFG.mine[k]=1});
+  return _saveCfg23.apply(this,arguments);
+};
+function padApply(){
+  var P=GST.padrao||{},v=P.v||{},ch=false;
+  if(P.forcar&&P.forcar!==CFG.padForc){PAD_KEYS.forEach(function(k){if(k in v)delete CFG.mine[k]});CFG.padForc=P.forcar;ch=true}
+  PAD_KEYS.forEach(function(k){if(!(k in v)||CFG.mine[k]||!padOk(k,v[k]))return;if(CFG[k]!==v[k]){CFG[k]=v[k];ch=true}});
+  if(!ch)return;
+  _saveCfg23();
+  try{applyTheme()}catch(e){}try{applySimples()}catch(e){}try{applyPerf()}catch(e){}try{applyCoverStyle()}catch(e){}try{applyFont()}catch(e){}
+  try{renderAll()}catch(e){}try{if(CFG.clima&&!CLIMA.d)climaLoad(false)}catch(e){}
+  try{if(cfgM&&!cfgM.hidden)renderCfgKeep()}catch(e){}
+}
+var _applyG23=applyG;applyG=function(){_applyG23.apply(this,arguments);padApply()};
+padApply();
+
+function gPadrao(){
+  var v=(GST.padrao||{}).v||{};
+  return '<h3 class="gh">Configurações padrão</h3><p class="muted small keep">Valem para quem ainda não mudou a opção em Ajustes. Quem já escolheu mantém a própria escolha, a menos que você aplique para todos.</p>'+
+    '<form class="gform" data-gform="padrao">'+PAD_KEYS.map(function(k){var o=PAD_OPTS[k];
+      return '<label class="gf">'+o[0]+'<select id="gPad_'+k+'"><option value="">Padrão do app ('+esc((o[1].filter(function(x){return x[0]===PAD_DEF[k]})[0]||['',''])[1])+')</option>'+
+        o[1].map(function(x,i){return '<option value="'+i+'"'+((k in v)&&v[k]===x[0]?' selected':'')+'>'+esc(x[1])+'</option>'}).join('')+'</select></label>'}).join('')+
+    '<label class="wsafe"><input type="checkbox" id="gPadForce"> Aplicar também a quem já mudou essas opções</label>'+
+    '<div class="gbtns"><button type="submit" class="copy primary">Salvar padrões</button></div></form>'+
+    ((GST.padrao||{}).forcar?'<p class="muted small keep">Última aplicação para todos: '+new Date((GST.padrao||{}).forcar).toLocaleString('pt-BR')+'.</p>':'');
+}
+var _renderGest23=renderGest;
+renderGest=function(){_renderGest23();if(gTab==='padrao'&&$('#gBody')&&gcan('admins'))$('#gBody').innerHTML=gPadrao()};
+document.addEventListener('submit',function(e){var f=e.target.closest&&e.target.closest('form[data-gform="padrao"]');if(!f)return;e.preventDefault();e.stopPropagation();
+  var v={};PAD_KEYS.forEach(function(k){var s=$('#gPad_'+k);if(s&&s.value!=='')v[k]=PAD_OPTS[k][1][+s.value][0]});
+  var o={v:v};var old=GST.padrao||{};if($('#gPadForce').checked)o.forcar=Date.now();else if(old.forcar)o.forcar=old.forcar;
+  saveG('padrao',o);renderGest();
+},true);
+
+/* ======================= v25: a bússola usa o GPS ======================= */
+/* 1) ponto de partida: a sua posição do GPS (já era); agora mostra a precisão e avisa quando ela é ruim.
+   2) andando, o GPS dá o rumo real do movimento (sem interferência magnética). Com ele o app:
+      - aprende a diferença entre a bússola deste celular e o rumo real e corrige a seta (fica salvo no aparelho);
+      - usa o próprio rumo do GPS quando o aparelho não tem bússola. */
+CMP.off=0;CMP.offN=0;
+try{var _co=JSON.parse(localStorage.getItem('cse-cmp-off'));if(_co&&typeof _co.o==='number'&&Date.now()-(+_co.t||0)<30*864e5){CMP.off=_co.o;CMP.offN=Math.min(+_co.n||0,20)}}catch(e){}
+var GPSC={prev:null,course:null,ct:0,speed:null};
+function llDist(a,b){var k=Math.cos(a[0]*Math.PI/180),dx=(b[1]-a[1])*111320*k,dy=(b[0]-a[0])*110574;return {m:Math.hypot(dx,dy),brg:(Math.atan2(dx,dy)*180/Math.PI+360)%360}}
+function gpsFix(c,t){
+  var ll=[c.latitude,c.longitude],acc=c.accuracy||50,sp=typeof c.speed==='number'&&!isNaN(c.speed)?c.speed:null,crs=null;
+  if(typeof c.heading==='number'&&!isNaN(c.heading)&&sp!=null&&sp>=0.7)crs=c.heading;
+  if(GPSC.prev){var d=llDist(GPSC.prev.ll,ll),dt=(t-GPSC.prev.t)/1000;
+    if(crs==null&&d.m>=Math.max(8,1.5*acc)&&dt>0){crs=d.brg;if(sp==null)sp=d.m/dt}
+    if(d.m>=Math.max(8,1.5*acc)||t-GPSC.prev.t>20000)GPSC.prev={ll:ll,t:t}}
+  else GPSC.prev={ll:ll,t:t};
+  GPSC.speed=sp;
+  if(crs==null||acc>25)return;
+  GPSC.course=crs;GPSC.ct=t;
+  /* aprende só andando a pé (0,7 a 2,5 m/s), com a bússola lendo agora e o celular apontado mais ou menos para a frente */
+  if(sp!=null&&sp>=0.7&&sp<=2.5&&CMP.hRaw!=null&&t-CMP.tRaw<3000){
+    var smp=norm180(crs-CMP.hRaw);
+    if(Math.abs(norm180(smp-CMP.off))<45||CMP.offN<3){CMP.off=norm180(CMP.off+(CMP.offN<3?0.5:0.12)*norm180(smp-CMP.off));CMP.offN++;
+      try{localStorage.setItem('cse-cmp-off',JSON.stringify({o:CMP.off,n:CMP.offN,t:t}))}catch(e){}}
+  }
+  /* sem bússola no aparelho: a direção do movimento vira a direção do celular */
+  if(CMP.on&&(!CMP.got||Date.now()-(CMP.tRaw||0)>5000)&&sp!=null&&sp>=0.7){CMP.h=crs;CMP.gpsH=true;cmpSchedule()}
+}
+locStart=function(){
+  if(!('geolocation' in navigator)){gToast('Este navegador não informa a localização.',1);return}
+  LOC.on=true;LOC.first=true;var b=$('#zloc');if(b){b.setAttribute('aria-pressed','true');b.classList.add('busy')}
+  LOC.watch=navigator.geolocation.watchPosition(function(pos){
+    var c=pos.coords;LOC.ll=[c.latitude,c.longitude];LOC.acc=c.accuracy||50;LOC.ts=Date.now();LOC.p=ll2map(c.latitude,c.longitude);
+    try{gpsFix(c,pos.timestamp||Date.now())}catch(e){}
+    var bb=$('#zloc');if(bb)bb.classList.remove('busy');var f=LOC.first;LOC.first=false;locUpdate(f);
+  },locErr,{enableHighAccuracy:true,maximumAge:3000,timeout:25000});
+};
+/* texto do cartão da bússola: precisão do GPS e se a seta já foi ajustada */
+var _drawRose25=drawRose;
+drawRose=function(){
+  _drawRose25();var rc=$('#rosecard');if(!CMP.on||!rc||rc.hidden)return;
+  var g=cmpGeom(),bits=[];
+  if(g&&g.fromLoc){bits.push('GPS ± '+Math.round(LOC.acc)+' m');if(LOC.acc>40&&g.m>25)bits.push('posição imprecisa: vá para um lugar aberto')}
+  else if(typeof LOC!=='undefined'&&LOC.on&&!LOC.p)bits.push('procurando o GPS…');
+  if(CMP.gpsH&&!CMP.got)bits.push('direção pelo seu movimento');
+  else if(CMP.offN>=5&&CMP.h!=null)bits.push('bússola ajustada pelo GPS');
+  else if(CMP.got&&LOC.on)bits.push('ande uns passos olhando para a tela para ajustar');
+  if(bits.length)rc.insertAdjacentHTML('beforeend','<small class="cmp-gps">'+esc(bits.join(' · '))+'</small>');
+  if(g&&g.fromLoc&&g.m>25&&g.m<=LOC.acc){var b=rc.querySelector('b');if(b)b.textContent=(g.to.short||g.to.name)+': você está bem perto'}
+};
+
+/* ======================= v26: feedback dos usuários + app instalável (PWA) ======================= */
+var FBK_TIPOS=[['erro','Algo errado'],['ideia','Sugestão'],['elogio','Elogio'],['outro','Outro']];
+var FBK_LOCAL='cse-feedback-local';
+function fbkSave(o){
+  o.ts=Date.now();o.ver=APP_VERSION;o.tela=(location.hash||'#mapa').slice(0,30);o.disp=/android/i.test(navigator.userAgent)?'android':/iphone|ipad/i.test(navigator.userAgent)?'ios':'outro';
+  if(SH.uid)o.uid=SH.uid;
+  try{var last=+localStorage.getItem('cse-fbk-ult')||0;if(Date.now()-last<60000&&o.txt)return Promise.reject({code:'rate'})}catch(e){}
+  var done=function(){try{localStorage.setItem('cse-fbk-ult',String(Date.now()))}catch(e){}};
+  if(FB_ON)return fbInit().then(function(fb){return fb.db.collection('feedback').add(o)}).then(done);
+  try{var a=JSON.parse(localStorage.getItem(FBK_LOCAL)||'[]');a.unshift(o);localStorage.setItem(FBK_LOCAL,JSON.stringify(a.slice(0,200)))}catch(e){}
+  done();return Promise.resolve();
+}
+function fbkOpen(nota){
+  var el=$('#fbkSheet');
+  if(!el){document.body.insertAdjacentHTML('beforeend','<div class="la-wrap" id="fbkSheet" role="dialog" aria-modal="true" aria-labelledby="fbkT" hidden><div class="la-box"></div></div>');el=$('#fbkSheet')}
+  el.querySelector('.la-box').innerHTML='<p class="eyebrow keep">Feedback</p><h2 id="fbkT">Conte para a gente</h2><p class="la-p">Achou um erro, tem uma ideia ou quer elogiar? A equipe lê tudo.</p>'+
+    '<div class="seg" role="radiogroup" aria-label="Tipo">'+FBK_TIPOS.map(function(t,i){return '<button type="button" data-fbkt="'+t[0]+'" aria-pressed="'+(i===0)+'">'+t[1]+'</button>'}).join('')+'</div>'+
+    '<label class="fld">Sua mensagem<textarea id="fbkTxt" rows="5" maxlength="1000" placeholder="Ex.: o horário da Linha 2 no CT estava errado hoje às 18h"></textarea></label>'+
+    (ACC.email?'<label class="wsafe"><input type="checkbox" id="fbkMail"> Pode me responder em '+esc(ACC.email)+'</label>':'')+
+    '<div class="la-btns"><button type="button" class="lg-btn pri" id="fbkSend">Enviar</button></div><button type="button" class="la-no" data-fbkclose>Cancelar</button>'+
+    '<p class="la-priv">Enviamos junto só a tela em que você estava, a versão do app e o tipo de aparelho.</p>';
+  el.dataset.nota=nota||'';el.hidden=false;setTimeout(function(){var t=$('#fbkTxt');if(t)t.focus()},40);
+}
+function fbkClose(){var el=$('#fbkSheet');if(el)el.hidden=true}
+document.addEventListener('click',function(e){
+  var t=e.target.closest&&e.target.closest('[data-fbk],[data-fbkt],#fbkSend,[data-fbkclose],[data-fbnota],[data-fbqno]');if(!t){var s=$('#fbkSheet');if(s&&!s.hidden&&e.target===s)fbkClose();return}
+  if(t.hasAttribute('data-fbk')){fbkOpen();return}
+  if(t.dataset.fbkt){t.parentNode.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed',b===t)});return}
+  if(t.hasAttribute('data-fbkclose')){fbkClose();return}
+  if(t.id==='fbkSend'){
+    var txt=($('#fbkTxt').value||'').trim();if(txt.length<3){gToast('Escreva sua mensagem.');return}
+    var tp=($('#fbkSheet [data-fbkt][aria-pressed="true"]')||{dataset:{fbkt:'outro'}}).dataset.fbkt,o={tipo:tp,txt:txt.slice(0,1000)};
+    var n=+$('#fbkSheet').dataset.nota;if(n)o.nota=n;var m=$('#fbkMail');if(m&&m.checked)o.email=ACC.email;
+    t.disabled=true;t.textContent='Enviando…';
+    fbkSave(o).then(function(){fbkClose();gToast('Obrigado! Sua mensagem chegou à equipe.')},function(err){t.disabled=false;t.textContent='Enviar';gToast(err&&err.code==='rate'?'Espere um minuto para enviar outra mensagem.':'Não deu para enviar agora. Tente de novo.',1)});
+    return}
+  if(t.dataset.fbnota){var nv=+t.dataset.fbnota;try{localStorage.setItem('cse-fbq-ate',String(Date.now()+14*864e5))}catch(x){}
+    var q=$('#fbQ');fbkSave({tipo:'nota',nota:nv}).catch(function(){});
+    if(q)q.innerHTML='<p><b>Obrigado!</b><small>'+(nv<=3?'O que podemos melhorar?':'Quer contar mais alguma coisa?')+'</small></p><button type="button" class="copy primary" data-fbk>Contar</button><button type="button" class="la-x" data-fbqno>Fechar</button>';
+    return}
+  if(t.hasAttribute('data-fbqno')){try{localStorage.setItem('cse-fbq-ate',String(Date.now()+14*864e5))}catch(x){}var q2=$('#fbQ');if(q2)q2.remove()}
+});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')fbkClose()});
+/* pergunta curta a partir da 4ª visita (dias diferentes), no máximo a cada 14 dias */
+function fbqShow(){
+  if((+VIS.n||0)<4||$('#fbQ')||$('#laNudge'))return;var ate=0;try{ate=+localStorage.getItem('cse-fbq-ate')||0}catch(e){}if(Date.now()<ate)return;
+  if(!login.hidden||!cover.hidden||!cfgM.hidden)return;
+  document.body.insertAdjacentHTML('beforeend','<div class="la-nudge fbq" id="fbQ" role="region" aria-label="Pergunta rápida"><p><b>O app te ajudou hoje?</b><small>De 1 (nada) a 5 (muito)</small></p><div class="fbq-n">'+[1,2,3,4,5].map(function(n){return '<button type="button" data-fbnota="'+n+'" aria-label="Nota '+n+'">'+n+'</button>'}).join('')+'</div><button type="button" class="la-x" data-fbqno aria-label="Agora não">✕</button></div>');
+}
+setTimeout(fbqShow,45000);
+/* Ajustes: seção "Fale com a gente" e "Instalar o app" */
+var PWA={evt:null};
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();PWA.evt=e;if(cfgM&&!cfgM.hidden)renderCfgKeep()});
+window.addEventListener('appinstalled',function(){PWA.evt=null;gToast('App instalado! Abra pelo ícone na tela inicial.');if(cfgM&&!cfgM.hidden)renderCfgKeep()});
+function pwaStandalone(){return (window.matchMedia&&matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches)||navigator.standalone===true}
+function pwaHTML(){
+  if(!ON_SITE)return '';
+  var ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),h='<div class="accsec" id="pwasec"><h2>Instalar o app</h2>';
+  if(pwaStandalone())return h+'<p class="small keep"><span class="pill good">Instalado</span> Você está usando o app instalado.</p></div>';
+  if(PWA.evt)return h+'<p class="small keep">Ícone na tela inicial, tela cheia e funciona mesmo sem internet.</p><div class="row"><button type="button" class="copy primary" id="pwaGo">Instalar o app</button></div></div>';
+  if(ios)return h+'<p class="small keep">No Safari, toque em <b>Compartilhar</b> (o quadrado com a seta) e depois em <b>Adicionar à Tela de Início</b>. O app abre em tela cheia e funciona sem internet.</p></div>';
+  return h+'<p class="small keep">No menu do navegador, escolha <b>Instalar app</b> ou <b>Adicionar à tela inicial</b>.</p></div>';
+}
+function fbkCfgHTML(){return '<div class="accsec" id="fbksec"><h2>Fale com a gente</h2><p class="small keep">Achou um erro ou tem uma ideia? Sua mensagem vai direto para a equipe.</p><div class="row"><button type="button" class="copy primary" data-fbk>Algo errado? Conte aqui</button></div></div>'}
+var _renderCfg26=renderCfg;
+renderCfg=function(f){_renderCfg26(f);var a=$('#alsec')||$('#accsec');if(a&&!$('#fbksec'))a.insertAdjacentHTML('afterend',fbkCfgHTML()+pwaHTML())};
+document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('#pwaGo')&&PWA.evt){PWA.evt.prompt();PWA.evt.userChoice.then(function(){PWA.evt=null;renderCfgKeep()},function(){})}});
+/* service worker: só no site publicado (https) */
+if(ON_SITE&&'serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')&&APP_VERSION!=='dev'){
+  window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
+}
+/* Gestão › Feedback */
+GTABS.push(['feedback','Feedback']);TAB_PERM.feedback='avisos';
+var FBKG={list:null,busy:false};
+function fbkLoad(){
+  if(FBKG.busy)return;FBKG.busy=true;
+  var p=FB_ON?fbInit().then(function(fb){return fb.db.collection('feedback').limit(500).get()}).then(function(s){return s.docs.map(function(d){var o=d.data();o.id=d.id;return o}).sort(function(x,y){return (y.ts||0)-(x.ts||0)})}):Promise.resolve((function(){try{return JSON.parse(localStorage.getItem(FBK_LOCAL)||'[]').map(function(o,i){o.id='l'+i;return o})}catch(e){return []}})());
+  p.then(function(l){FBKG.list=l;FBKG.busy=false;if(gTab==='feedback')renderGest()},function(){FBKG.list=[];FBKG.err=true;FBKG.busy=false;if(gTab==='feedback')renderGest()});
+}
+function gFeedback(){
+  if(!FBKG.list){fbkLoad();return '<h3 class="gh">Feedback</h3><p class="muted small keep">Carregando…</p>'}
+  var L=FBKG.list,notas=L.filter(function(o){return o.nota}),med=notas.length?(notas.reduce(function(s,o){return s+o.nota},0)/notas.length).toFixed(1).replace('.',','):'—';
+  var cnt={};L.forEach(function(o){cnt[o.tipo]=(cnt[o.tipo]||0)+1});
+  var nomes={erro:'Algo errado',ideia:'Sugestão',elogio:'Elogio',outro:'Outro',nota:'Só nota'};
+  return '<h3 class="gh">Feedback</h3>'+(FBKG.err?'<p class="small keep">Sem acesso ao feedback. Publique as regras do Firestore (firestore.rules) no console do Firebase.</p>':'')+
+    '<div class="la-nums fbk-sum"><span><b>'+L.length+'</b>respostas</span><span><b>'+med+'</b>nota média ('+notas.length+')</span><span><b>'+(cnt.erro||0)+'</b>erros</span><span><b>'+(cnt.ideia||0)+'</b>sugestões</span></div>'+
+    '<div class="row"><button type="button" class="copy" id="fbkReload">Atualizar</button></div>'+
+    '<ul class="fbk-list">'+L.filter(function(o){return o.txt}).map(function(o){return '<li><div class="fbk-h"><span class="pill">'+(nomes[o.tipo]||esc(o.tipo))+'</span>'+(o.nota?'<span class="pill">nota '+o.nota+'</span>':'')+'<small>'+new Date(o.ts).toLocaleString('pt-BR')+' · '+esc(o.tela||'')+' · '+esc(o.disp||'')+' · v'+esc(o.ver||'')+'</small></div><p>'+esc(o.txt)+'</p>'+(o.email?'<p class="small"><a href="mailto:'+esc(o.email)+'">Responder: '+esc(o.email)+'</a></p>':'')+'<button type="button" class="linkbtn" data-fbkdel="'+esc(o.id)+'">Apagar</button></li>'}).join('')+'</ul>'+
+    (L.some(function(o){return o.txt})?'':'<p class="muted small keep">Nenhuma mensagem ainda.</p>');
+}
+var _renderGest26=renderGest;
+renderGest=function(){_renderGest26();if(gTab==='feedback'&&$('#gBody')&&gcan('avisos'))$('#gBody').innerHTML=gFeedback()};
+document.addEventListener('click',function(e){
+  if(e.target.closest&&e.target.closest('#fbkReload')){FBKG.list=null;renderGest();return}
+  var d=e.target.closest&&e.target.closest('[data-fbkdel]');if(!d)return;var id=d.dataset.fbkdel;
+  var p=FB_ON?fbInit().then(function(fb){return fb.db.collection('feedback').doc(id).delete()}):Promise.resolve((function(){try{var a=JSON.parse(localStorage.getItem(FBK_LOCAL)||'[]');a.splice(+id.slice(1),1);localStorage.setItem(FBK_LOCAL,JSON.stringify(a))}catch(x){}})());
+  p.then(function(){FBKG.list=null;renderGest();gToast('Mensagem apagada.')},function(){gToast('Não deu para apagar.',1)});
+});
 
 })();

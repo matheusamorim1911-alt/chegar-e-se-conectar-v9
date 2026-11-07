@@ -122,13 +122,24 @@ service cloud.firestore {
         || (doc == 'wifi' && pode('wifi')) || (doc == 'servicos' && pode('servicos')) || (doc == 'svcmapa' && pode('servicos')) || (doc == 'redes' && pode('wifi'))
         || (doc == 'plantas' && pode('plantas')) || (doc == 'bloqueados' && pode('usuarios'))
         || (doc == 'respostas' && pode('solicitacoes')) || (doc == 'calib' && pode('gps'))
-        || (doc == 'admins' && pode('admins'));
+        || (doc == 'admins' && pode('admins')) || (doc == 'padrao' && pode('admins'));
     }
     match /plantas_img/{doc} { allow read: if leitura(); allow write: if pode('plantas'); }
     match /cal/{doc}         { allow read: if leitura(); allow write: if pode('calendario'); }
 
     // administradores: cada um vê o próprio registro; quem tem "admins" vê e gerencia os outros.
     // O principal só muda pelo console, e ninguém se promove a principal pelo app.
+    // Feedback: qualquer pessoa envia (texto curto, campos fixos); só a gestão lê e apaga.
+    match /feedback/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['tipo','txt','nota','ts','ver','tela','disp','uid','email'])
+        && request.resource.data.tipo in ['erro','ideia','elogio','outro','nota']
+        && (!('txt' in request.resource.data) || (request.resource.data.txt is string && request.resource.data.txt.size() <= 1000))
+        && (!('nota' in request.resource.data) || (request.resource.data.nota is int && request.resource.data.nota >= 1 && request.resource.data.nota <= 5))
+        && (!('uid' in request.resource.data) || (logado() && request.resource.data.uid == request.auth.uid))
+        && (!('email' in request.resource.data) || (logado() && request.resource.data.email == request.auth.token.email));
+      allow read, delete: if pode('avisos');
+      allow update: if false;
+    }
     match /gestores/{email} {
       allow read: if logado() && (request.auth.token.email == email || pode('admins'));
       allow create: if pode('admins') && ('perms' in request.resource.data) && request.resource.data.get('super', false) != true;
