@@ -3351,7 +3351,7 @@ var _locStopC=locStop;locStop=function(){_locStopC();if(CMP.on)cmpSchedule()};
 
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261107-1131';
+var APP_VERSION='20261107-1155';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
@@ -5504,5 +5504,129 @@ var _buildMap29=buildMap;buildMap=function(){LV.st={};_buildMap29()};
 /* atualização mais rápida: a cada 20 s (a prefeitura recebe uma posição a cada ~25 s) */
 liveLoop=function(){clearInterval(LIVE.timer);if(!LIVE.url)return;liveFetch();LIVE.timer=setInterval(liveFetch,20000)};
 if(LIVE.url)liveLoop();
+
+/* ======================= v30: planta real do CT (EPLAN CT / UFRJ, 2018) em "Prédios por dentro" ======================= */
+var CTP={d:null,loading:false,err:false,pav:'pav1',bl:'',f:'',q:'',sel:null,vb:null,lastPl:'b_ct'};
+var CTP_G={aula:['Salas de aula','#F2C94C'],lab:['Laboratórios','#56CCF2'],info:['Lab. de informática','#2DD4BF'],estudo:['Biblioteca e estudo','#A3E635'],wc:['Sanitários e vestiários','#F2994A'],vert:['Escadas e elevadores','#EB5757'],comer:['Copas e refeitório','#F472B6'],evento:['Auditórios e cultura','#C084FC'],gab:['Gabinetes','#7C8CE0'],adm:['Administração','#B794F4'],circ:['Corredores','#94A3B8'],apoio:['Apoio e depósitos','#64748B'],ext:['Pátios','#475569']};
+var CTP_F=[['wc','Sanitários'],['vert','Escadas e elevadores'],['aula','Salas de aula'],['lab','Laboratórios'],['estudo','Estudo'],['comer','Copas']];
+var CTP_PAV={subsolo:'Subsolo',pav1:'1º',pav2:'2º',pav3:'3º',pav4:'4º',pav5:'5º',pav6:'6º',pav7:'7º',pav8:'8º'};
+function ctpLoad(){
+  if(CTP.d||CTP.loading)return;CTP.loading=true;
+  fetch('ct-plantas.json').then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
+    d.salas.forEach(function(s,i){s.i=i;s.P=s[5].map(function(r){var x=0,y=0,o=[];for(var k=0;k<r.length;k+=2){x+=r[k];y+=r[k+1];o.push([x/10,y/10])}return o});
+      var xs=[],ys=[];s.P.forEach(function(r){r.forEach(function(p){xs.push(p[0]);ys.push(p[1])})});s.bb=[Math.min.apply(0,xs),Math.min.apply(0,ys),Math.max.apply(0,xs),Math.max.apply(0,ys)];s.c=[(s.bb[0]+s.bb[2])/2,(s.bb[1]+s.bb[3])/2]});
+    CTP.d=d;CTP.loading=false;ctpPaint();
+  },function(){CTP.loading=false;CTP.err=true;ctpPaint()});
+}
+function ctpRooms(){return CTP.d.salas.filter(function(s){return s[1]===CTP.pav&&(!CTP.bl||s[0]===CTP.bl)})}
+function ctpPavs(){var o={};CTP.d.salas.forEach(function(s){if(!CTP.bl||s[0]===CTP.bl)o[s[1]]=(o[s[1]]||0)+1});return Object.keys(CTP_PAV).filter(function(k){return o[k]})}
+function ctpFit(rs){if(!rs.length)return CTP.d.bbox.slice();var a=[1e9,1e9,-1e9,-1e9];rs.forEach(function(s){a[0]=Math.min(a[0],s.bb[0]);a[1]=Math.min(a[1],s.bb[1]);a[2]=Math.max(a[2],s.bb[2]);a[3]=Math.max(a[3],s.bb[3])});var m=Math.max(6,(a[2]-a[0])*.04);return [a[0]-m,a[1]-m,a[2]+m,a[3]+m]}
+function ctpVB(v){return [v[0],v[1],v[2]-v[0],v[3]-v[1]].map(function(x){return x.toFixed(1)}).join(' ')}
+function ctpLabel(s){return s[4]||s[3]}
+function ctpWhere(s){return 'Bloco '+s[0]+' · '+(s[1]==='subsolo'?'subsolo':CTP_PAV[s[1]]+' andar')}
+function ctpSVG(){
+  var rs=ctpRooms(),vb=CTP.vb||ctpFit(rs),w=vb[2]-vb[0],h=vb[3]-vb[1],sw=(w/700).toFixed(2);
+  var p='';rs.forEach(function(s){var g=CTP_G[s[2]]||CTP_G.apoio,dim=CTP.f&&s[2]!==CTP.f,sel=CTP.sel===s.i;
+    p+='<path data-ctr="'+s.i+'" class="ctr'+(sel?' sel':'')+(dim?' dim':'')+'" d="'+s.P.map(function(r){return 'M'+r.map(function(q){return q[0].toFixed(1)+' '+q[1].toFixed(1)}).join('L')+'Z'}).join('')+'" style="fill:'+g[1]+'"><title>'+esc(ctpLabel(s)+' · '+ctpWhere(s))+'</title></path>'});
+  var lb='';if(!CTP.bl){var seen={};rs.forEach(function(s){(seen[s[0]]=seen[s[0]]||[]).push(s.c)});Object.keys(seen).forEach(function(b){var c=seen[b],x=0,y=0;c.forEach(function(q){x+=q[0];y+=q[1]});lb+='<text class="ctb" x="'+(x/c.length).toFixed(1)+'" y="'+(y/c.length).toFixed(1)+'" style="font-size:'+(w/38).toFixed(1)+'px">'+esc(b.length>2?b.slice(0,3):b)+'</text>'})}
+  var pin='';if(CTP.sel!=null){var S=CTP.d.salas[CTP.sel];if(S[1]===CTP.pav)pin='<circle class="ctpin" cx="'+S.c[0].toFixed(1)+'" cy="'+S.c[1].toFixed(1)+'" r="'+(w/60).toFixed(1)+'"/>'}
+  return '<svg class="ctsvg" id="ctsvg" viewBox="'+ctpVB(vb)+'" style="--ctsw:'+sw+';aspect-ratio:'+w.toFixed(0)+' / '+Math.max(h,w*.45).toFixed(0)+'" role="img" aria-label="Planta do CT, '+esc(CTP_PAV[CTP.pav]||'')+' andar">'+p+lb+pin+'</svg>';
+}
+function ctpSearch(q){
+  q=q.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();if(q.length<2)return [];
+  var syn={banheiro:'sanitario',wc:'sanitario',elevador:'elevador',escada:'escada',biblioteca:'biblioteca',copa:'copa',auditorio:'auditorio'};var qq=syn[q]||q;
+  var nrm=function(t){return (t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')};
+  var bl=CTP.d.blocos.filter(function(b){return nrm(b[3]).indexOf(qq)>=0||nrm('bloco '+b[0])===qq}).map(function(b){return {bloco:b}});
+  var rs=CTP.d.salas.filter(function(s){return nrm(s[4]).indexOf(qq)>=0||nrm(s[3]).indexOf(qq)>=0});
+  rs.sort(function(a,b){return (a[4]?0:1)-(b[4]?0:1)||a[0].localeCompare(b[0])||a[1].localeCompare(b[1])});
+  return bl.concat(rs.slice(0,40).map(function(s){return {s:s}})).concat(rs.length>40?[{mais:rs.length-40}]:[]);
+}
+function ctpInner(){
+  if(CTP.err)return '<p class="small keep">Não deu para carregar a planta agora. Tente de novo mais tarde.</p>';
+  if(!CTP.d){ctpLoad();return '<p class="muted small keep">Carregando a planta do CT…</p>'}
+  var pavs=ctpPavs();if(pavs.indexOf(CTP.pav)<0)CTP.pav=pavs.indexOf('pav1')>=0?'pav1':pavs[0];
+  var bls=['A','B','C','D','E','F','G','H','I','J','K','ABC','Auditório'].filter(function(b){return CTP.d.salas.some(function(s){return s[0]===b})});
+  var h='<label class="fld ctq">Buscar no CT<input id="ctpq" type="search" autocomplete="off" value="'+esc(CTP.q)+'" placeholder="Banheiro, biblioteca, Escola de Química, LABEST…"></label>';
+  if(CTP.q.length>=2){var R=ctpSearch(CTP.q);h+='<ul class="ctres">'+(R.length?R.map(function(r){
+      if(r.bloco)return '<li><button type="button" data-ctbl="'+esc(r.bloco[0])+'"><b>Bloco '+esc(r.bloco[0])+'</b><small>'+esc(r.bloco[3])+'</small></button></li>';
+      if(r.mais)return '<li class="muted small">e mais '+r.mais+'… refine a busca</li>';
+      return '<li><button type="button" data-cts="'+r.s.i+'"><b>'+esc(ctpLabel(r.s))+'</b><small>'+esc((r.s[4]?r.s[3]+' · ':'')+ctpWhere(r.s))+'</small></button></li>'}).join(''):'<li class="muted small">Nada encontrado.</li>')+'</ul>'}
+  h+='<div class="seg ctseg" role="group" aria-label="Bloco"><button type="button" data-ctbl="" aria-pressed="'+!CTP.bl+'">Todos</button>'+bls.map(function(b){return '<button type="button" data-ctbl="'+esc(b)+'" aria-pressed="'+(CTP.bl===b)+'">'+esc(b==='Auditório'?'Aud.':b)+'</button>'}).join('')+'</div>';
+  h+='<div class="seg ctseg" role="group" aria-label="Andar">'+pavs.map(function(k){return '<button type="button" data-ctpav="'+k+'" aria-pressed="'+(CTP.pav===k)+'">'+CTP_PAV[k]+'</button>'}).join('')+'</div>';
+  h+='<div class="ctf">'+CTP_F.map(function(f){return '<button type="button" class="chip" data-ctf="'+f[0]+'" aria-pressed="'+(CTP.f===f[0])+'"><span class="sw" style="background:'+CTP_G[f[0]][1]+';opacity:1"></span>'+f[1]+'</button>'}).join('')+'</div>';
+  var cnt=CTP.f?ctpRooms().filter(function(s){return s[2]===CTP.f}).length:0;
+  h+='<div class="ctwrap">'+ctpSVG()+'<div class="ctz"><button type="button" data-ctz="1" aria-label="Aproximar">+</button><button type="button" data-ctz="-1" aria-label="Afastar">−</button><button type="button" data-ctz="0" aria-label="Ver tudo">⤢</button></div></div>';
+  if(CTP.sel!=null){var S=CTP.d.salas[CTP.sel],B=CTP.d.blocos.filter(function(b){return b[0]===S[0]})[0];h+='<p class="ctinfo keep"><b>'+esc(ctpLabel(S))+'</b> · '+esc((S[4]?S[3]+' · ':'')+ctpWhere(S))+(B&&B[3]?'<small>Bloco '+esc(S[0])+': '+esc(B[3])+'</small>':'')+'</p>'}
+  else if(CTP.f)h+='<p class="ctinfo keep">'+cnt+' '+CTP_G[CTP.f][0].toLowerCase()+' neste andar'+(CTP.bl?' do bloco '+esc(CTP.bl):'')+'.</p>';
+  else h+='<p class="muted small keep">Toque numa sala para ver o que é. Use os filtros para achar sanitários, escadas e salas de aula.</p>';
+  h+='<p class="muted small keep">Fonte: '+esc(CTP.d.fonte)+'. Os espaços não têm número de sala, e alguns usos podem ter mudado desde 2018.</p>';
+  return h;
+}
+function ctpHTML(){return '<div class="ctp" id="ctp"><div class="ctp-h"><b>Planta real do CT</b><small>Todos os blocos e andares, sala por sala</small></div><div id="ctpb">'+ctpInner()+'</div></div>'}
+function ctpPaint(foc){var b=$('#ctpb');if(!b)return;b.innerHTML=ctpInner();if(foc){var e=$(foc);if(e){e.focus({preventScroll:true});if(e.id==='ctpq'){var v=e.value;e.setSelectionRange(v.length,v.length)}}}}
+var _bldInner30=bldInner;
+bldInner=function(now){
+  if(pstate.bld!=='ct')return _bldInner30(now);
+  /* no CT, a planta real substitui o esquema de exemplo; uma sala escolhida em outro lugar (glossário, grade) abre no bloco e andar dela */
+  var P=PL[pstate.pl];if(pstate.pl!==CTP.lastPl){CTP.lastPl=pstate.pl;if(P&&P.bld==='ct'){if(P.b)CTP.bl=P.b;if(P.f!=null)CTP.pav=P.f<=0?'subsolo':'pav'+P.f;CTP.f={biblio:'estudo',aula:'aula',wc:'wc',lab:'lab'}[P.cat]||'';CTP.vb=null;CTP.sel=null}}
+  if(CTP.d&&CTP.bl&&!CTP.d.salas.some(function(s){return s[0]===CTP.bl})){var alt=CTP.d.salas.filter(function(s){return s[0].indexOf(CTP.bl)>=0})[0];CTP.bl=alt?alt[0]:''}
+  var full=_bldInner30(now),i=full.indexOf('<p class="small"><b>');
+  var head=i>0?full.slice(0,i):'',B=BLD.ct;
+  return head+'<p class="small"><b>'+B.name+'</b> · <span class="muted">'+B.addr+'</span></p>'+plantasHTML('ct')+ctpHTML();
+};
+document.addEventListener('input',function(e){if(e.target.id==='ctpq'){CTP.q=e.target.value;ctpPaint('#ctpq')}});
+document.addEventListener('click',function(e){
+  var t=e.target.closest&&e.target.closest('[data-ctbl],[data-ctpav],[data-ctf],[data-cts],[data-ctz],[data-ctr]');if(!t||!CTP.d)return;
+  if(t.dataset.ctbl!=null){CTP.bl=t.dataset.ctbl;CTP.vb=null;if(t.closest('.ctres'))CTP.q='';}
+  else if(t.dataset.ctpav){CTP.pav=t.dataset.ctpav;CTP.vb=null}
+  else if(t.dataset.ctf){CTP.f=CTP.f===t.dataset.ctf?'':t.dataset.ctf;CTP.sel=null}
+  else if(t.dataset.cts){var S=CTP.d.salas[+t.dataset.cts];CTP.sel=S.i;CTP.pav=S[1];CTP.bl=S[0];CTP.q='';CTP.f='';var r=ctpRooms();CTP.vb=ctpFit(r);setTimeout(function(){var w=$('#ctsvg');if(w)w.scrollIntoView({block:'center',behavior:'smooth'})},50)}
+  else if(t.dataset.ctz!=null){var z=+t.dataset.ctz,vb=CTP.vb||ctpFit(ctpRooms());if(!z)CTP.vb=null;else{var cx=(vb[0]+vb[2])/2,cy=(vb[1]+vb[3])/2,k=z>0?.6:1/.6,hw=(vb[2]-vb[0])*k/2,hh=(vb[3]-vb[1])*k/2;CTP.vb=[cx-hw,cy-hh,cx+hw,cy+hh]}}
+  else if(t.dataset.ctr){CTP.sel=CTP.sel===+t.dataset.ctr?null:+t.dataset.ctr}
+  ctpPaint();
+});
+/* arrastar a planta */
+(function(){var drag=null;
+  document.addEventListener('pointerdown',function(e){var s=e.target.closest&&e.target.closest('#ctsvg');if(!s||!CTP.d)return;var vb=CTP.vb||ctpFit(ctpRooms()),r=s.getBoundingClientRect();drag={x:e.clientX,y:e.clientY,vb:vb,k:Math.max((vb[2]-vb[0])/r.width,(vb[3]-vb[1])/r.height),moved:false}});
+  document.addEventListener('pointermove',function(e){if(!drag)return;var dx=(e.clientX-drag.x)*drag.k,dy=(e.clientY-drag.y)*drag.k;if(Math.abs(e.clientX-drag.x)+Math.abs(e.clientY-drag.y)>6)drag.moved=true;if(!drag.moved)return;CTP.vb=[drag.vb[0]-dx,drag.vb[1]-dy,drag.vb[2]-dx,drag.vb[3]-dy];var s=$('#ctsvg');if(s)s.setAttribute('viewBox',ctpVB(CTP.vb))});
+  document.addEventListener('pointerup',function(e){if(drag&&drag.moved){var stop=function(ev){ev.stopPropagation();ev.preventDefault();document.removeEventListener('click',stop,true)};document.addEventListener('click',stop,true);setTimeout(function(){document.removeEventListener('click',stop,true)},50)}drag=null});
+})();
+
+/* ======================= v31: ônibus da cidade sobre as ruas do mapa ======================= */
+/* 1) recalibra posição -> mapa usando as 11 paradas que são iguais nas duas redes (prefeitura × UFRJ) */
+var LLX=(function(){
+  var pr=[];Object.keys(EXT.stops).forEach(function(k){var s=EXT.stops[k];Object.keys(EXTS).forEach(function(g){var G=EXTS[g];if(G.stop&&G.alt&&G.alt.indexOf(s[0])>=0)pr.push([s[2],s[1],STOPS[G.stop].p])})});
+  if(pr.length<4)return null;
+  /* mínimos quadrados: x = a·lon + b·lat + c ; y = d·lon + e·lat + f (lon/lat centrados) */
+  var mlo=0,mla=0;pr.forEach(function(q){mlo+=q[0];mla+=q[1]});mlo/=pr.length;mla/=pr.length;
+  function solve(col){var S=[[0,0,0],[0,0,0],[0,0,0]],v=[0,0,0];pr.forEach(function(q){var r=[(q[0]-mlo)*1e4,(q[1]-mla)*1e4,1],t=q[2][col];for(var i=0;i<3;i++){v[i]+=r[i]*t;for(var j=0;j<3;j++)S[i][j]+=r[i]*r[j]}});
+    for(var i=0;i<3;i++){var m=i;for(var k=i+1;k<3;k++)if(Math.abs(S[k][i])>Math.abs(S[m][i]))m=k;var tmp=S[i];S[i]=S[m];S[m]=tmp;var tv=v[i];v[i]=v[m];v[m]=tv;for(var k2=i+1;k2<3;k2++){var f=S[k2][i]/S[i][i];for(var j2=i;j2<3;j2++)S[k2][j2]-=f*S[i][j2];v[k2]-=f*v[i]}}
+    var x=[0,0,0];for(var i2=2;i2>=0;i2--){var s=v[i2];for(var j3=i2+1;j3<3;j3++)s-=S[i2][j3]*x[j3];x[i2]=s/S[i2][i2]}return x}
+  var X=solve(0),Y=solve(1),f=function(lat,lon){var a=(lon-mlo)*1e4,b=(lat-mla)*1e4;return [X[0]*a+X[1]*b+X[2],Y[0]*a+Y[1]*b+Y[2]]};
+  var err=0;pr.forEach(function(q){var p=f(q[1],q[0]);err+=Math.hypot(p[0]-q[2][0],p[1]-q[2][1])});f.err=err/pr.length/MPU;f.n=pr.length;return f;
+})();
+function llx(lat,lon){return LLX?LLX(lat,lon):ll2map(lat,lon)}
+/* paradas da prefeitura sem parada da UFRJ ao lado: reposiciona com a calibração nova */
+Object.keys(EXTS).forEach(function(g){var G=EXTS[g];if(G.stop)return;var k=Object.keys(EXT.stops).filter(function(k){return EXT.stops[k][0]===G.name})[0];if(k){var s=EXT.stops[k];G.p=llx(s[1],s[2])}});
+extDraw();
+/* 2) ruas: os traçados das linhas internas (desenhados sobre a planta) + os da prefeitura recalibrados */
+SHP=[];var SHP_INT=[];
+function shpAdd(P){var cum=[0];for(var j=1;j<P.length;j++)cum.push(cum[j-1]+Math.hypot(P[j][0]-P[j-1][0],P[j][1]-P[j-1][1]));SHP.push({P:P,c:cum});return SHP.length-1}
+Object.keys(LINES).forEach(function(l){(LINES[l].trips||[]).forEach(function(t){if(t.pts&&t.pts.length>1)SHP_INT.push(shpAdd(t.pts.map(function(p){return [p[0],p[1]]})))})});
+var SHP_EXT={};(EXT.shp||[]).forEach(function(d,i){var a=-2280000,o=-4320000,P=[];for(var k=0;k<d.length;k+=2){a+=d[k];o+=d[k+1];P.push(llx(a/1e5,o/1e5))}SHP_EXT[i]=shpAdd(P)});
+function projOn(i,p){var S=SHP[i],best=null;for(var j=1;j<S.P.length;j++){var a=S.P[j-1],b=S.P[j],dx=b[0]-a[0],dy=b[1]-a[1],L2=dx*dx+dy*dy||1e-9,t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L2)),x=a[0]+t*dx,y=a[1]+t*dy,d=Math.hypot(p[0]-x,p[1]-y);if(!best||d<best.d)best={d:d,x:x,y:y,i:i,s:S.c[j-1]+t*Math.sqrt(L2),ang:Math.atan2(dx,-dy)*180/Math.PI}}return best}
+snapBus=function(n,p){
+  var best=null;
+  /* dentro do campus: as ruas desenhadas no mapa vencem, se estiverem a até 45 m */
+  SHP_INT.forEach(function(i){var r=projOn(i,p);if(r&&(!best||r.d<best.d))best=r});
+  if(best&&best.d<=45*MPU)return best;
+  var b2=null;((EXT.sh||{})[n]||[]).forEach(function(i){var r=SHP_EXT[i]!=null?projOn(SHP_EXT[i],p):null;if(r&&(!b2||r.d<b2.d))b2=r});
+  if(b2&&b2.d<=120*MPU)return b2;
+  return best&&best.d<=80*MPU?best:null;
+};
+/* posição ao vivo também passa pela calibração nova */
+var _ll2mapLive=ll2map;
+liveDraw=(function(prev){return function(){var keep=ll2map;ll2map=function(a,b,G){return G?keep(a,b,G):llx(a,b)};try{prev()}finally{ll2map=keep}}})(liveDraw);
+LV.st={};var gl=$('#gLive');if(gl)gl.remove();if(LIVE.bus.length)liveDraw();
 
 })();
