@@ -10,7 +10,3 @@ window.CSE_FIREBASE = {
   messagingSenderId: "104927857185",
   appId: "1:104927857185:web:be1fac1e86619ca32bf160"
 };
-
-/* Ônibus da cidade ao vivo: endereço do Worker do Cloudflare (pasta worker/, veja o README).
-   Deixe vazio para mostrar só os horários programados. Ex.: "https://gps-fundao.SEU-USUARIO.workers.dev" */
-window.CSE_GPS_URL = "https://shrill-pond-6c06.matheusamorim1911.workers.dev";
