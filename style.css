@@ -1690,3 +1690,4 @@ div.xl-row{cursor:default}
 .tileattr{position:absolute;right:62px;bottom:8px;z-index:3;font-size:10px;padding:2px 6px;border-radius:6px;background:rgba(0,0,0,.45);color:#cfd8e3}
 .tileattr a{color:inherit}
 .mapclaro .tileattr{background:rgba(255,255,255,.7);color:#33414f}
+.lvg-t{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}.lvg-t th,.lvg-t td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line,rgba(127,127,127,.25))}.lvg-t th{font-weight:600;color:var(--muted,inherit)}

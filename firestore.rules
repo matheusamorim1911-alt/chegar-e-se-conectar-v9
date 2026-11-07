@@ -115,6 +115,16 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // desvios da previsão dos ônibus ao vivo: lotes anônimos (linha, trecho, horário, desvio); qualquer aparelho envia, gestão com "Linhas" lê e apaga
+    match /desvios/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['a', 'n', 'ts', 'ver'])
+        && request.resource.data.a is list && request.resource.data.a.size() > 0 && request.resource.data.a.size() <= 150
+        && request.resource.data.n is int && request.resource.data.n == request.resource.data.a.size()
+        && request.resource.data.ts is number
+        && request.resource.data.ver is string && request.resource.data.ver.size() <= 20;
+      allow read, delete: if pode('linhas');
+      allow update: if false;
+    }
     // conteúdo publicado pela gestão: todos leem; cada documento exige o seu privilégio
     match /gestao/{doc} {
       allow read: if leitura();
@@ -122,7 +132,8 @@ service cloud.firestore {
         || (doc == 'wifi' && pode('wifi')) || (doc == 'servicos' && pode('servicos')) || (doc == 'svcmapa' && pode('servicos')) || (doc == 'redes' && pode('wifi'))
         || (doc == 'plantas' && pode('plantas')) || (doc == 'bloqueados' && pode('usuarios'))
         || (doc == 'respostas' && pode('solicitacoes')) || (doc == 'calib' && pode('gps'))
-        || (doc == 'admins' && pode('admins')) || (doc == 'padrao' && pode('admins'));
+        || (doc == 'admins' && pode('admins')) || (doc == 'padrao' && pode('admins'))
+        || (doc == 'previsao' && pode('linhas'));
     }
     match /plantas_img/{doc} { allow read: if leitura(); allow write: if pode('plantas'); }
     match /cal/{doc}         { allow read: if leitura(); allow write: if pode('calendario'); }
