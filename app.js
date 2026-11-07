@@ -3351,7 +3351,7 @@ var _locStopC=locStop;locStop=function(){_locStopC();if(CMP.on)cmpSchedule()};
 
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261107-1248';
+var APP_VERSION='20261107-1256';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
@@ -5684,7 +5684,7 @@ liveStatusHTML=(function(prev){return function(){var h=prev();var d=liveDelay();
 liveLoop=function(){clearInterval(LIVE.timer);if(!LIVE.url)return;liveFetch();LIVE.timer=setInterval(liveFetch,15000)};
 if(LIVE.url)liveLoop();
 
-/* ======================= v33: mapa da cidade (OpenStreetMap/CARTO) ao redor da planta, com a camada "Ônibus da cidade" ======================= */
+/* ======================= v33: mapa da cidade (Esri Canvas, dados OpenStreetMap) ao redor da planta, com a camada "Ônibus da cidade" ======================= */
 function map2ll(X,Y){var G=GEO,kx=111320*Math.cos(G.lat0*Math.PI/180),x=X-G.tx,y=Y-G.ty,D=-(G.a*G.a+G.b*G.b),e=(-G.a*x+G.b*y)/D,n=(G.b*x+G.a*y)/D;return [G.lat0+n/110574,G.lng0+e/kx]}
 function tileLL(x,y,z){var n=Math.pow(2,z);return [Math.atan(Math.sinh(Math.PI*(1-2*y/n)))*180/Math.PI,x/n*360-180]}
 var TILES={z:15,on:false};
@@ -5692,18 +5692,17 @@ function tilesWanted(){return !!state.layers.ext}
 function tilesDraw(){
   var base=$('#baseimg'),old=$('#gTiles');
   if(!tilesWanted()){if(old)old.remove();var a=$('#tileAttr');if(a)a.hidden=true;return}
-  var a=$('#tileAttr');if(!a){var mw=document.querySelector('.mapwrap');if(mw){mw.insertAdjacentHTML('beforeend','<div class="tileattr" id="tileAttr">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a></div>');a=$('#tileAttr')}}if(a)a.hidden=false;
+  var a=$('#tileAttr');if(!a){var mw=document.querySelector('.mapwrap');if(mw){mw.insertAdjacentHTML('beforeend','<div class="tileattr" id="tileAttr">Esri, HERE, Garmin, © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></div>');a=$('#tileAttr')}}if(a)a.hidden=false;
   if(old||!base)return;
   var claro=document.documentElement.classList.contains('mapclaro'),z=TILES.z,n=Math.pow(2,z);
   /* só a região por onde passam os ônibus que atendem o Fundão (a mesma do Worker) */
   var la=[-22.885,-22.825],lo=[-43.27,-43.195];
   var lon2x=function(l){return Math.floor((l+180)/360*n)},lat2y=function(l){var r=l*Math.PI/180;return Math.floor((1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n)};
   var x0=lon2x(Math.min.apply(0,lo)),x1=lon2x(Math.max.apply(0,lo)),y0=lat2y(Math.max.apply(0,la)),y1=lat2y(Math.min.apply(0,la));
-  var sty=claro?'voyager_nolabels':'dark_nolabels',s='<g id="gTiles" class="'+(claro?'tl-claro':'tl-escuro')+'">';
+  var sty=claro?'World_Light_Gray_Base':'World_Dark_Gray_Base',s='<g id="gTiles" class="'+(claro?'tl-claro':'tl-escuro')+'">';
   for(var x=x0;x<=x1;x++)for(var y=y0;y<=y1;y++){
     var p0=tileLL(x,y,z),px=tileLL(x+1,y,z),py=tileLL(x,y+1,z),P0=ll2map(p0[0],p0[1]),PX=ll2map(px[0],px[1]),PY=ll2map(py[0],py[1]);
-    var sub='abcd'.charAt((x+y)%4);
-    s+='<image href="https://'+sub+'.basemaps.cartocdn.com/'+sty+'/'+z+'/'+x+'/'+y+'@2x.png" width="1.002" height="1.002" preserveAspectRatio="none" decoding="async" transform="matrix('+[PX[0]-P0[0],PX[1]-P0[1],PY[0]-P0[0],PY[1]-P0[1],P0[0],P0[1]].map(function(v){return v.toFixed(3)}).join(',')+')"/>';
+        s+='<image href="https://services.arcgisonline.com/arcgis/rest/services/Canvas/'+sty+'/MapServer/tile/'+z+'/'+y+'/'+x+'" width="1.002" height="1.002" preserveAspectRatio="none" decoding="async" onerror="this.remove()" transform="matrix('+[PX[0]-P0[0],PX[1]-P0[1],PY[0]-P0[0],PY[1]-P0[1],P0[0],P0[1]].map(function(v){return v.toFixed(3)}).join(',')+')"/>';
   }
   s+='</g>';
   var hd=$('#imgHD');if(hd)hd.insertAdjacentHTML('afterend',s);else base.insertAdjacentHTML('beforeend',s);
