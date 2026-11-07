@@ -3304,7 +3304,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261107-1904';
+var APP_VERSION='20261107-1959';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -5074,7 +5074,7 @@ function liveFetch(){
   /* v38: no máximo um pedido a cada 5 s, mesmo quando várias partes do app pedem ao mesmo tempo ao abrir */
   var agora=Date.now();if(LIVE.ult&&agora-LIVE.ult<5000)return;LIVE.ult=agora;
   fetch(LIVE.url,{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
-    LIVE.bus=(d.onibus||[]).filter(function(o){return Date.now()-o.t<6*60e3});LIVE.t=Date.now();LIVE.err=false;liveDraw();liveRefreshText();
+    LIVE.bus=(d.onibus||[]).filter(function(o){return Date.now()-o.t<6*60e3});LIVE.t=Date.now();LIVE.err=!!d.falhou;liveDraw();liveRefreshText();
   },function(){LIVE.err=true;liveRefreshText()});
 }
 function liveLoop(){clearInterval(LIVE.timer);if(!LIVE.url)return;liveFetch();LIVE.timer=setInterval(function(){liveFetch()},10000)}
@@ -5608,7 +5608,7 @@ var SAUDE_CHECKS=[
     return sdJson('version.json').then(function(v){return v.v===APP_VERSION?{estado:'ok',det:'Versão '+v.v+', a mesma deste aparelho.'}:{estado:'aviso',det:'Publicada: '+v.v+'. Este aparelho: '+APP_VERSION+'. Recarregue para atualizar.'}})}],
   ['worker','Ônibus ao vivo (Worker da Cloudflare)','posições dos ônibus da cidade',function(){
     if(!LIVE.url)return Promise.resolve({estado:'aviso',det:'Endereço do Worker não configurado (config.js).'});
-    return sdJson(LIVE.url).then(function(d){var n=(d.onibus||[]).length;SAUDE.gps=d;return {estado:'ok',det:n+' ônibus na região do Fundão agora.'}})}],
+    return sdJson(LIVE.url).then(function(d){var n=(d.onibus||[]).length;SAUDE.gps=d;if(d.falhou)return {estado:'aviso',det:'O Worker respondeu, mas não conseguiu falar com a prefeitura.'};return {estado:'ok',det:n+' ônibus na região do Fundão agora.'}})}],
   ['prefeitura','GPS da prefeitura (dados.mobilidade.rio)','pelo Worker: idade da posição mais nova',function(){
     if(!LIVE.url)return Promise.resolve({estado:'aviso',det:'Depende do Worker.'});
     var d=SAUDE.gps;var p=d?Promise.resolve(d):sdJson(LIVE.url);
@@ -5653,7 +5653,7 @@ function saudeVerifica(){
     if(i>=ordem.length){SAUDE.busy=false;SAUDE.quando=Date.now();if(gTab==='saude')renderGest();return}
     var c=ordem[i],t0=performance.now();
     sdTempo(Promise.resolve().then(c[3])).then(function(r){r.ms=Math.round(performance.now()-t0);if(r.estado==='ok'&&r.ms>SAUDE_LENTO){r.estado='aviso';r.det+=' Lento.'}return r},
-      function(e){return {estado:'falha',det:String(e&&e.message||e),ms:Math.round(performance.now()-t0)}})
+      function(e){var m=String(e&&e.message||e);if(/Load failed|Failed to fetch|NetworkError|network/i.test(m))m='Sem resposta. Pode ser queda ou limite de processamento da Cloudflare: veja os registros do Worker no painel (Observability).';return {estado:'falha',det:m,ms:Math.round(performance.now()-t0)}})
       .then(function(r){SAUDE.res[c[0]]=r;if(gTab==='saude')renderGest();proxima(i+1)});
   })(0);
 }

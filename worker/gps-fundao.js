@@ -10,7 +10,10 @@ const LINHAS = new Set(['321','323','324','325','326','327','328','329','42','43
 // Ilha do Fundão e acessos (Linha Vermelha, Av. Brasil e pontes); fica de fora a garagem na Ilha do Governador
 const AREA = { latMin: -22.885, latMax: -22.825, lonMin: -43.27, lonMax: -43.195 };
 const FONTES = ['https://dados.mobilidade.rio/gps/sppo', 'https://dados.mobilidade.rio/gps/brt'];
-const CACHE_S = 5, RESERVA_S = 120, JANELA_MIN = 4, VELHO_MIN = 6;
+// JANELA_MIN: período pedido à prefeitura. Os ônibus mandam posição a cada ~30 s e chegam com ~11 s de atraso,
+// então 1,5 min basta para ter todos; um período maior aumenta a resposta (cidade inteira) e o Worker pode
+// estourar o limite de processamento do plano grátis da Cloudflare nos horários de pico.
+const CACHE_S = 5, RESERVA_S = 120, JANELA_MIN = 1.5, VELHO_MIN = 6;
 
 // A API usa horário de Brasília (UTC-3) e pede datas assim: 2026-11-07+10:10:00
 function dataRio(ms) {
@@ -137,12 +140,16 @@ async function tiroteios(env, ctx, cors) {
 // o Worker consulta a API de análise da Cloudflare e informa quantos pedidos a conta recebeu hoje
 // (o plano grátis permite 100 mil por dia, contados de meia-noite a meia-noite em UTC, 21h em Brasília).
 const CF_LIMITE_DIA = 100000;
+// segredos colados com espaço, quebra de linha, aspas ou "Bearer " na frente quebravam o cabeçalho: limpa antes de usar
+export const limpaSegredo = v => String(v || '').replace(/^\s*["']?\s*(Bearer\s+)?/i, '').replace(/\s*["']?\s*$/, '').replace(/\s+/g, '');
 export async function usoCloudflare(env, agora) {
-  if (!env.CF_CONTA || !env.CF_TOKEN) return null;
+  const token = limpaSegredo(env.CF_TOKEN), conta = limpaSegredo(env.CF_CONTA);
+  if (!conta || !token) return null;
+  if (!/^[A-Za-z0-9._~+\/=-]+$/.test(token)) throw new Error('o CF_TOKEN tem caracteres que não são de um token; cole de novo só o token');
   const d = new Date(agora), desde = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())).toISOString();
   const query = 'query($c:String!,$a:Time!,$b:Time!){viewer{accounts(filter:{accountTag:$c}){workersInvocationsAdaptive(limit:100,filter:{datetime_geq:$a,datetime_leq:$b}){sum{requests errors}dimensions{scriptName}}}}}';
-  const r = await fetch('https://api.cloudflare.com/client/v4/graphql', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + env.CF_TOKEN },
-    body: JSON.stringify({ query, variables: { c: env.CF_CONTA, a: desde, b: new Date(agora).toISOString() } }), signal: AbortSignal.timeout(8000) });
+  const r = await fetch('https://api.cloudflare.com/client/v4/graphql', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
+    body: JSON.stringify({ query, variables: { c: conta, a: desde, b: new Date(agora).toISOString() } }), signal: AbortSignal.timeout(8000) });
   if (!r.ok) throw new Error('analytics ' + r.status);
   const j = await r.json();
   if (j.errors && j.errors.length) throw new Error('analytics: ' + j.errors[0].message);
@@ -170,10 +177,13 @@ export default {
     if (guardado) return new Response(guardado.body, { headers: { ...cors, 'x-cache': 'hit' } });
     const reserva = new Request('https://cache.local/gps-fundao-reserva');
     const agora = Date.now();
-    const { onibus, falhou } = await buscar(agora);
+    let onibus = [], falhou = true;
+    try { ({ onibus, falhou } = await buscar(agora)); } catch (e) { falhou = true; }
     if (falhou) {
       const velho = await cache.match(reserva);
       if (velho) return new Response(velho.body, { headers: { ...cors, 'x-cache': 'antiga' } });
+      /* sem cópia guardada: responde que falhou (com CORS), em vez de deixar o app sem resposta */
+      return new Response(JSON.stringify({ t: agora, fonte: 'SMTR / Prefeitura do Rio (dados.mobilidade.rio)', onibus: [], falhou: true }), { headers: { ...cors, 'cache-control': 'no-store' } });
     }
     const corpo = JSON.stringify({ t: agora, fonte: 'SMTR / Prefeitura do Rio (dados.mobilidade.rio)', onibus });
     const resp = new Response(corpo, { headers: { ...cors, 'cache-control': `public, max-age=${CACHE_S}` } });
