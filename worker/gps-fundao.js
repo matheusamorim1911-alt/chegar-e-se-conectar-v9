@@ -137,12 +137,16 @@ async function tiroteios(env, ctx, cors) {
 // o Worker consulta a API de análise da Cloudflare e informa quantos pedidos a conta recebeu hoje
 // (o plano grátis permite 100 mil por dia, contados de meia-noite a meia-noite em UTC, 21h em Brasília).
 const CF_LIMITE_DIA = 100000;
+// segredos colados com espaço, quebra de linha, aspas ou "Bearer " na frente quebravam o cabeçalho: limpa antes de usar
+export const limpaSegredo = v => String(v || '').replace(/^\s*["']?\s*(Bearer\s+)?/i, '').replace(/\s*["']?\s*$/, '').replace(/\s+/g, '');
 export async function usoCloudflare(env, agora) {
-  if (!env.CF_CONTA || !env.CF_TOKEN) return null;
+  const token = limpaSegredo(env.CF_TOKEN), conta = limpaSegredo(env.CF_CONTA);
+  if (!conta || !token) return null;
+  if (!/^[A-Za-z0-9._~+\/=-]+$/.test(token)) throw new Error('o CF_TOKEN tem caracteres que não são de um token; cole de novo só o token');
   const d = new Date(agora), desde = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())).toISOString();
   const query = 'query($c:String!,$a:Time!,$b:Time!){viewer{accounts(filter:{accountTag:$c}){workersInvocationsAdaptive(limit:100,filter:{datetime_geq:$a,datetime_leq:$b}){sum{requests errors}dimensions{scriptName}}}}}';
-  const r = await fetch('https://api.cloudflare.com/client/v4/graphql', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + env.CF_TOKEN },
-    body: JSON.stringify({ query, variables: { c: env.CF_CONTA, a: desde, b: new Date(agora).toISOString() } }), signal: AbortSignal.timeout(8000) });
+  const r = await fetch('https://api.cloudflare.com/client/v4/graphql', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
+    body: JSON.stringify({ query, variables: { c: conta, a: desde, b: new Date(agora).toISOString() } }), signal: AbortSignal.timeout(8000) });
   if (!r.ok) throw new Error('analytics ' + r.status);
   const j = await r.json();
   if (j.errors && j.errors.length) throw new Error('analytics: ' + j.errors[0].message);
