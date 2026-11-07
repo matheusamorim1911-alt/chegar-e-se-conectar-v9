@@ -28,5 +28,9 @@ App web (sem framework) da Cidade Universitária da UFRJ, publicado pelo GitHub 
 ## Tiroteios (Fogo Cruzado)
 - Opcional, desligado por padrão (`CFG.tiroteios`). O Worker atende `/tiroteios` com a conta do projeto (segredos `FC_EMAIL` e `FC_SENHA` na Cloudflare; nunca no código). Só registros das últimas 6 h perto das saídas da ilha, com fonte e horário; sem dados, o app diz que não há dados.
 
+## Gestão › Saúde e estatísticas
+- `src/js/25-saude.js`: confere, a partir do aparelho do gestor, site, Worker, GPS da prefeitura, Fogo Cruzado, cota do Worker (rota `/saude`, segredos opcionais `CF_CONTA` e `CF_TOKEN`), Firebase, Open-Meteo, ipify, validade do GTFS e planta do CT; mostra números de uso. Só lê.
+- Cardápio do RU: só um atalho para o BandejApp (`src/js/24-bandejapp.js`); não usar o serviço de dados deles sem acordo.
+
 ## Visão do projeto
 Mobilidade e acesso ao campus para quem precisa chegar ao Fundão: calouros, pacientes do HU, moradores da Vila Residencial, trabalhadores e visitantes.

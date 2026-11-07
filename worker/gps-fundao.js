@@ -132,11 +132,38 @@ async function tiroteios(env, ctx, cors) {
   }
 }
 
+// ---------- /saude: uso da cota da Cloudflare (para a aba Saúde e estatísticas da gestão) ----------
+// Opcional: com os segredos CF_CONTA (ID da conta) e CF_TOKEN (token com "Account Analytics: Read"),
+// o Worker consulta a API de análise da Cloudflare e informa quantos pedidos a conta recebeu hoje
+// (o plano grátis permite 100 mil por dia, contados de meia-noite a meia-noite em UTC, 21h em Brasília).
+const CF_LIMITE_DIA = 100000;
+export async function usoCloudflare(env, agora) {
+  if (!env.CF_CONTA || !env.CF_TOKEN) return null;
+  const d = new Date(agora), desde = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())).toISOString();
+  const query = 'query($c:String!,$a:Time!,$b:Time!){viewer{accounts(filter:{accountTag:$c}){workersInvocationsAdaptive(limit:100,filter:{datetime_geq:$a,datetime_leq:$b}){sum{requests errors}dimensions{scriptName}}}}}';
+  const r = await fetch('https://api.cloudflare.com/client/v4/graphql', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + env.CF_TOKEN },
+    body: JSON.stringify({ query, variables: { c: env.CF_CONTA, a: desde, b: new Date(agora).toISOString() } }), signal: AbortSignal.timeout(8000) });
+  if (!r.ok) throw new Error('analytics ' + r.status);
+  const j = await r.json();
+  if (j.errors && j.errors.length) throw new Error('analytics: ' + j.errors[0].message);
+  const linhas = (((j.data || {}).viewer || {}).accounts || [])[0]?.workersInvocationsAdaptive || [];
+  const porWorker = {};let pedidos = 0, erros = 0;
+  for (const l of linhas) { const n = l.sum.requests || 0; pedidos += n; erros += l.sum.errors || 0; const k = (l.dimensions || {}).scriptName || '?'; porWorker[k] = (porWorker[k] || 0) + n; }
+  return { pedidos, erros, limite: CF_LIMITE_DIA, desde, porWorker };
+}
+async function saude(env, cors) {
+  const agora = Date.now();let cf = null, erroCf = '';
+  try { cf = await usoCloudflare(env, agora); } catch (e) { erroCf = String(e.message || e).slice(0, 120); }
+  return new Response(JSON.stringify({ t: agora, worker: 'gps-fundao', tiroteiosConfigurado: !!(env.FC_EMAIL && env.FC_SENHA),
+    cloudflare: cf, cloudflareErro: erroCf || undefined, cloudflareConfigurado: !!(env.CF_CONTA && env.CF_TOKEN) }), { headers: { ...cors, 'cache-control': 'no-store' } });
+}
+
 export default {
   async fetch(req, env, ctx) {
     const cors = { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET', 'content-type': 'application/json; charset=utf-8' };
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
     if (new URL(req.url).pathname.replace(/\/$/, '') === '/tiroteios') return tiroteios(env, ctx, cors);
+    if (new URL(req.url).pathname.replace(/\/$/, '') === '/saude') return saude(env, cors);
     const chave = new Request('https://cache.local/gps-fundao');
     const cache = caches.default;
     const guardado = await cache.match(chave);

@@ -59,4 +59,13 @@ globalThis.fetch = async () => { throw new Error('fora do ar'); };
 const r5 = await worker.fetch(new Request('https://x.workers.dev/tiroteios'), env, { waitUntil() {} });
 const j5 = await r5.json();
 ok(j5.disponivel === false && j5.motivo === 'erro', 'tiroteios: API fora do ar sem cópia guardada avisa que não há dados');
+// ---------- saúde: uso da cota da Cloudflare ----------
+const r6 = await worker.fetch(new Request('https://x.workers.dev/saude'), {}, { waitUntil() {} });
+const j6 = await r6.json();
+ok(j6.cloudflareConfigurado === false && j6.cloudflare === null && j6.tiroteiosConfigurado === false, 'saúde: sem segredos, informa o que falta configurar');
+globalThis.fetch = async (u, o) => { const b = JSON.parse(o.body); if (o.headers.authorization !== 'Bearer cft' || b.variables.c !== 'conta1') return new Response('{}', { status: 403 });
+  return new Response(JSON.stringify({ data: { viewer: { accounts: [{ workersInvocationsAdaptive: [{ sum: { requests: 1200, errors: 3 }, dimensions: { scriptName: 'shrill-pond-6c06' } }, { sum: { requests: 300, errors: 0 }, dimensions: { scriptName: 'outro' } }] }] } } })); };
+const r7 = await worker.fetch(new Request('https://x.workers.dev/saude'), { CF_CONTA: 'conta1', CF_TOKEN: 'cft' }, { waitUntil() {} });
+const j7 = await r7.json();
+ok(j7.cloudflare && j7.cloudflare.pedidos === 1500 && j7.cloudflare.erros === 3 && j7.cloudflare.porWorker['shrill-pond-6c06'] === 1200 && !JSON.stringify(j7).includes('cft'), 'saúde: soma os pedidos do dia na conta, sem expor o token');
 process.exit(falhou ? 1 : 0);

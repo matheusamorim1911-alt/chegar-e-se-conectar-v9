@@ -13,6 +13,7 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `08-wifi-conta-eduroam-feedback.css`: cobertura do Wi-Fi, rede, conta, eduroam, feedback e instalação
 - `09-onibus-cidade-e-ct.css`: ônibus da cidade, ao vivo e planta real do CT
 - `10-tiroteios.css`: lista de tiroteios perto das saídas
+- `11-bandejapp-e-saude.css`: atalho do BandejApp e aba Saúde e estatísticas
 
 ## Código (js/)
 - `01-nucleo.js`: pontos de extensão (etapas), modo do site, ajustes salvos e utilidades básicas
@@ -38,3 +39,5 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `21-planta-ct.js`: planta real do CT
 - `22-onibus-ao-vivo.js`: ruas dos ônibus, posição prevista, aprendizado, paradas nos pontos e atualização a cada 10 s
 - `23-tiroteios.js`: tiroteios perto das saídas do Fundão (Fogo Cruzado), opcional em Ajustes
+- `24-bandejapp.js`: atalho para o cardápio no BandejApp (app oficial do RU)
+- `25-saude.js`: Gestão › Saúde e estatísticas (se cada serviço responde e números de uso)
