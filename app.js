@@ -3351,7 +3351,7 @@ var _locStopC=locStop;locStop=function(){_locStopC();if(CMP.on)cmpSchedule()};
 
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261107-1155';
+var APP_VERSION='20261107-1248';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
@@ -5628,5 +5628,90 @@ snapBus=function(n,p){
 var _ll2mapLive=ll2map;
 liveDraw=(function(prev){return function(){var keep=ll2map;ll2map=function(a,b,G){return G?keep(a,b,G):llx(a,b)};try{prev()}finally{ll2map=keep}}})(liveDraw);
 LV.st={};var gl=$('#gLive');if(gl)gl.remove();if(LIVE.bus.length)liveDraw();
+
+/* ======================= v32: ônibus ao vivo com posição prevista (velocidade + traçado), atraso visível e busca a cada 15 s ======================= */
+var LV2={st:{},raf:0,last:0};
+function lvLen(i){var c=SHP[i].c;return c[c.length-1]}
+function lvSign(o,sn,prev){
+  if(prev&&prev.i===sn.i&&prev.s!=null){var ds=sn.s-prev.s;if(Math.abs(ds)/MPU>5)return ds>0?1:-1}
+  if(o.vel>2){var comp=((angN()+o.dir)%360+360)%360,d=Math.abs(((sn.ang-comp)%360+540)%360-180);return d>90?-1:1}
+  return prev&&prev.sign||1;
+}
+function lvPred(S,now){/* posição prevista ao longo do traçado */
+  var O=S.obs;if(!O||O.i==null)return null;
+  var dt=Math.max(0,Math.min(60,(now-O.t)/1000)),s=O.s+O.sign*O.v*MPU*dt;
+  return Math.max(0,Math.min(lvLen(O.i),s));
+}
+function lvFrame(){
+  LV2.raf=0;var now=Date.now(),red=matchMedia('(prefers-reduced-motion:reduce)').matches||perfEff()==='leve',any=false;
+  Object.keys(LV2.st).forEach(function(v){var S=LV2.st[v];if(!S.el||!S.el.isConnected)return;
+    var x,y,ang=null,ps=lvPred(S,now);
+    if(ps!=null){var p=shpAt(S.obs.i,ps);x=p.x;y=p.y;ang=S.obs.v>0.5?(S.obs.sign>0?p.ang:p.ang+180):null;if(S.obs.v>0.5)any=true}
+    else{x=S.obs.x;y=S.obs.y;ang=S.obs.ang}
+    if(S.blend){var k=Math.min(1,(now-S.blend.t0)/1500);if(k<1){any=true;x=S.blend.x+(x-S.blend.x)*k;y=S.blend.y+(y-S.blend.y)*k}else S.blend=null}
+    setMkPos(S.el,x,y);S.x=x;S.y=y;
+    var ar=S.el.querySelector('.lv-dir');if(ar){ar.style.display=ang==null?'none':'';if(ang!=null)ar.setAttribute('transform','rotate('+(ang+(ROT||0)).toFixed(0)+')')}
+  });
+  if(any&&!red&&!document.hidden)LV2.raf=requestAnimationFrame(function(){/* ~10 quadros por segundo bastam */setTimeout(lvFrame,90)});
+}
+liveDraw=function(){
+  var g=$('#gExt');if(!g)return;var G=$('#gLive');if(!G){g.insertAdjacentHTML('beforeend','<g id="gLive"></g>');G=$('#gLive')}
+  var seen={},now=Date.now();
+  LIVE.bus.forEach(function(o){
+    var raw=ll2map(o.la,o.lo),sn=snapBus(o.l,raw),S=LV2.st[o.v];seen[o.v]=1;
+    var prev=S&&S.obs,obs={t:o.t,v:Math.min(70,Math.max(0,o.vel||0))/3.6,x:sn?sn.x:raw[0],y:sn?sn.y:raw[1],ang:o.vel>2?((angN()+o.dir)%360+360)%360:null};
+    if(sn){obs.i=sn.i;obs.s=sn.s;obs.sign=lvSign(o,sn,prev)}else obs.i=null;
+    if(obs.v<0.6)obs.v=0;
+    var idade=Math.round((now-o.t)/1000),tit='Ônibus '+o.l+' · posição de '+idade+' s atrás'+(obs.v>0?', '+Math.round(o.vel)+' km/h':', parado');
+    if(!S||!S.el||!S.el.isConnected){
+      G.insertAdjacentHTML('beforeend',mk('ext',liveNearStop([obs.x,obs.y]),[obs.x,obs.y],tit,'<title>'+esc(tit)+'</title><circle class="hit" r="16"/><path class="lv-dir" d="M0 -18l5.5 6.5h-11z"/><circle class="lv-dot" r="11" style="fill:'+liveColor(o.l)+'"/><text class="lv-t" y="3.5">'+esc(o.l.replace(/^S[A-Z]*/,'').slice(0,3))+'</text>').replace('class="mk ext"','class="mk ext xlive" data-v="'+esc(o.v)+'"'));
+      S=LV2.st[o.v]={el:G.lastElementChild};
+    }else{
+      S.blend={x:S.x,y:S.y,t0:Date.now()};
+      var t=S.el.querySelector('title');if(t)t.textContent=tit;S.el.setAttribute('aria-label',tit);
+    }
+    S.obs=obs;S.age=idade;S.el.dataset.id=liveNearStop([obs.x,obs.y]);
+  });
+  Object.keys(LV2.st).forEach(function(v){if(!seen[v]){if(LV2.st[v].el)LV2.st[v].el.remove();delete LV2.st[v]}});
+  if(LV2.raf)cancelAnimationFrame(LV2.raf);LV2.raf=0;lvFrame();
+};
+var _buildMap32=buildMap;buildMap=function(){LV2.st={};_buildMap32()};
+document.addEventListener('visibilitychange',function(){if(!document.hidden&&!LV2.raf)lvFrame()});
+/* atraso das posições no aviso "ao vivo" */
+function liveDelay(){var a=LIVE.bus.map(function(o){return (LIVE.t-o.t)/1000}).sort(function(x,y){return x-y});return a.length?Math.round(a[Math.floor(a.length/2)]):null}
+liveStatusHTML=(function(prev){return function(){var h=prev();var d=liveDelay();if(LIVE.t&&LIVE.bus.length&&d!=null)h=h.replace('</p>',' · posições com ~'+d+' s de atraso, ajustadas pela velocidade</p>');return h}})(liveStatusHTML);
+/* busca a cada 15 s (o Worker guarda por 15 s) */
+liveLoop=function(){clearInterval(LIVE.timer);if(!LIVE.url)return;liveFetch();LIVE.timer=setInterval(liveFetch,15000)};
+if(LIVE.url)liveLoop();
+
+/* ======================= v33: mapa da cidade (OpenStreetMap/CARTO) ao redor da planta, com a camada "Ônibus da cidade" ======================= */
+function map2ll(X,Y){var G=GEO,kx=111320*Math.cos(G.lat0*Math.PI/180),x=X-G.tx,y=Y-G.ty,D=-(G.a*G.a+G.b*G.b),e=(-G.a*x+G.b*y)/D,n=(G.b*x+G.a*y)/D;return [G.lat0+n/110574,G.lng0+e/kx]}
+function tileLL(x,y,z){var n=Math.pow(2,z);return [Math.atan(Math.sinh(Math.PI*(1-2*y/n)))*180/Math.PI,x/n*360-180]}
+var TILES={z:15,on:false};
+function tilesWanted(){return !!state.layers.ext}
+function tilesDraw(){
+  var base=$('#baseimg'),old=$('#gTiles');
+  if(!tilesWanted()){if(old)old.remove();var a=$('#tileAttr');if(a)a.hidden=true;return}
+  var a=$('#tileAttr');if(!a){var mw=document.querySelector('.mapwrap');if(mw){mw.insertAdjacentHTML('beforeend','<div class="tileattr" id="tileAttr">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a></div>');a=$('#tileAttr')}}if(a)a.hidden=false;
+  if(old||!base)return;
+  var claro=document.documentElement.classList.contains('mapclaro'),z=TILES.z,n=Math.pow(2,z);
+  /* só a região por onde passam os ônibus que atendem o Fundão (a mesma do Worker) */
+  var la=[-22.885,-22.825],lo=[-43.27,-43.195];
+  var lon2x=function(l){return Math.floor((l+180)/360*n)},lat2y=function(l){var r=l*Math.PI/180;return Math.floor((1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n)};
+  var x0=lon2x(Math.min.apply(0,lo)),x1=lon2x(Math.max.apply(0,lo)),y0=lat2y(Math.max.apply(0,la)),y1=lat2y(Math.min.apply(0,la));
+  var sty=claro?'voyager_nolabels':'dark_nolabels',s='<g id="gTiles" class="'+(claro?'tl-claro':'tl-escuro')+'">';
+  for(var x=x0;x<=x1;x++)for(var y=y0;y<=y1;y++){
+    var p0=tileLL(x,y,z),px=tileLL(x+1,y,z),py=tileLL(x,y+1,z),P0=ll2map(p0[0],p0[1]),PX=ll2map(px[0],px[1]),PY=ll2map(py[0],py[1]);
+    var sub='abcd'.charAt((x+y)%4);
+    s+='<image href="https://'+sub+'.basemaps.cartocdn.com/'+sty+'/'+z+'/'+x+'/'+y+'@2x.png" width="1.002" height="1.002" preserveAspectRatio="none" decoding="async" transform="matrix('+[PX[0]-P0[0],PX[1]-P0[1],PY[0]-P0[0],PY[1]-P0[1],P0[0],P0[1]].map(function(v){return v.toFixed(3)}).join(',')+')"/>';
+  }
+  s+='</g>';
+  var hd=$('#imgHD');if(hd)hd.insertAdjacentHTML('afterend',s);else base.insertAdjacentHTML('beforeend',s);
+}
+var _buildMap33=buildMap;buildMap=function(){_buildMap33();tilesDraw()};
+var _updateMap33=updateMap;updateMap=function(){_updateMap33();tilesDraw()};
+var _mapThemeSync33=typeof mapThemeSync==='function'?mapThemeSync:null;
+if(_mapThemeSync33)mapThemeSync=function(l){var r=_mapThemeSync33.apply(this,arguments);var t=$('#gTiles');if(t)t.remove();tilesDraw();return r};
+tilesDraw();
 
 })();
