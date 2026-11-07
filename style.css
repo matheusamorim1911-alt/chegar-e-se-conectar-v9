@@ -1684,3 +1684,9 @@ div.xl-row{cursor:default}
 .ctz button{width:34px;height:34px;border-radius:10px;border:1px solid var(--glass-line-hi);background:var(--surface);color:var(--ink);font:700 16px var(--f-body);cursor:pointer}
 .ctinfo{margin:0}.ctinfo small{display:block;color:var(--ink-2)}
 .lvg-t{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}.lvg-t th,.lvg-t td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line,rgba(127,127,127,.25))}.lvg-t th{font-weight:600;color:var(--muted,inherit)}
+/* tiroteios perto das saídas (Fogo Cruzado, opcional) */
+.tiro-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.tiro-list li{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:var(--card2,rgba(127,127,127,.08))}
+.tiro-list small{display:block}
+.tiro-ha{flex:0 0 auto;min-width:72px;font-weight:600;font-size:13px;color:var(--warn,#E0A040)}
+.tiro-src{margin-top:4px}

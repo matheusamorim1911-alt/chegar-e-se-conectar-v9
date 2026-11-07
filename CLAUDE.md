@@ -25,5 +25,8 @@ App web (sem framework) da Cidade Universitária da UFRJ, publicado pelo GitHub 
 - Posições ao vivo: Worker da Cloudflare (`worker/gps-fundao.js`) busca a API de GPS da prefeitura, guarda 5 s e, se ela falhar, devolve a última resposta boa (até 2 min). O app pede a cada 10 s.
 - Previsão: velocidade informada, parada de ~12 s no próximo ponto (pontos do GTFS em `EXT.shs`), encaixe no traçado da linha pelo sentido do movimento. Ajustes só entram com ganho comprovado: medições dos aparelhos (coleção `desvios`, modelo em `gestao/previsao`, campo `b2`) ou `historico-previsao.json` (gerado por `tools/historico_gps.py`, ver `tools/HISTORICO.md`), que desliga a coleta pelos aparelhos.
 
+## Tiroteios (Fogo Cruzado)
+- Opcional, desligado por padrão (`CFG.tiroteios`). O Worker atende `/tiroteios` com a conta do projeto (segredos `FC_EMAIL` e `FC_SENHA` na Cloudflare; nunca no código). Só registros das últimas 6 h perto das saídas da ilha, com fonte e horário; sem dados, o app diz que não há dados.
+
 ## Visão do projeto
 Mobilidade e acesso ao campus para quem precisa chegar ao Fundão: calouros, pacientes do HU, moradores da Vila Residencial, trabalhadores e visitantes.
