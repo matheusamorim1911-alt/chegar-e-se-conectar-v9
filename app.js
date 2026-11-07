@@ -3304,7 +3304,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261107-1959';
+var APP_VERSION='20261107-2011';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -3993,8 +3993,6 @@ aoFazer('vista aplicada',function(){var e=$('#imgVec');if(!e||!vecOn)return;
   if(!LITE)idle(function(){applyView()},{timeout:3000});
 })();
 drawBanner();
-if(location.hash==='#siglas')setTimeout(function(){if(cover.hidden&&login.hidden)openGloss()},0);
-setTab(location.hash.slice(1));
 /* ---------- modo enxuto: menos texto na tela (detalhes ficam em 'Sobre' e na legenda) ---------- */
 document.documentElement.dataset.density='compact';
 $('#legBtn').addEventListener('click',function(){var l=$('#legend'),o=!l.classList.contains('open');l.classList.toggle('open',o);this.setAttribute('aria-expanded',String(o))});
@@ -5703,4 +5701,10 @@ document.addEventListener('click',function(e){
   if(e.target.closest&&e.target.closest('#sdCheck')){saudeVerifica();renderGest();return}
   if(e.target.closest&&e.target.closest('#sdStats')){SAUDE.est=null;saudeEstatisticas();renderGest()}
 });
+/* ======================= Início: a aba pedida no endereço =======================
+   Fica por último, depois que todas as partes carregaram: abrir uma aba desenha a tela inteira dela
+   (Lugares, por exemplo, usa o Wi-Fi e o eduroam, definidos em partes posteriores). Abrir antes disso
+   fazia o app parar no meio da carga quando o endereço terminava em #predios. */
+if(location.hash==='#siglas')setTimeout(function(){if(cover.hidden&&login.hidden)openGloss()},0);
+setTab(location.hash.slice(1));
 })();

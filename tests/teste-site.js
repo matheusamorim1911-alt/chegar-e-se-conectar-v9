@@ -23,4 +23,12 @@ const { chromium } = require('playwright');const servir=require('./servidor');
  ok(await p.evaluate(()=>!document.getElementById('pane-cfg').hidden),'Ajustes abre');
  ok(errs.length===0,'sem erros de JavaScript '+(errs.length?JSON.stringify(errs):''));
  ok(faltando.length===0,'sem arquivos faltando '+(faltando.length?JSON.stringify(faltando):''));
+ // abrir direto em cada aba pelo endereço (ex.: #predios) não pode quebrar a carga
+ for(const h of ['predios','grade','cal','trajeto','siglas']){
+   const c2=await b.newContext({viewport:{width:430,height:860},serviceWorkers:'block'});await c2.route(/gstatic\.com\/firebasejs/,r=>r.abort());await c2.route(/open-meteo|workers\.dev/,r=>r.abort());
+   await c2.addInitScript(()=>{localStorage.setItem('cse-cfg',JSON.stringify({cover:'none',login:false,banner:false,flow:false}))});
+   const p2=await c2.newPage();const e2=[];p2.on('pageerror',e=>e2.push(e.message));await p2.goto('http://localhost:8799/#'+h);await p2.waitForTimeout(1500);
+   const aba=await p2.evaluate(h=>h==='siglas'?(document.getElementById('glossM').hidden?'':'siglas'):[...document.querySelectorAll('.tabs [data-tab][aria-selected="true"]')].map(b=>b.dataset.tab).join(),h);
+   ok(e2.length===0&&aba===h,'abre direto em #'+h+(e2.length?' '+JSON.stringify(e2):''));await c2.close();
+ }
  await b.close();srv.close();process.exit(falhou?1:0)})();
