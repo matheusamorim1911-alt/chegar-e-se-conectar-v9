@@ -10,7 +10,10 @@ const LINHAS = new Set(['321','323','324','325','326','327','328','329','42','43
 // Ilha do Fundão e acessos (Linha Vermelha, Av. Brasil e pontes); fica de fora a garagem na Ilha do Governador
 const AREA = { latMin: -22.885, latMax: -22.825, lonMin: -43.27, lonMax: -43.195 };
 const FONTES = ['https://dados.mobilidade.rio/gps/sppo', 'https://dados.mobilidade.rio/gps/brt'];
-const CACHE_S = 5, RESERVA_S = 120, JANELA_MIN = 4, VELHO_MIN = 6;
+// JANELA_MIN: período pedido à prefeitura. Os ônibus mandam posição a cada ~30 s e chegam com ~11 s de atraso,
+// então 1,5 min basta para ter todos; um período maior aumenta a resposta (cidade inteira) e o Worker pode
+// estourar o limite de processamento do plano grátis da Cloudflare nos horários de pico.
+const CACHE_S = 5, RESERVA_S = 120, JANELA_MIN = 1.5, VELHO_MIN = 6;
 
 // A API usa horário de Brasília (UTC-3) e pede datas assim: 2026-11-07+10:10:00
 function dataRio(ms) {
@@ -174,10 +177,13 @@ export default {
     if (guardado) return new Response(guardado.body, { headers: { ...cors, 'x-cache': 'hit' } });
     const reserva = new Request('https://cache.local/gps-fundao-reserva');
     const agora = Date.now();
-    const { onibus, falhou } = await buscar(agora);
+    let onibus = [], falhou = true;
+    try { ({ onibus, falhou } = await buscar(agora)); } catch (e) { falhou = true; }
     if (falhou) {
       const velho = await cache.match(reserva);
       if (velho) return new Response(velho.body, { headers: { ...cors, 'x-cache': 'antiga' } });
+      /* sem cópia guardada: responde que falhou (com CORS), em vez de deixar o app sem resposta */
+      return new Response(JSON.stringify({ t: agora, fonte: 'SMTR / Prefeitura do Rio (dados.mobilidade.rio)', onibus: [], falhou: true }), { headers: { ...cors, 'cache-control': 'no-store' } });
     }
     const corpo = JSON.stringify({ t: agora, fonte: 'SMTR / Prefeitura do Rio (dados.mobilidade.rio)', onibus });
     const resp = new Response(corpo, { headers: { ...cors, 'cache-control': `public, max-age=${CACHE_S}` } });
