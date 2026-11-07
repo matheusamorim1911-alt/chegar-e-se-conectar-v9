@@ -3304,7 +3304,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261107-1811';
+var APP_VERSION='20261107-1820';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -5552,7 +5552,10 @@ function tiroResumo(){
   return n?n+' registro'+(n>1?'s':'')+' nas últimas '+(d.janelaH||6)+' h · último '+tiroHa(d.ocorrencias[0].t):'Nenhum registro nas últimas '+(d.janelaH||6)+' h';
 }
 function tiroBodyHTML(){
-  var d=TIRO.d,fonte='<p class="muted small keep tiro-src">Fonte: Instituto Fogo Cruzado, que reúne e confere relatos de tiroteios. Os registros podem demorar a aparecer e não são alerta oficial. Em emergência, ligue 190.</p>';
+  var d=TIRO.d,at=d&&d.atualizado?Date.parse(d.atualizado):NaN;
+  /* a base do Fogo Cruzado é atualizada de tempos em tempos (não em tempo real): mostra quando foi a última vez */
+  var base=at>0?' Base atualizada '+(new Date(at).toDateString()===new Date().toDateString()?'hoje às ':'em '+new Date(at).toLocaleDateString('pt-BR')+' às ')+new Date(at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'.':'';
+  var fonte='<p class="muted small keep tiro-src">Fonte: Instituto Fogo Cruzado, que reúne e confere relatos de tiroteios.'+base+' Os registros podem demorar a aparecer e não são alerta oficial. Em emergência, ligue 190.</p>';
   if(!d||!d.disponivel)return '<p class="small keep">'+(d&&d.motivo==='sem-conta'?'O serviço ainda não foi ativado pela equipe do app.':'Não deu para consultar o Fogo Cruzado agora. Isso não quer dizer que esteja tudo calmo.')+'</p>'+fonte;
   var L=d.ocorrencias||[];
   if(!L.length)return '<p class="small keep">Nenhum tiroteio registrado pelo Fogo Cruzado perto das saídas do Fundão nas últimas '+(d.janelaH||6)+' horas.</p>'+fonte;
