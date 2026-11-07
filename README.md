@@ -1,8 +1,30 @@
-# Chegar e se conectar
+# Chega aí UFRJ
 
 Protótipo de app web para calouros da UFRJ na Cidade Universitária (Ilha do Fundão).
 Disciplina: Habilidades Sociais para o Trabalho (profa. Adriana Vivacqua).
 Grupo: Sara Gianini Bernardo Dias, Pedro Lucas Dias de Oliveira, Matheus Amorim Campos, Caio Muniz Pires e Isadora Duarte Belo.
+
+## Como trabalhar no projeto
+
+O site publicado fica na **raiz** do repositório (é o que o GitHub Pages serve). **Não edite `app.js`, `style.css` nem o corpo do `index.html` à mão:** eles são gerados.
+
+1. Edite o fonte em `src/`, separado por assunto (veja `src/PARTES.md`): `src/pagina/` (estrutura), `src/css/` (visual) e `src/js/` (código).
+2. Gere o site: `python3 tools/build_site.py` (junta as partes e cria `app.js`, `style.css`, `index.html`, `version.json` e `sw.js` com um número de versão novo).
+3. Teste: `npm install` e `npx playwright install chromium` (só na primeira vez), depois `npm test`.
+4. Faça commit e push: o GitHub Pages publica sozinho.
+
+Pastas:
+
+- `src/`: o fonte do app, em partes por assunto. As partes não substituem funções umas das outras: acrescentam etapas às telas centrais com `aoFazer(...)` (detalhes em `CLAUDE.md`).
+- `tools/`: `build_site.py` (gera o site), `montar.py` (junta as partes num arquivo único, `app-completo.html`, usado no claude.ai) e `sw_template.js` (modelo do service worker)
+- `tools/gtfs_fundao.py`: lê o GTFS da prefeitura (SMTR) e gera `src/ext_onibus.json`, os ônibus da cidade que saem do Fundão, com traçados e pontos. Ao atualizar o GTFS (ele vale até 31/12/2026), gere o JSON de novo e rode o build.
+- `tools/historico_gps.py` e `tools/HISTORICO.md`: ajustam a previsão dos ônibus com o histórico de GPS da prefeitura.
+- `ct-plantas.json` (gerado por `tools/ct_plantas.py`): espaços internos do CT, do levantamento do EPLAN CT/UFRJ de 2018 publicado no ArcGIS. O app carrega esse arquivo só quando a pessoa abre a planta do CT.
+- `worker/`: Worker do Cloudflare que entrega a posição ao vivo dos ônibus da cidade (veja `worker/README.md`). Depois de publicar, coloque o endereço em `config.js` (`CSE_GPS_URL`).
+- `tests/`: testes automáticos (Playwright), um Firebase simulado (`firebase-mock.js`) e o teste de equivalência (`equivalencia.js`), que fotografa todas as telas para provar que uma reorganização não mudou nada
+- `CLAUDE.md`: instruções para o Claude Code trabalhar neste repositório
+
+O cabeçalho do `index.html` (até `<body>`) é mantido pelo build: mudanças nele, como meta tags, valem.
 
 ## Estrutura
 

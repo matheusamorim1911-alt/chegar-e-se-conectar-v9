@@ -3,17 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Chegar e se conectar</title>
+<title>Chega aí UFRJ</title>
 <meta name="description" content="Linhas internas, Wi-Fi aberto, lugares e horários da Cidade Universitária da UFRJ para calouros.">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0E1A24">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Chegar UFRJ">
+<meta name="apple-mobile-web-app-title" content="Chega aí">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-<link rel="stylesheet" href="style.css?v=20261107-1700">
+<link rel="stylesheet" href="style.css?v=20261107-1807">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><filter id="lg-refract" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.012 0.018" numOctaves="2" seed="11" result="n"/><feGaussianBlur in="n" stdDeviation="2.5" result="nb"/><feDisplacementMap in="SourceGraphic" in2="nb" scale="14" xChannelSelector="R" yChannelSelector="G"/></filter></svg>
@@ -92,7 +92,7 @@
   <div class="cv-sheet">
     <span class="cv-grab" aria-hidden="true"></span>
     <p class="eyebrow">UFRJ · Ilha do Fundão</p>
-    <h2 class="cv-t" id="cvt">Chegar e se conectar</h2>
+    <h2 class="cv-t" id="cvt">Chega aí UFRJ</h2>
     <p class="cv-sub">Para onde você vai hoje?</p>
     <p class="cv-today" id="cvToday" hidden></p>
     <button class="cv-btn main" type="button" data-cv="mapa"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg><span>Abrir o mapa</span></button>
@@ -108,7 +108,7 @@
 <div class="app">
   <header>
     <div>
-      <h1><button class="h1btn" id="showCover" type="button" title="Abrir a capa">Chegar e se conectar</button></h1>
+      <h1><button class="h1btn" id="showCover" type="button" title="Abrir a capa">Chega aí UFRJ</button></h1>
       <p class="sub">Linhas internas da UFRJ e Wi-Fi aberto na Cidade Universitária, Ilha do Fundão, num mapa só.</p>
     </div>
     <div class="hdr-r"><span class="tag">Protótipo · Habilidades Sociais</span><button type="button" class="cfgbtn" id="coverBtn" aria-label="Voltar para a capa" title="Capa"><svg class="cfgic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg></button><button type="button" class="cfgbtn" id="gestBtn" aria-controls="gestM" aria-pressed="false" aria-label="Gestão do app" title="Gestão" hidden><svg class="cfgic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></button><button type="button" class="cfgbtn glbtn" id="glossBtn" aria-controls="glossM" aria-pressed="false" aria-label="Glossário de siglas" title="Siglas"><svg class="cfgic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4.5h6a4 4 0 0 1 4 4V21a3 3 0 0 0-3-3H2z"/><path d="M22 4.5h-6a4 4 0 0 0-4 4V21a3 3 0 0 1 3-3h7z"/></svg></button><button type="button" class="cfgbtn" id="tab-cfg" data-tab="cfg" aria-controls="pane-cfg" aria-pressed="false" aria-label="Ajustes" title="Ajustes"><svg class="cfgic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></div>
@@ -171,7 +171,7 @@
 
   <details class="foot"><summary>Sobre o protótipo e as fontes</summary><p>Linhas, ordem das paradas e frequências: página de <a href="https://prefeitura.ufrj.br/servicos/transporte-integrado/linhas-internas/" target="_blank" rel="noopener">linhas internas da Prefeitura Universitária</a>, dias úteis. Horários do CCMN: <a href="https://sibi.ufrj.br/2019/09/17/informacoes-bibliotecas-ciencias-exatas-e-da-terra/" target="_blank" rel="noopener">SiBI/UFRJ</a> e lista de endereços das unidades da UFRJ (2022); podem mudar nas férias. Os horários de cada parada são estimados a partir da frequência e da distância. O mapa base é a planta de situação da Cidade Universitária (levantamento cadastral da ETU/Prefeitura Universitária, 2015, desenho de 2022), vetorizada e em versão escura; o traçado das linhas e a posição das paradas sobre ela são aproximados. Telefones de segurança: <a href="https://prefeitura.ufrj.br/2024/12/contatos-de-emergencia-ufrj/" target="_blank" rel="noopener">Contatos de emergência da Prefeitura Universitária</a> (dez/2024). Horários dos RUs: <a href="https://ru.ufrj.br/index.php/2014-08-19-01-48-52" target="_blank" rel="noopener">Sistema de Alimentação</a> e <a href="https://conexao.ufrj.br/2025/11/restaurantes-universitarios-comemoram-250-dias-de-cafe-da-manha-na-ufrj/" target="_blank" rel="noopener">Conexão UFRJ (nov/2025)</a>. Calendário: datas de graduação 2026 publicadas pelo <a href="https://www.ie.ufrj.br/graduacao-calendarios.html" target="_blank" rel="noopener">IE/UFRJ</a> e pela <a href="https://direito.ufrj.br/wp-content/uploads/2024/07/CALENDARIO-ACADEMICO-2026-2.docx-Google-Docs.pdf" target="_blank" rel="noopener">FND/UFRJ</a>. Tutorial do eduroam: <a href="https://tic.ufrj.br/conheca-o-eduroam/" target="_blank" rel="noopener">TIC/UFRJ</a> e <a href="https://ajuda.rnp.br/eduroam/manual-do-usuario" target="_blank" rel="noopener">manual da RNP</a>. Pontos de Wi-Fi aberto, notas e dicas são exemplos para a turma validar no campus. A sua nota fica salva só neste aparelho.</p></details>
 </div>
-<script src="config.js?v=20261107-1700"></script>
-<script src="app.js?v=20261107-1700"></script>
+<script src="config.js?v=20261107-1807"></script>
+<script src="app.js?v=20261107-1807"></script>
 </body>
 </html>

@@ -1,0 +1,13 @@
+{
+  "name": "chega-ai-ufrj",
+  "private": true,
+  "description": "App web da Cidade Universitária da UFRJ (GitHub Pages).",
+  "scripts": {
+    "build": "python3 tools/build_site.py",
+    "test": "node tests/teste-nomes.js && node tests/teste-site.js && node tests/teste-feedback.js && node tests/teste-worker.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.47.0",
+    "acorn": "^8.12.0"
+  }
+}

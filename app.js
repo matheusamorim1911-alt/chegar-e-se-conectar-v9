@@ -1,5 +1,12 @@
 (function(){
 'use strict';
+/* ---------- etapas: pontos de extensão ----------
+   Funções centrais (montar o mapa, mostrar detalhes, Ajustes, gestão…) rodam, no fim, as etapas que cada parte
+   do app registra com aoFazer(), na ordem em que as partes são carregadas. Nenhuma parte substitui função de outra.
+   etapas(nome, ...)  roda as etapas registradas;   filtro(nome, valor, ...)  passa um valor (ex.: HTML) por elas. */
+var ETAPAS={};
+function aoFazer(nome,f){(ETAPAS[nome]=ETAPAS[nome]||[]).push(f)}
+function etapas(nome){var a=[].slice.call(arguments,1);(ETAPAS[nome]||[]).forEach(function(f){f.apply(null,a)})}
 var FBMODE=!!(window.CSE_FIREBASE&&window.CSE_FIREBASE.apiKey&&window.CSE_FIREBASE.projectId)&&!(window.claude&&typeof window.claude.use==='function');
 var LITE=(function(){try{return window.matchMedia('(pointer:coarse), (max-width:820px)').matches||(navigator.hardwareConcurrency||8)<=4||!!(navigator.connection&&navigator.connection.saveData)}catch(e){return false}})();
 document.documentElement.classList.toggle('lite',LITE);
@@ -9,7 +16,6 @@ try{var _c=JSON.parse(localStorage.getItem('cse-cfg'));if(_c)CFG=Object.assign(C
 if(CFG.temaV!==1){if(!CFG.tema||CFG.tema==='sistema')CFG.tema='escuro';CFG.temaV=1;try{localStorage.setItem('cse-cfg',JSON.stringify(CFG))}catch(e){}}
 /* desempenho: automático, leve (sem transparência nem efeitos), intermediário (o antigo "completo") e completo
    (intermediário + vidro e animações em Ajustes, glossário e gestão). Automático: computador = completo; o resto = intermediário. */
-var LITE_AUTO=LITE;
 function perfEnter(m){if(!m||perfEff()!=='completo')return;m.classList.add('ent');clearTimeout(m._ent);m._ent=setTimeout(function(){m.classList.remove('ent')},1100)}
 var DESKTOP=(function(){try{return window.matchMedia('(pointer:fine) and (hover:hover) and (min-width:821px)').matches&&!(navigator.connection&&navigator.connection.saveData)}catch(e){return false}})();
 var SAVEDATA=!!(navigator.connection&&navigator.connection.saveData);
@@ -29,13 +35,11 @@ function applyPerf(){
   if(e==='leve')r.classList.remove('refract');
 }
 applyPerf();
-
 var $=function(s,r){return (r||document).querySelector(s)};
 function fmt(m){m=Math.round(m);m=((m%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')}
 function toMin(s){var p=s.split(':');return (+p[0])*60+(+p[1])}
 function br(n){return n.toFixed(1).replace('.',',')}
 function range(a,b,s){var o=[];for(var t=a;t<=b;t+=s)o.push(t);return o}
-
 /* ---------- paradas (coordenadas do mapa esquemático) ---------- */
 var STOPS={
   est:{name:'Estação de Integração UFRJ (BRT)',short:'Estação BRT',p:[262.3,331.7]},
@@ -68,7 +72,6 @@ var ROUND={gm:{c:[800.9,428.8],rx:34,ry:14},pc:{c:[981,426.2],rx:11,ry:11}};
 function arcPts(tok){var a=tok.slice(1).split(':'),Q=ROUND[a[0]],a0=+a[1],a1=+a[2],o=[];for(var t=a0;t>=a1-0.01;t-=15){var r=t*Math.PI/180;o.push([+(Q.c[0]+Q.rx*Math.cos(r)).toFixed(1),+(Q.c[1]+Q.ry*Math.sin(r)).toFixed(1)])}return o}
 function P(id){id=id.replace('~','');return STOPS[id]?STOPS[id].p:WP[id]}
 function isStop(id){return !!STOPS[id]}
-
 /* ---------- linhas internas (Prefeitura Universitária) ---------- */
 var LINES={
   '1':{name:'Estação × Gráfica',color:'--l1',
@@ -126,7 +129,6 @@ function geom(){Object.keys(LINES).forEach(function(id){
 geom();
 function linesAt(sid){return Object.keys(LINES).filter(function(id){return LINES[id].trips.some(function(t){return t.passes.some(function(p){return p.stop===sid})})})}
 function isWeekend(){var d=new Date().getDay();return d===0||d===6}
-
 /* próximas passagens numa parada, por sentido */
 function passesAt(lid,sid,now,count){
   var out=[],l=LINES[lid];
@@ -172,7 +174,6 @@ function served(from,to){
     return i>=0&&tr.passes.slice(i+1).some(function(p){return p.stop===to});
   })});
 }
-
 /* ---------- guia de prédios (horários: SiBI/UFRJ e endereços das unidades, PR-4) ---------- */
 var PLACES={
   ccmn:{name:'CCMN',full:'Centro de Ciências Matemáticas e da Natureza',addr:'Av. Athos da Silveira Ramos, 274 · Cidade Universitária',
@@ -213,7 +214,6 @@ function placeHTML(id,now){
     }).join('')+
     '<ul class="tips">'+p.tips.map(function(t){return '<li>'+t+'</li>'}).join('')+'</ul></section>';
 }
-
 /* ---------- Wi-Fi aberto (exemplos) ---------- */
 var WIFI={
   est:{name:'Estação de Integração (BRT)',p:[263.9,347.9],avg:2.4,votes:12,note:'Oscila nos horários de pico.'},
@@ -241,28 +241,36 @@ function eduHTML(){
     '<p>O eduroam é a rede Wi-Fi gratuita da comunidade acadêmica. Com o login da UFRJ, você se conecta no Fundão e em milhares de universidades e centros de pesquisa pelo mundo, sem pedir senha a ninguém.</p>'+
     '<div class="cmp"><div><b>eduroam</b>Gratuita, com login. Conexão criptografada; serve para banco e senhas.</div><div><b>Wi-Fi aberto</b>Gratuito, sem login. Sem criptografia; use só para coisas simples.</div></div>'+
     '<dl class="cred"><dt>Rede</dt><dd class="mono">eduroam</dd><dt>Usuário</dt><dd>E-mail cadastrado no eduroam</dd><dt>Senha</dt><dd>Senha da Intranet UFRJ</dd></dl>'+
-    '<div><p class="small muted" id="eduprog">'+n+' de '+EDU.length+' passos feitos</p><div class="progress" aria-hidden="true"><i style="width:'+(n/EDU.length*100)+'%"></i></div></div>'+
+    '<h3>Configurar agora</h3>'+eduCfgHTML(true)+'<h3>Passo a passo</h3>'+'<div><p class="small muted" id="eduprog">'+n+' de '+EDU.length+' passos feitos</p><div class="progress" aria-hidden="true"><i style="width:'+(n/EDU.length*100)+'%"></i></div></div>'+
     '<ol class="steps">'+EDU.map(function(s,i){
       return '<li class="'+(eduDone[i]?'done':'')+'"><input type="checkbox" id="edu'+i+'" data-edu="'+i+'"'+(eduDone[i]?' checked':'')+' aria-label="Marcar passo '+(i+1)+' como feito"><label class="st-t" for="edu'+i+'">'+(i+1)+'. '+s.t+'</label><div class="st-b">'+s.b.map(function(x){return '<span>'+x+'</span>'}).join('')+'</div></li>';
     }).join('')+'</ol>'+
     '<details class="det"><summary>Sem o app (conexão manual)</summary><p class="small muted">Use só dentro da UFRJ, onde a rede é genuína. Escolha a rede eduroam, digite o e-mail completo e a senha, e toque em “Confiar” no certificado.</p></details>'+
     '<details class="det"><summary>Onde tem eduroam?</summary><p class="small muted">Veja os locais no <a href="https://monitor.eduroam.org/map_service_loc.php" target="_blank" rel="noopener">mapa do eduroam</a> ou no app eduroam Companion. Problemas com a senha: <a href="https://servicos.tic.ufrj.br/" target="_blank" rel="noopener">Central de Serviços da TIC/UFRJ</a>.</p></details>';
 }
-
 var KEY='cse-ufrj-ratings-v1',PKEY='cse-ufrj-prefs-v1';
 var mine={},prefs={};
 try{mine=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){mine={}}
 try{prefs=JSON.parse(localStorage.getItem(PKEY))||{}}catch(e){prefs={}}
 function saveMine(){try{localStorage.setItem(KEY,JSON.stringify(mine))}catch(e){}}
-function savePrefs(){try{localStorage.setItem(PKEY,JSON.stringify({from:state.from,to:state.to}))}catch(e){}}
+function savePrefs(){try{localStorage.setItem(PKEY,JSON.stringify({from:state.from,to:state.to}))}catch(e){}if(!ACC.mute)accQueue()}
 /* a rede pode ter sido removida pela gestão enquanto a tela ainda mostra o ponto: nunca quebre por isso */
-function avgOf(id){var w=WIFI[id];if(!w)return 0;var m=mine[id];return m?(w.avg*w.votes+m)/(w.votes+1):w.avg}
-function votesOf(id){var w=WIFI[id];if(!w)return 0;return w.votes+(mine[id]?1:0)}
+function avgOf(id){
+  var w=WIFI[id];
+  if(SH.on){var v=SH.votes[id];if(v&&v.n)return v.s/v.n;return w?w.avg:0}
+  if(!w)return 0;
+  var m=mine[id];return m?(w.avg*w.votes+m)/(w.votes+1):w.avg;
+}
+function votesOf(id){
+  var w=WIFI[id];
+  if(SH.on){var v=SH.votes[id];return v&&v.n?v.n:(w?w.votes:0)}
+  if(!w)return 0;
+  return w.votes+(mine[id]?1:0);
+}
 function info(avg){var b=avg>=4.3?4:avg>=3.5?3:avg>=2.5?2:1;return {bars:b,label:['','Fraco','Regular','Bom','Muito bom'][b],tone:b>=3?'good':b===2?'warn':'bad'}}
 function d2(a,b){return Math.hypot(a[0]-b[0],a[1]-b[1])}
 function wifiNearStop(sid){return Object.keys(WIFI).filter(function(w){return d2(WIFI[w].p,STOPS[sid].p)<=95}).sort(function(a,b){return avgOf(b)-avgOf(a)})}
 function stopsNearWifi(wid){if(!WIFI[wid])return [];return Object.keys(STOPS).filter(function(s){return d2(WIFI[wid].p,STOPS[s].p)<=95})}
-
 /* ---------- estado ---------- */
 var SORTED=Object.keys(STOPS).sort(function(a,b){if(a==='est')return -1;if(b==='est')return 1;return STOPS[a].name.localeCompare(STOPS[b].name,'pt')});
 var state={layers:{bus:true,wifi:(function(){try{return localStorage.getItem('cse-lay-wifi')==='1'}catch(e){return false}})()},sel:null,
@@ -270,7 +278,6 @@ var state={layers:{bus:true,wifi:(function(){try{return localStorage.getItem('cs
 if(state.from===state.to)state.to=state.from==='ctl'?'est':'ctl';
 function realNow(){var d=new Date();return d.getHours()*60+d.getMinutes()}
 function nowMin(){return (state.manual&&state.clk)?toMin(state.clk):realNow()}
-
 /* ---------- mapa ---------- */
 /* rosa dos ventos: neste mapa o norte fica ~50° à esquerda do "para cima" (HU → Reitoria aponta para sudeste) */
 var NORTH=-56.4;
@@ -293,21 +300,6 @@ var MAPIMG='mapa-bordas'+MAPSUF+'.jpg';
 /* mapa base: planta cadastral da Cidade Universitária (ETU/UFRJ), vetorizada; JPG para a visão geral, SVG nítido no zoom */
 var MAPHD=window.MAPHD_URL='mapa-campus'+MAPSUF+'.jpg',MAPVEC='mapa-campus'+MAPSUF+'.svg',MAPMINI='mapa-mini'+MAPSUF+'.jpg',MAPBLUR='mapa-blur'+MAPSUF+'.jpg',MAPVEC0='mapa-campus.svg';
 /* nomes recriados como texto: [texto, x, y, classe, nível de zoom, rotação] */
-var MAPLABELS=[
-  ['Baía de Guanabara',720,232,'ml-w',1,0],
-  ['Parque do Catalão',560,98,'ml-a',2,0],['Ilha do Bom Jesus',1046,58,'ml-a',2,0],['Vila Residencial',1258,376,'ml-a',2,0],
-  ['Av. Horácio Macedo',560,412,'ml-s',2,0],['Av. Horácio Macedo',938,412,'ml-s',2,0],['Av. Pedro Calmon',997,470,'ml-s',2,-90],
-  ['Av. Carlos Chagas Filho',418,250,'ml-s',2,-90],['Rua César Pernetta',314,262,'ml-s',2,-90],['Largo Wanda de Oliveira',405,155,'ml-s',2,0],
-  ['Rua Paulo Emídio Barbosa',1150,316,'ml-s',2,0],['Rua Pascoal Lemme',1061,282,'ml-s',3,-90],['Rua Moniz de Aragão',900,508,'ml-s',2,0],
-  ['Pç. Giulio Massarani',803,399,'ml-s',2,0],['Linha Vermelha',560,556,'ml-s',2,17],['Rua Octávio Cantanhede',500,52,'ml-s',3,-26],
-  ['Alojamento',402,120,'ml-b',2,0],['Bio-Rio',372,176,'ml-b',3,0],['Usina Verde',331,236,'ml-b',3,0],['CCS',381,300,'ml-b',2,0],
-  ['IPPMG',283,347,'ml-b',3,0],['HU',352,374,'ml-b',2,0],['EEFD',464,282,'ml-b',2,0],['RU',452,364,'ml-b',3,0],
-  ['Prefeitura',438,462,'ml-b',2,0],['CEPEL',587,452,'ml-b',2,0],['CENPES',691,470,'ml-b',2,0],['Cenpes II',678,372,'ml-b',3,0],
-  ['IF',752,446,'ml-b',3,0],['CCMN',787,488,'ml-b',2,0],['CT',855,470,'ml-b',2,0],['IMA',958,450,'ml-b',3,0],
-  ['Letras',962,396,'ml-b',2,0],['Reitoria',1045,392,'ml-b',2,0],['Xistoquímica',1011,552,'ml-b',3,0],['IEN',1028,474,'ml-b',3,0],
-  ['CETEM',1024,276,'ml-b',2,0],['COPPEAD',1030,236,'ml-b',2,0],['Parque Tecnológico',1200,262,'ml-b',2,0],
-  ['Incubadora',1112,345,'ml-b',3,0],['Gráfica',1165,345,'ml-b',3,0]
-];
 /* guaritas (posições do mapa da Prefeitura; o nº 33 da legenda é "Guaritas / DISEG") */
 var GUARDS={
   g1:{name:'Guarita 1',short:'G1',where:'Acesso pela Linha Vermelha, sentido Ilha do Governador e Baixada.',p:[256.4,378.8]},
@@ -345,6 +337,7 @@ function mk(kind,id,p,label,inner){
   return '<g class="mk '+kind+'" data-kind="'+kind+'" data-id="'+id+'" data-x="'+p[0]+'" data-y="'+p[1]+'" tabindex="0" role="button" aria-label="'+label+'" transform="translate('+p[0]+','+p[1]+')">'+inner+'</g>';
 }
 function buildMap(){
+  etapas('mapa vai montar');
   $('#mapbase').innerHTML='<g id="world0" transform="rotate('+ROT+')"><g id="baseimg"'+(window.__opac?' style="opacity:'+window.__opac+'"':'')+'><image href="'+MAPIMG+'" x="-270" y="-340" width="2034" height="1300" preserveAspectRatio="none" decoding="async"/><image id="imgHD" href="'+MAPHD+'" x="109" y="-45" width="1233" height="701" preserveAspectRatio="none" decoding="async"/><image id="imgVec"'+(vecOn?' href="'+MAPVEC+'"':'')+' x="109" y="-45" width="1233" height="701" preserveAspectRatio="none"/></g></g>';
   var s='<rect class="v-hit" x="-3000" y="-3000" width="8000" height="8000"/>';
   s+='<g id="world" transform="rotate('+ROT+')">';
@@ -396,8 +389,8 @@ function buildMap(){
   s+='</g><g id="gRep"></g><g id="gLab" pointer-events="none"></g></g>';
   svg.innerHTML=s;
   gLines=$('#gLines');gStops=$('#gStops');gWifi=$('#gWifi');gGuard=$('#gGuard');gLab=$('#gLab');gSvc=$('#gSvc');gRep=$('#gRep');
+  etapas('mapa montado');
 }
-
 /* ---------- zoom e arrasto ---------- */
 function box(){var r=svg.getBoundingClientRect();return {l:r.left,t:r.top,w:Math.max(1,r.width),h:Math.max(1,r.height)}}
 function clampView(){
@@ -429,8 +422,7 @@ function applyView(force){
     lastMS=MS;lastMk=mks.length;
   }
   var z=$('#zoomlvl');if(z)z.textContent=Math.round(fitW/view.w*100)+'%';
-  if(gLab){clearTimeout(lblT);if(Date.now()-lastGesture<160)lblT=setTimeout(drawLabels,170);else drawLabels()}
-}
+  if(gLab){clearTimeout(lblT);if(Date.now()-lastGesture<160)lblT=setTimeout(drawLabels,170);else drawLabels()};etapas('vista aplicada',force);}
 function schedule(){if(raf)return;raf=requestAnimationFrame(function(){raf=0;applyView()})}
 function fitView(){
   var b=box(),ar=b.h/b.w,B=bounds();
@@ -503,7 +495,6 @@ function initZoom(){
   var lastW=box().w;
   if(window.ResizeObserver)new ResizeObserver(function(){if(orient()){lastW=box().w;fitView();applyView();return}var w=box().w;if(Math.abs(w-lastW)<1&&Math.abs(view.h-view.w*box().h/w)<0.5)return;var keep=fitW/view.w,c=centerMap();lastW=w;fitView();view.w=fitW/keep;view.h=view.w*box().h/box().w;view.x=c[0]-view.w/2;view.y=c[1]-view.h/2;applyView()}).observe(svg);
 }
-
 var planBest=null;
 function activeLines(){
   if(!state.sel)return planBest?[planBest.lid]:null;
@@ -562,8 +553,6 @@ function drawLabels(){
   if(CFG.bldn!==false)s=bldLabels(taken)+s;
   gLab.innerHTML=s;
 }
-
-
 /* ======================= nomes dos prédios no zoom (da planta da ETU/UFRJ) ======================= */
 var BLDN=[["Hospital Universitário",325.7,364,1],["IPPMG (Pediatria)",279.9,370,2],["CCS",352.6,290.8,1],["Instituto de Microbiologia",324.9,274,3],["Escola de Educação Infantil",272.9,345.2,3],["Usina Verde",362.3,235.3,3],["Polo Bio-Rio",377.5,192.6,2],["RU Central",424.4,330.8,1],["EEFD",428.2,302.6,1],["Ginásio",450.8,293.6,3],["Gastronomia",459.3,327.3,3],["Prefeitura · DISEG",417.4,449.2,1],["Horto Universitário",435,461.4,3],["CENPES (Petrobras)",606.9,480.1,2],["Instituto de Física",750.6,447,2],["Instituto de Química",749.5,396,2],["Instituto de Matemática",753.5,467.9,2],["CCMN",765,501.4,1],["CT 2",936.5,558.2,2],["Macromoléculas",938.2,457,3],["LNDC",961.4,460,3],["Polo de Xistoquímica",1000.4,553.4,2],["Faculdade de Letras",940,379.9,1],["CCJE",908.2,386.2,2],["Reitoria (CLA)",1013.5,367.7,1],["COPPEAD",1027.5,226,1],["Incubadora",1119.3,336.2,2],["Gráfica",1142.3,337.2,3],["Almoxarifado",1172.3,335.9,3],["Frota Oficial",1168.1,355.1,3],["CPST · EBA",1148.4,362,3],["DIPRO",423.9,83.6,2],["UFRJ-Mar",469.3,45.6,3],["Escola Tenente Antônio João",1020.9,213.3,3]];
 function bldLabels(taken){
@@ -632,9 +621,7 @@ function updateMap(){
     el.classList.toggle('end',!sel&&k==='stop'&&(id===state.from||id===state.to));
   });
   svg.querySelectorAll('.mk.wifi').forEach(function(el){var b=$('.wbars',el);if(!b||!WIFI[el.dataset.id])return;b.innerHTML=mbars(info(avgOf(el.dataset.id)).bars)});
-  drawLabels();
-}
-
+  drawLabels();etapas('mapa atualizado');}
 /* ---------- volta à noite (telefones: Prefeitura Universitária, dez/2024) ---------- */
 var MOON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.6A8.5 8.5 0 0 1 9.4 3.5a8.5 8.5 0 1 0 11.1 11.1z"/></svg>';
 var NIGHTITEM='<button class="item tint" type="button" style="--c:var(--l5)" data-kind="night" data-id="x"><span class="ico">'+MOON+'</span><span class="grow">Volta à noite<small>Último ônibus, guaritas e telefone da segurança</small></span></button>';
@@ -714,7 +701,7 @@ function nightHTML(now){
     '<label class="fld">Onde você está?<select id="nightFrom">'+opts+'</select></label>'+top+
     (from!=='est'?(function(){var o=options(from,'est',now)[0]||lastTo(from,'est')[0];return o?warnHTML({from:from,to:'est',lid:o.lid,dep:o.dep,arr:o.arr},'night',true):''})():'')+
     '<h3>Último horário de cada linha aqui</h3><div>'+rows+'</div>'+
-    '<h3>Telefones da segurança</h3><div class="calls">'+CALLS.map(function(c){
+    nightShareHTML()+'<h3>Telefones da segurança</h3><div class="calls">'+CALLS.map(function(c){
       return '<div class="callrow"><span class="grow"><b>'+c.n+'</b><small>'+c.d+'</small></span><a class="num" href="tel:'+c.raw+'">'+c.num+'</a><button class="copy" type="button" data-copy="'+c.num+'">Copiar</button></div>';
     }).join('')+'</div>'+
     '<p class="muted small">Salve esses números no celular antes de precisar. Se a ligação não abrir pelo botão, copie o número.</p>'+
@@ -735,7 +722,6 @@ function guardHTML(id){
     }).join('')+'</div>'+
     (near.length?'<h3>Paradas por perto</h3><div class="list">'+near.map(stopItem).join('')+'</div>':'');
 }
-
 /* ---------- componentes ---------- */
 function badge(id){return '<span class="lb" style="--c:var('+LINES[id].color+')" title="Linha '+id+'">'+id+'</span>'}
 function barsSvg(n,w,h){var hs=[3.5,6,8.5,11],s='<svg class="bars" viewBox="0 0 14 12" width="'+(w||22)+'" height="'+(h||19)+'" aria-hidden="true">';for(var i=0;i<4;i++)s+='<rect class="'+(i<n?'bf':'bo')+'" x="'+(i*3.7)+'" y="'+(12-hs[i])+'" width="2.6" height="'+hs[i]+'" rx=".7"/>';return s+'</svg>'}
@@ -761,10 +747,12 @@ function bt(m){if(!CFG.faixa)return fmt(m);var f=faixaOf(m);return fmt(f[0])+'�
 function atT(m){if(!CFG.faixa)return 'às <span class="mono">'+fmt(m)+'</span>';var f=faixaOf(m);return 'entre <span class="mono">'+fmt(f[0])+'</span> e <span class="mono">'+fmt(f[1])+'</span>'}
 function atTxt(m){if(!CFG.faixa)return 'às '+fmt(m);var f=faixaOf(m);return 'entre '+fmt(f[0])+' e '+fmt(f[1])}
 var weekendNote='<p class="note">Hoje é fim de semana. A página da Prefeitura só informa horários de dias úteis; confirme antes de sair.</p>';
-
 /* ---------- planejador ---------- */
 var plan=$('#plan'),detail=$('#detail');
 function renderPlan(focusSel){
+  /* busca de ponto: o foco volta para a caixa de busca certa depois de redesenhar */
+  var ativo=document.activeElement,pedido=focusSel,buscaAtiva=ativo&&ativo.classList&&ativo.classList.contains('scb-in')?ativo.id:null;
+  if(focusSel&&/^#(from|to)Q$/.test(focusSel))focusSel=focusSel.slice(0,-1);
   var now=nowMin(),f=state.from,t=state.to,body='';
   var opt=function(sel){return SORTED.map(function(k){return '<option value="'+k+'"'+(k===sel?' selected':'')+'>'+STOPS[k].name+'</option>'}).join('')};
   planBest=null;
@@ -802,8 +790,11 @@ function renderPlan(focusSel){
     NIGHTITEM+
     (ws.length?'<h3>Wi-Fi aberto perto do destino</h3><div class="list">'+ws.map(wifiItem).join('')+'</div>':'')+fora;
   if(focusSel){var el=plan.querySelector(focusSel);if(el)el.focus({preventScroll:true})}
+  enhanceStopSelect($('#from'));enhanceStopSelect($('#to'));
+  var fid=pedido==='#from'||pedido==='#fromQ'?'fromQ':pedido==='#to'||pedido==='#toQ'?'toQ':buscaAtiva;
+  if(fid){var q=document.getElementById(fid);if(q){SCB.quiet=true;q.focus({preventScroll:true});setTimeout(function(){SCB.quiet=false},0)}}
+  etapas('trajeto montado');
 }
-
 /* ---------- detalhes ---------- */
 function linesHTML(){
   return (typeof locCardHTML==='function'?locCardHTML():'')+(CFG.reps?repsHTML():'')+'<div><p class="eyebrow">Guia de prédios</p></div>'+
@@ -868,6 +859,7 @@ function wifiHTML(id){
     (ss.length?'<h3>Paradas por perto</h3><div class="list">'+ss.map(stopItem).join('')+'</div>':'');
 }
 function renderDetail(focusSel){
+  if(state.sel&&state.sel.kind==='ext'){detail.innerHTML=extStopHTML(state.sel.id,nowMin());etapas('detalhe montado');return}/* ponto da prefeitura */
   var now=nowMin(),s=state.sel,h;
   if(!s)h=linesHTML();
   else if(s.kind==='line')h=lineHTML(s.id,now);
@@ -881,17 +873,41 @@ function renderDetail(focusSel){
   else {state.sel=null;h=linesHTML()}  /* a rede saiu do ar enquanto estava aberta */
   detail.innerHTML=h;
   if(focusSel){var el=detail.querySelector(focusSel);if(el)el.focus({preventScroll:true})}
+  var s=state.sel,t=null,a='';
+  if(s){
+    if(s.kind==='stop'&&STOPS[s.id]){t='ponto';a='Ponto '+STOPS[s.id].name}
+    else if(s.kind==='line'&&LINES[s.id]){t='onibus';a='Linha '+s.id+' · '+LINES[s.id].name}
+    else if(s.kind==='wifi'&&WIFI[s.id]){t='wifi';a='Wi-Fi '+WIFI[s.id].name}
+    if(t)detail.insertAdjacentHTML('beforeend','<button type="button" class="linkbtn sugg" data-req="'+t+'||'+esc(a)+'">Sugerir correção</button>');
+  }
+  etapas('detalhe montado');
 }
 function renderAll(){renderPlan();renderDetail();updateMap()}
 function select(kind,id,scroll){
+  /* ponto da prefeitura: liga a camada de ônibus da cidade e vai para Trajetos */
+  if(kind==='ext'&&EXTS[id]){
+    if(!state.layers.ext){state.layers.ext=true;try{localStorage.setItem('cse-lay-ext','1')}catch(e){}busChip();setTimeout(liveFetch,0)}
+    setTab('trajeto');
+  }
+  /* destino automático: o ponto escolhido no mapa vira o destino */
+  if(CFG.autoDest&&['stop','wifi','svc','place'].indexOf(kind)>=0){
+    var to=pointStop(kind,id);
+    if(to&&to!==state.to){
+      var from=(typeof LOC!=='undefined'&&LOC.on&&LOC.near&&LOC.near.id!==to)?LOC.near.id:state.from;
+      if(from===to)from=state.to!==to?state.to:(to==='est'?'ctl':'est');
+      state.to=to;state.from=from;savePrefs();
+    }
+  }
   state.sel={kind:kind,id:id};
   renderAll();
   if(kind==='svc'&&SVCMAP[id])ensureVisible(SVCMAP[id].p);else if(kind==='stop'&&STOPS[id])ensureVisible(STOPS[id].p);else if(kind==='wifi'&&WIFI[id])ensureVisible(WIFI[id].p);else if(kind==='guard'&&GUARDS[id])ensureVisible(GUARDS[id].p);else if(kind==='night'&&STOPS[state.nightFrom])ensureVisible(STOPS[state.nightFrom].p);
   if(scroll&&window.matchMedia('(max-width:859px)').matches){
     detail.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
   }
+  if(kind!=='wifi')wifiPopClose();
+  if(kind==='night'){nightBadge();setTimeout(function(){var d=$('#detail');if(!d)return;var r=d.getBoundingClientRect();
+    if(r.top>window.innerHeight*.55||r.bottom<80)d.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'})},80)}
 }
-
 /* ---------- eventos ---------- */
 svg.addEventListener('click',function(e){
   if(suppressClick){suppressClick=false;return}
@@ -935,10 +951,13 @@ plan.addEventListener('change',function(e){
   }
 });
 function setLayer(key,btn){
+  if(key==='ext'){try{localStorage.setItem('cse-lay-ext',state.layers.ext?'0':'1')}catch(e){}if(state.layers.ext&&state.sel&&state.sel.kind==='ext')state.sel=null}
   state.layers[key]=!state.layers[key];if(key==='wifi'){try{localStorage.setItem('cse-lay-wifi',state.layers.wifi?'1':'0')}catch(e){}if(!state.layers.wifi)wifiPopClose()}
   btn.setAttribute('aria-pressed',String(state.layers[key]));
   if(state.sel&&(((state.sel.kind==='stop'||state.sel.kind==='line')&&!state.layers.bus)||(state.sel.kind==='wifi'&&!state.layers.wifi)||(state.sel.kind==='svc'&&!state.layers.svc)))state.sel=null;
   renderAll();
+  if(key==='ext')setTimeout(liveFetch,0);
+  busChip();
 }
 $('#chBus').addEventListener('click',function(){setLayer('bus',this)});
 function openNight(){setTab('trajeto');try{history.replaceState(null,'','#trajeto')}catch(e){}state.nightFrom=state.nightFrom||state.to;select('night','x',true)}
@@ -971,11 +990,9 @@ setInterval(function(){
   if(gPane&&!gPane.contains(a))renderGrade();
   drawShared();
 },30000);
-
 /* ======================= utilidades ======================= */
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function agoTxt(ts){var m=Math.max(0,Math.round((Date.now()-ts)/60000));return m<1?'agora':m<60?'há '+m+' min':'há '+Math.floor(m/60)+' h '+(m%60?m%60+' min':'')}
-
 /* ======================= 3. camada de serviços ======================= */
 /* posições tiradas do mapa de serviços da Prefeitura (2022) e alinhadas ao mapa base por ajuste local com 34 pontos de referência (prédios, rotatórias, guaritas) */
 var SVC_T={
@@ -1011,7 +1028,6 @@ function svcHTML(id){
     repBlock('svc:'+id)+
     '<h3>Paradas mais próximas</h3><div class="list">'+near.map(stopItem).join('')+'</div>';
 }
-
 /* ======================= 2. avaliações e avisos compartilhados ======================= */
 var SH={on:false,db:null,uid:null,write:null,denied:false,votes:{},reps:[],busyV:false,pendV:false};
 var REP_K=[['fila','Fila grande'],['onibus','Ônibus atrasado ou lotado'],['wifi','Wi-Fi fora do ar'],['fechado','Local fechado'],['elevador','Elevador ou escada com problema'],['limpeza','Banheiro sem condições'],['seguranca','Situação suspeita'],['outro','Outro']];
@@ -1038,18 +1054,6 @@ function flatReps(docs){
   return out.sort(function(a,b){return b.ts-a.ts});
 }
 function isExample(id){return !(SH.on&&SH.votes[id]&&SH.votes[id].n)}
-avgOf=function(id){
-  var w=WIFI[id];
-  if(SH.on){var v=SH.votes[id];if(v&&v.n)return v.s/v.n;return w?w.avg:0}
-  if(!w)return 0;
-  var m=mine[id];return m?(w.avg*w.votes+m)/(w.votes+1):w.avg;
-};
-votesOf=function(id){
-  var w=WIFI[id];
-  if(SH.on){var v=SH.votes[id];return v&&v.n?v.n:(w?w.votes:0)}
-  if(!w)return 0;
-  return w.votes+(mine[id]?1:0);
-};
 function writeVotes(){
   if(!SH.on||!SH.uid||SH.denied)return;
   if(FBMODE&&SH.full&&GESTOR!==true)return;
@@ -1150,7 +1154,6 @@ function initShared(){
     });
   }).catch(function(){});
 }
-
 /* ======================= 1. minha grade ======================= */
 var DIAS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 var GBLK={ct:['A','B','C','D','E','F','G','H','I','J'],ccmn:['A','B','C','D','E','F','G','H','I']};
@@ -1163,10 +1166,11 @@ var GKEY='cse-ufrj-grade-v1',GRADE=null,gBusy=false,gPend=false;
 try{GRADE=JSON.parse(localStorage.getItem(GKEY))}catch(e){GRADE=null}
 if(!Array.isArray(GRADE))GRADE=null;
 var gs={from:'est',form:false};
-function gradeList(){return GRADE&&GRADE.length?GRADE:GEX}
+function gradeList(){if(semConta())return [];/* grade só para quem entrou com uma conta */return GRADE&&GRADE.length?GRADE:GEX}
 function usingExample(){return !(GRADE&&GRADE.length)}
 function saveGrade(){
   try{localStorage.setItem(GKEY,JSON.stringify(GRADE||[]))}catch(e){}
+  if(ACC.kind==='google'&&!ACC.mute)accQueue();
   if(SH.on&&SH.uid){
     if(gBusy){gPend=true;return}
     gBusy=true;
@@ -1278,6 +1282,14 @@ function gradeFormHTML(){
 var gPane,gNext,gWeek;
 function renderGrade(focusSel){
   if(!gPane||gPane.hidden)return;
+  if(semConta()){/* sem conta: só o convite para entrar */
+    gWeek.hidden=true;gPane.classList.add('la-gl');
+    gNext.innerHTML='<div><p class="eyebrow keep">Sua semana</p><h2>Minha grade</h2></div>'+
+      '<div class="la-lock la-glock"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>'+
+      '<p class="keep"><b>Faça login para salvar sua grade.</b></p><p class="small keep la-p">Com uma conta, suas aulas ficam guardadas, aparecem no mapa e vão com você para qualquer aparelho.</p>'+askBtn('grade','Entrar')+'</div>';
+    return;
+  }
+  if(gWeek.hidden)gWeek.hidden=false;gPane.classList.remove('la-gl');
   var now=nowMin();
   gNext.innerHTML='<div><p class="eyebrow">'+(usingExample()?'Exemplo':'Sua semana')+'</p><h2>Minha grade</h2></div>'+
     (usingExample()?'<p class="note">Esta é uma grade de exemplo. Salve sua primeira aula e ela some.</p>':'')+
@@ -1286,7 +1298,6 @@ function renderGrade(focusSel){
   if(!gWeek.dataset.ready){gWeek.innerHTML=gradeFormHTML();gWeek.dataset.ready='1'}
   if(focusSel){var el=gPane.querySelector(focusSel);if(el)el.focus({preventScroll:true})}
 }
-
 /* ---------- avisar alguém: mensagem pronta com ônibus, horário e chegada ---------- */
 var WS={tpl:'saindo',safe:true,open:false,edited:{}};
 var WTPL=[['saindo','Estou saindo'],['cheguei','Cheguei'],['atraso','Ônibus atrasou']];
@@ -1326,7 +1337,6 @@ document.addEventListener('input',function(e){
   var a=w.querySelector('[data-wa]');if(a)a.href='https://wa.me/?text='+encodeURIComponent(e.target.value);
 });
 document.addEventListener('toggle',function(e){if(e.target.id&&e.target.id.indexOf('wdet-')===0)WS.open=e.target.open},true);
-
 /* ---------- calendário acadêmico (graduação 2026; datas iguais nos calendários do IE e da FND/UFRJ) ---------- */
 var CAL={
   '2026.1':[
@@ -1396,13 +1406,11 @@ function renderCal(focusSel){
   var h=calHTML();cL.innerHTML=h.left;cR.innerHTML=h.right;
   if(focusSel){var el=cPane.querySelector(focusSel);if(el)el.focus({preventScroll:true})}
 }
-
 buildMap();
 initZoom();
 /* ---------- aba "Lugares" (prédios e horários) ----------
    Horários: Sistema de Alimentação (ru.ufrj.br) e Conexão UFRJ (nov/2025) para os RUs; SiBI/UFRJ para bibliotecas;
    endereços das unidades (PR-4, 2022) para secretarias; Prefeitura Universitária para atendimento e segurança. */
-var WK=null;
 var PL={
   ru_central:{name:'RU Central',cat:'comida',where:'Restaurante Universitário Edson Luís de Lima Souto, perto da EEFD',p:[426.4,330.7],wk:[[420,540],[660,855],[1050,1215]],we:[[720,840],[1050,1155]],note:'Café da manhã R$ 2,00 (seg. a sex.). Único RU aberto nos fins de semana e feriados.'},
   ru_ct1:{name:'RU 01 CT',cat:'comida',where:'Centro de Tecnologia',bld:'ct',p:[857.4,466.6],wk:[[420,540],[630,870],[1050,1215]],we:null,note:'Café da manhã R$ 2,00. Fins de semana: só no RU Central.'},
@@ -1442,9 +1450,7 @@ var BLD={
     blocks:['A','C','G','I','?'],labels:{'?':'Bloco não informado'},rows:[0,null],
     note:'Matemática, Física e Química são do CCMN, mas ficam no prédio do CT (veja a aba CT).'}
 };
-var CATS=[['todos','Todos'],['aberto','Abertos agora'],['comida','Alimentação'],['biblio','Bibliotecas'],['atend','Atendimento'],['seg','Segurança'],['onibus','Ônibus']];
 var pstate={bld:'ct',pl:'b_ct',cat:'todos',q:''};
-function hm(m){m=Math.round(m);if(m>=1440)m=1439;var h=Math.floor(m/60),x=m%60;return h+'h'+(x?String(x).padStart(2,'0'):'')}
 function rangesOf(it,we){if(we){if(it.we===undefined)return 'unk';return it.we}return it.wk}
 function rangesTxt(r,incl){if(r==='unk')return 'Não informado';if(!r)return 'Fechado';if(r.length===1&&r[0][0]===0&&r[0][1]>=1440)return '24 horas';return r.map(function(x){return hm(x[0])+'–'+hm(x[1]-(incl?1:0))}).join(' · ')}
 function statusOf(it,now){
@@ -1466,62 +1472,24 @@ function statusOf(it,now){
 function pill(s){return '<span class="pill '+s.c+'">'+s.t+'</span>'}
 function placeCard(id,now,bare){
   var it=PL[id];if(!it)return '';
-  var we=isWeekend()&&!state.manual;
+  var we=isWeekend()&&!state.manual,extra='';
+  if(RUS.indexOf(id)>=0)extra+='<div class="fila-in"><p class="small"><b>Fila agora</b></p>'+filaRow(id,now)+'</div>';
+  if(it.fechadoTemp)extra+='<div class="warnbox"><b>Fechado temporariamente</b>Informado pela gestão do app.</div>';
+  extra+='<button type="button" class="linkbtn sugg" data-req="servico||'+esc(it.name)+'">Sugerir correção</button>';
   return '<div class="plcard"><div class="plc-h"><div><p class="eyebrow">'+({comida:'Alimentação',biblio:'Biblioteca',atend:'Atendimento',seg:'Segurança',onibus:'Ônibus',aula:'Sua aula'})[it.cat]+'</p><h3 class="plc-t">'+it.name+'</h3></div>'+pill(statusOf(it,now))+'</div>'+
     '<dl class="kv"><dt>Onde</dt><dd>'+it.where+'</dd><dt>Seg. a sex.</dt><dd class="mono">'+rangesTxt(it.wk,it.incl)+'</dd><dt>Fim de semana</dt><dd class="mono">'+rangesTxt(it.we===undefined?'unk':it.we)+'</dd></dl>'+
     (it.note?'<p class="muted small">'+it.note+'</p>':'')+
-    (bare?'':'<div class="later">'+(it.p&&!it.bld?'<button class="copy" type="button" data-showmap="'+id+'">Ver no mapa</button>':'')+(it.line?'<button class="copy" type="button" data-showline="'+it.line+'">Ver itinerário</button>':'')+'</div>')+'</div>';
+    (bare?'':'<div class="later">'+(it.p&&!it.bld?'<button class="copy" type="button" data-showmap="'+id+'">Ver no mapa</button>':'')+(it.line?'<button class="copy" type="button" data-showline="'+it.line+'">Ver itinerário</button>':'')+'</div>')+extra+'</div>';
 }
-function floorName(f){return f===null?'Andar não informado':f===0?'Térreo · salas 0xx':f+'º andar'}
 function buildingHTML(now){
-  var B=BLD[pstate.bld],items=Object.keys(PL).filter(function(k){return PL[k].bld===pstate.bld&&PL[k].b});
-  var rows=B.rows.slice();items.forEach(function(k){var f=PL[k].f;if(f!==null&&rows.indexOf(f)<0)rows.push(f)});rows=rows.filter(function(f){return f!==null}).sort(function(a,b){return b-a});
-  if(items.some(function(k){return PL[k].f===null}))rows.push(null);
-  var blocks=B.blocks.slice();items.forEach(function(k){if(blocks.indexOf(PL[k].b)<0)blocks.push(PL[k].b)});
-  blocks.sort(function(a,b){var o=function(x){return x==='?'?99:x==='ABC'?50:x.charCodeAt(0)};return o(a)-o(b)});
-  B={name:B.name,short:B.short,addr:B.addr,labels:B.labels,note:B.note,blocks:blocks};
-  var cols=B.blocks.length;
-  var g='<div class="fgrid" style="--cols:'+cols+'" role="grid" aria-label="Esquema por blocos e andares do '+B.short+'">';
-  g+='<div class="fh"></div>'+B.blocks.map(function(b){return '<div class="fh blk">'+(B.labels[b]||'Bloco '+b)+'</div>'}).join('');
-  rows.forEach(function(f){
-    g+='<div class="fl">'+floorName(f)+'</div>';
-    B.blocks.forEach(function(b){
-      var here=items.filter(function(k){return PL[k].b===b&&PL[k].f===f});
-      g+='<div class="cell'+(here.length?' has':'')+'">'+here.map(function(k){
-        var s=PL[k].cat==='aula'?{c:'aula'}:statusOf(PL[k],now);
-        return '<button type="button" class="pin '+s.c+(pstate.pl===k?' on':'')+'" data-pl="'+k+'" title="'+PL[k].name+'"><i></i><span>'+(PL[k].s||PL[k].name)+'</span></button>';
-      }).join('')+'</div>';
-    });
-  });
-  g+='</div>';
-  var sel=PL[pstate.pl]?pstate.pl:items[0];pstate.pl=sel;
-  return '<div><p class="eyebrow">Mapa interno · esquema por blocos e andares</p><h2>Prédios por dentro</h2></div>'+
-    '<div class="chips" role="group" aria-label="Escolha o prédio">'+Object.keys(BLD).map(function(k){return '<button class="chip" type="button" data-bld="'+k+'" aria-pressed="'+(k===pstate.bld)+'">'+BLD[k].short+'</button>'}).join('')+'</div>'+
-    '<p class="small"><b>'+B.name+'</b> · <span class="mono muted">'+B.addr+'</span></p>'+
-    '<div class="fwrap">'+g+'</div>'+
-    '<div class="flegend"><span><i class="pin-dot good"></i>Aberto</span><span><i class="pin-dot warn"></i>Fecha logo / sem horário</span><span><i class="pin-dot bad"></i>Fechado</span></div>'+
-    placeCard(sel,now)+planHTML(sel)+
-    '<p class="muted small">'+B.note+' Esquema montado com as localizações oficiais (bloco, andar e sala); não é a planta arquitetônica. Quando a fonte só dá a sala, o andar sai do número (sala 527 → 5º andar).</p>';
+  var fila=CFG.reps?foldHTML('fdFila',pstate.filaBox,'Fila do RU agora',filaResumo(),pstate.filaBox?filaBody():''):'';
+  var np=(GST.plantas.items||[]).length;
+  return fila+foldHTML('fdBld',pstate.bldOpen,'Prédios por dentro','<span class="fsum muted">Blocos, andares e salas do CT e do CCMN'+(np?' · '+np+' planta'+(np>1?'s':'')+' oficial'+(np>1?'is':''):'')+'</span>',pstate.bldOpen?bldInner(now):'');
 }
 function hoursHTML(now){
-  var q=pstate.q.trim().toLowerCase();
-  var list=Object.keys(PL).filter(function(k){
-    var it=PL[k];if(it.cat==='aula')return false;
-    if(pstate.cat==='aberto'){var s=statusOf(it,now);if(s.c==='bad'||/Confirmar|Sem horário/.test(s.t))return false}
-    else if(pstate.cat!=='todos'&&it.cat!==pstate.cat)return false;
-    if(q&&(it.name+' '+it.where).toLowerCase().indexOf(q)<0)return false;
-    return true;
-  });
-  var ordem={comida:0,biblio:1,atend:2,seg:3,onibus:4};
-  list.sort(function(a,b){return ordem[PL[a].cat]-ordem[PL[b].cat]});
-  return '<div><p class="eyebrow">Hoje, '+(isWeekend()&&!state.manual?'fim de semana':'dia útil')+' · '+fmt(now)+'</p><h2>Horários de funcionamento</h2></div>'+
-    '<div class="chips" role="group" aria-label="Filtrar">'+CATS.map(function(c){return '<button class="chip" type="button" data-cat="'+c[0]+'" aria-pressed="'+(pstate.cat===c[0])+'">'+c[1]+'</button>'}).join('')+'</div>'+
-    '<label class="fld">Buscar local<input type="search" id="hq" placeholder="Ex.: biblioteca, RU, Bloco A" value="'+pstate.q.replace(/"/g,'&quot;')+'"></label>'+
-    '<div class="hlist">'+(list.length?list.map(function(k){
-      var it=PL[k],s=statusOf(it,now),we=isWeekend()&&!state.manual;
-      return '<button class="hrow" type="button" data-pl="'+k+'"><span class="grow"><b>'+it.name+'</b><small>'+it.where+'</small></span><span class="htime mono">'+(it.wk===null?'Sem horário':rangesTxt(rangesOf(it,we),it.incl))+'</span>'+pill(s)+(RUS.indexOf(k)>=0&&filaOf(k)?filaPill(k):'')+'</button>';
-    }).join(''):'<p class="muted">Nenhum local encontrado com esse filtro.</p>')+'</div>'+
-    '<p class="muted small">Horários de dias úteis informados pela UFRJ; nas férias e nos feriados podem mudar.</p>';
+  var we=isWeekend()&&!state.manual,nOpen=Object.keys(PL).filter(function(k){var it=PL[k];if(it.cat==='aula')return false;var st=statusOf(it,now);return !(st.c==='bad'||/Confirmar|Sem horário/.test(st.t))}).length;
+  var body=pstate.hrsOpen?hoursListHTML(now):'';
+  return foldHTML('fdHrs',pstate.hrsOpen,'Onde fica e quando abre','<span class="fsum muted">'+nOpen+' abertos agora · '+(we?'fim de semana':'dia útil')+', '+fmt(now)+'</span>',body);
 }
 /* ---------- planta do andar (ilustrativa: a posição sai do número da sala) ---------- */
 function roomOf(it){var m=/sala\s+([A-Z]?)(\d{2,3})(-[A-Z])?/i.exec(it.where||'');if(!m)return null;var num=parseInt(m[2],10);return {label:(m[1]||'')+m[2]+(m[3]||''),n:num%100||1}}
@@ -1589,6 +1557,14 @@ function planSVG(bk,blk,f,selId){
   return s+'</svg>';
 }
 function planHTML(id){
+  var bk=pstate.bld,B=BLD[bk];if(!B)return '';
+  var it=PL[id]&&PL[id].bld===bk?PL[id]:null;
+  var sub=it?esc(it.s||it.name)+(it.b&&it.b!=='?'?' · '+(B.labels[it.b]||'Bloco '+it.b):'')+(it.f!=null?' · '+floorShort(it.f):''):'Escolha o bloco e o andar';
+  return '<details class="det plandet" id="planDet"'+(pstate.planOpen?' open':'')+' data-pid="'+esc(id||'')+'"><summary><span class="plandet-t">Planta interna <span class="pl-badge2">exemplo</span></span><span class="fsum muted">'+B.short+' · '+sub+'</span></summary>'+
+    '<div class="plandet-b">'+(pstate.planOpen?planBodyHTML(id):'')+'</div></details>';
+}
+/* conteúdo da planta de exemplo (só montado quando a pessoa abre o bloco "Planta interna") */
+function planBodyHTML(id){
   var bk=pstate.bld,B=BLD[bk],it=PL[id]&&PL[id].bld===bk?PL[id]:null;
   var blocks=bk==='ct'?['A','B','C','D','E','F','G','H','I','J','ABC']:['A','B','C','D','E','F','G','H','I'];
   var inB=function(b){return Object.keys(PL).filter(function(k){return PL[k].bld===bk&&PL[k].b===b})};
@@ -1618,18 +1594,24 @@ function planHTML(id){
     '<div class="flegend"><span><i class="pl-key sel"></i>Local escolhido</span><span><i class="pl-key hit"></i>Outros locais deste andar</span><span><i class="pl-key core"></i>Escada e elevador</span><span><i class="cnt"></i>Bloco ou andar com locais cadastrados</span></div>'+
     '</div>';
 }
-
 var pPane=$('#pane-predios'),pB=$('#pBuild'),pH=$('#pHours');
 function renderPredios(focusSel){
-  if(pPane.hidden)return;
+  if(pPane.hidden){renderWifiPane();return}
   var now=nowMin();
   pB.innerHTML=buildingHTML(now);pH.innerHTML=hoursHTML(now);
   var pw=pPane.querySelector('.planwrap'),pin=pw&&pw.querySelector('.pl-pin');
   if(pin){var a=pin.getBoundingClientRect(),b=pw.getBoundingClientRect();pw.scrollLeft+=a.left+a.width/2-(b.left+b.width/2)}
   if(focusSel){var el=pPane.querySelector(focusSel);if(el){el.focus({preventScroll:true});if(el.id==='hq'){var v=el.value;el.setSelectionRange(v.length,v.length)}}}
+  /* o bloco e o andar escolhidos ficam visíveis quando os botões não cabem na largura */
+  pPane.querySelectorAll('.planbox .pick .chips').forEach(function(el){var c=el.querySelector('[aria-pressed="true"]');if(c&&el.scrollWidth>el.clientWidth){var r1=el.getBoundingClientRect(),r2=c.getBoundingClientRect();el.scrollLeft+=r2.left+r2.width/2-(r1.left+r1.width/2)}});
+  renderWifiPane();
 }
+/* abas do app: id, nome e descrição (a ordem e quais aparecem vêm de Ajustes) */
+var TABS=[['trajeto','Trajetos','Linhas, horários e o próximo ônibus'],['predios','Lugares','Onde fica, quando abre e as plantas'],['grade','Grade','Suas aulas da semana'],['cal','Calendário','Prazos, feriados e mudanças de data']];
+var TABID=TABS.map(function(t){return t[0]});
 function setTab(t){
   if(t==='cfg'){openCfg();return}
+  if(TABID.indexOf(t)<0||!tabOn(t))t=tabVis()[0];/* abas escondidas ou fora da ordem escolhida em Ajustes */
   if(['trajeto','predios','grade','cal'].indexOf(t)<0)t='trajeto';
   var pr=t==='predios';
   $('#pane-trajeto').hidden=t!=='trajeto';pPane.hidden=!pr;$('#pane-grade').hidden=t!=='grade';$('#pane-cal').hidden=t!=='cal';if(t==='cal')renderCal();
@@ -1659,7 +1641,6 @@ pPane.addEventListener('click',function(e){
   }
 });
 pPane.addEventListener('input',function(e){if(e.target.id==='hq'){pstate.q=e.target.value;pH.innerHTML=hoursHTML(nowMin());var el=$('#hq');el.focus();el.setSelectionRange(el.value.length,el.value.length)}});
-
 /* ---------- eventos: serviços, avisos e grade ---------- */
 gPane=$('#pane-grade');gNext=$('#gNext');gWeek=$('#gWeek');
 syncAulas();
@@ -1739,7 +1720,6 @@ function mudancas(){
 }
 function isoToday(){var t=today0();return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')}
 function mudHoje(){if(state.manual)return null;var s=isoToday();return mudancas().filter(function(m){return m.d===s})[0]||null}
-function movedFrom(iso){return mudancas().filter(function(m){return m.de===iso})[0]||null}
 var MUDMIN={};try{MUDMIN=JSON.parse(localStorage.getItem('cse-mud-min'))||{}}catch(e){MUDMIN={}}
 function saveMudMin(){try{localStorage.setItem('cse-mud-min',JSON.stringify(MUDMIN))}catch(e){}}
 function bannerHTML(){
@@ -1773,9 +1753,17 @@ function mudFormHTML(){
     '<p class="gerr" id="muderr" role="alert"></p><button class="copy sendrep" type="submit">Publicar para todos</button></form></details>'+
     (MUD_DB.length?'<div class="cal-list">'+MUD_DB.map(function(m){return '<div class="cal-ev"><span class="cal-d mono">'+dTxt(m.d)+'</span><span class="grow"><b>'+esc(m.t)+'</b></span><button class="copy" type="button" data-muddel="'+esc(m.id)+'">Remover</button></div>'}).join('')+'</div>':'');
 }
-
 /* ---------- ajustes (salvos neste aparelho) ---------- */
-function saveCfg(){try{localStorage.setItem('cse-cfg',JSON.stringify(CFG))}catch(e){}}
+function saveCfg(){
+  /* o que a pessoa mudou deixa de seguir o padrão definido pela gestão */
+  if(PAD_SNAP)PAD_KEYS.forEach(function(k){if(CFG[k]!==PAD_SNAP[k])CFG.mine[k]=1});
+  saveCfgSemMarcar();
+}
+/* grava os ajustes sem marcar nada como escolha da pessoa (usado ao aplicar os padrões da gestão) */
+function saveCfgSemMarcar(){
+  try{localStorage.setItem('cse-cfg',JSON.stringify(CFG))}catch(e){}
+  if(!ACC.mute)accQueue();
+}
 var COVERS=[['folha','Folha inferior','O mapa nítido com uma folha de vidro embaixo.'],['cartao','Cartão central','Cartão de vidro no meio, sobre o mapa desfocado.'],['titulo','Título gigante','Nome grande e barra de ícones.'],['none','Sem capa','Abre direto no mapa.']];
 function applyCoverStyle(){var c=$('#cover');if(c){c.dataset.style=CFG.cover==='none'?'folha':CFG.cover;if(!c.hidden&&typeof placeCoverMap==='function')placeCoverMap()}}
 function cvMini(k){
@@ -1822,7 +1810,8 @@ function renderCfg(focusSel){
     (PERFIL?'<div class="prof"><span class="lg-face" aria-hidden="true">'+esc(PERFIL.name.charAt(0).toUpperCase())+'</span><span class="grow"><b>'+esc(PERFIL.name)+'</b><small>'+(PERFIL.bio?'Com biometria':PERFIL.pin?'Com código de 4 dígitos':'Sem código')+'</small></span><button class="copy" type="button" id="cfgLogout">Sair</button></div><div class="profact"><button class="linkbtn" type="button" id="cfgForget">Esquecer este perfil neste aparelho</button></div>':'<p class="muted small keep">Nenhum perfil salvo neste aparelho.</p>')+
     '<div class="tgls">'+tg('cfgLogin',CFG.login,'Tela de entrada ao abrir','Mostra o perfil salvo e o Face ID antes da capa.')+'</div>'+
     '<p class="muted small keep">Os ajustes ficam salvos neste aparelho.</p>';
-  if(focusSel){var el=document.querySelector(focusSel);if(el)el.focus({preventScroll:true})}
+  if(focusSel){var el=document.querySelector(focusSel);if(el)el.focus({preventScroll:true})};
+  etapas('ajustes montados',focusSel);
 }
 document.addEventListener('click',function(e){var b=e.target.closest('[data-bg]');if(!b||!b.classList.contains('bgopt'))return;CFG.bg=b.dataset.bg;saveCfg();applyBg();renderCfg('.bgopt[data-bg="'+CFG.bg+'"]');var d=document.getElementById('bgdet');if(d)d.open=true});
 document.addEventListener('click',function(e){
@@ -1834,7 +1823,6 @@ document.addEventListener('change',function(e){
   var id=e.target.id,map={cfgBanner:'banner',cfgReps:'reps',cfgCoverToday:'coverToday',cfgLogin:'login',cfgFlow:'flow',cfgBldn:'bldn'};
   if(!map[id])return;CFG[map[id]]=e.target.checked;saveCfg();updateMap();if(id==='cfgBldn'&&gLab)drawLabels();drawBanner();drawShared();renderDetail();coverToday();
 });
-
 cPane=$('#pane-cal');cL=$('#cL');cR=$('#cR');
 document.addEventListener('click',function(e){var g=e.target.closest('[data-tab-go]');if(!g)return;setTab(g.dataset.tabGo);try{history.replaceState(null,'','#'+g.dataset.tabGo)}catch(err){}var c=$('#pane-cal');if(c)c.scrollIntoView({behavior:'auto',block:'start'})});
 cPane.addEventListener('submit',function(e){
@@ -1847,7 +1835,6 @@ cPane.addEventListener('submit',function(e){
 });
 cPane.addEventListener('click',function(e){var x=e.target.closest('[data-muddel]');if(x&&SH.on){SH.db.doc('cal/'+x.dataset.muddel).delete().catch(function(){});return}
   var b=e.target.closest('[data-per]');if(!b)return;cs.per=b.dataset.per;renderCal('[data-per="'+cs.per+'"]')});
-
 /* ---------- ajustes em tela cheia ---------- */
 var cfgM=$('#pane-cfg'),cfgPrevFocus=null;
 function openCfg(){
@@ -1862,7 +1849,6 @@ function closeCfg(){
 $('#cfgClose').addEventListener('click',closeCfg);
 cfgM.addEventListener('click',function(e){if(e.target===cfgM)closeCfg()});
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!cfgM.hidden&&cover.hidden&&login.hidden)closeCfg()});
-
 /* ---------- glossário de siglas ---------- */
 var GL_CATS=[['todas','Todas'],['lugar','Prédios e unidades'],['serv','Órgãos e serviços'],['acad','Vida acadêmica'],['net','Internet e sistemas']];
 /* [sigla, nome por extenso, explicação, categoria, atalho] atalho: 's:<parada>' mapa · 'b:<prédio>' Lugares · 'c:<categoria>' Lugares */
@@ -1969,8 +1955,6 @@ glM.addEventListener('click',function(e){
 });
 $('#glQ').addEventListener('input',function(e){gl.q=e.target.value;renderGloss()});
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!glM.hidden){e.stopPropagation();closeGloss()}},true);
-
-
 /* ======================= gestão: dados que o gestor pode alterar ======================= */
 var GST={linhas:{},pontos:{},wifi:{},servicos:{},plantas:{items:[]},bloqueados:{ids:[]},respostas:{},calib:{},admins:{list:{}},acesso:{}};
 var GKEYS=['linhas','pontos','wifi','servicos','plantas','bloqueados','respostas','calib','admins','acesso'];
@@ -2054,6 +2038,7 @@ function applyG(){
     if(base.name&&validP(base.p))WIFI[id]=base;
   });
   geom();
+  etapas('dados da gestão aplicados');
 }
 function rebuildAll(){
   applyG();
@@ -2061,6 +2046,7 @@ function rebuildAll(){
   buildMap();updateMap();drawShared();applyView(true);renderPlan();refreshAll();
   if(!pPane.hidden)renderPredios();
   if(gestM&&!gestM.hidden)renderGest();
+  etapas('tudo reconstruído');
 }
 function loadLocalG(){GKEYS.forEach(function(k){try{var v=JSON.parse(localStorage.getItem(GLS+k));if(v)GST[k]=v}catch(e){}})}
 function saveG(key,val){
@@ -2073,7 +2059,6 @@ function saveG(key,val){
 }
 function blocked(uid){return !!(uid&&GST.bloqueados&&Array.isArray(GST.bloqueados.ids)&&GST.bloqueados.ids.indexOf(uid)>=0)}
 function canPost(){if(!PERFIL)return false;if(!SH.on)return true;if(FBMODE&&SH.full&&GESTOR!==true)return false;return !SH.denied&&SH.write!==false&&!!SH.uid&&!blocked(SH.uid)}
-
 /* ======================= fila do RU (os alunos informam) ======================= */
 var RUS=['ru_central','ru_ct1','ru_ct2','ru_letras'].filter(function(k){return PL[k]});
 var FILA_N=[['Sem fila','na hora','good','0'],['Pequena','até 5 min','good','5'],['Média','5 a 15 min','warn','15'],['Grande','15 a 30 min','bad','30'],['Enorme','mais de 30 min','bad','30+']];
@@ -2102,20 +2087,10 @@ function filaPill(ru){
 }
 function filaRow(k,now){
   var it=PL[k],f=filaOf(k),st=statusOf(it,now),open=filaOpen===k,ok=canPost();
-  return '<div class="fila-r'+(open?' open':'')+'"><div class="fila-top"><span class="grow"><b>'+esc(it.name)+'</b><small>'+(f?f.count+(f.count>1?' avisos':' aviso')+' · último '+agoTxt(f.last):esc(st.t))+'</small></span>'+filaPill(k)+
+  return '<div class="fila-r'+(open?' open':'')+'"><div class="fila-top"><span class="grow"><b>'+esc(it.name)+'</b><small>'+(f?f.count+(f.count>1?' avisos':' aviso')+' · último '+agoTxt(f.last):esc(st.t))+'</small></span>'+filaPill(k)+(!ok&&semConta()&&SH.on?askBtn('fila','Informar','la-sm'):'')+
     (ok?'<button type="button" class="copy" data-filaopen="'+k+'" aria-expanded="'+open+'">'+(open?'Cancelar':'Informar')+'</button>':'')+'</div>'+
     (open?'<div class="fila-pick" role="group" aria-label="Tamanho da fila no '+esc(it.name)+'">'+FILA_N.map(function(L,i){return '<button type="button" class="fila-b '+L[2]+'" data-fila="'+k+'" data-n="'+i+'"><b>'+L[0]+'</b><small>'+L[1]+'</small></button>'}).join('')+'</div>':'')+
   '</div>';
-}
-function filaHTML(){
-  var now=nowMin(),why='';
-  if(SH.on&&blocked(SH.uid))why='Sua conta não pode informar filas no momento (decisão da gestão).';
-  else if(SH.on&&FBMODE&&SH.full&&GESTOR!==true)why=fullMsg('informar a fila');
-  else if(SH.on&&(SH.denied||SH.write===false))why=FBMODE?'Você pode ver as filas. Para informar, toque em Informar e entre com sua conta.':'Você pode ver as filas. Para informar, o dono da página precisa te dar acesso de colaborador.';
-  return '<div class="filabox" id="filabox"><div class="plc-h"><div><p class="eyebrow">Ao vivo · últimos 45 min</p><h3 class="plc-t">Fila do RU agora</h3></div>'+(SH.on?'<span class="pill good">Compartilhado</span>':'<span class="pill warn">Só neste aparelho</span>')+'</div>'+
-    '<div class="fila-l">'+RUS.map(function(k){return filaRow(k,now)}).join('')+'</div>'+
-    (filaMsg?'<p class="small fila-ok" role="status">'+esc(filaMsg)+'</p>':'')+
-    '<p class="muted small">'+(why||'Está na fila? Toque em Informar e escolha o tamanho. Seu nome não aparece, e os avisos mais recentes pesam mais.')+'</p></div>';
 }
 function sendFila(ru,n){
   var now=Date.now(),it={id:'f'+now.toString(36),ru:ru,n:n,ts:now};
@@ -2131,7 +2106,6 @@ function sendFila(ru,n){
   mineL.unshift(it);
   return SH.db.doc('fila/'+SH.uid).set(stamp({items:mineL.slice(0,8)})).then(function(){filaBusy=false;postDone('fila');return true},function(){filaBusy=false;postFail();return false});
 }
-
 /* ======================= solicitações de alteração (alunos → gestão) ======================= */
 var REQ_T=[['onibus','Horário ou itinerário de ônibus'],['ponto','Ponto de ônibus (novo, mudou ou fechado)'],['wifi','Rede Wi-Fi (nome, senha, fora do ar, nova rede)'],['servico','Horário de serviço (RU, biblioteca, secretaria)'],['planta','Planta de prédio faltando ou desatualizada'],['outro','Outro assunto']];
 var REQ_ST={nova:['Nova','warn'],analise:['Em análise','warn'],aprovada:['Aprovada','good'],feita:['Resolvida','good'],recusada:['Recusada','bad']};
@@ -2163,6 +2137,7 @@ function myReqHTML(){
 }
 var reqM=null,reqCtx=null;
 function openReq(t,alvo){
+  if(!PERFIL){openLogin();lgShow('new');gToast('Crie seu perfil para pedir correções.');return}
   reqCtx={t:t||'outro',alvo:alvo||''};
   if(!reqM){document.body.insertAdjacentHTML('beforeend','<div class="cfgmodal" id="reqM" role="dialog" aria-modal="true" aria-labelledby="reqTitle" hidden><div class="cfgsheet narrow"><div class="cfghead"><h2 id="reqTitle">Sugerir correção</h2><button type="button" class="cfgclose" id="reqClose" aria-label="Fechar">'+XSVG+'</button></div><div id="reqBody"></div></div></div>');
     reqM=$('#reqM');$('#reqClose').addEventListener('click',closeReq);reqM.addEventListener('click',function(e){if(e.target===reqM)closeReq()});
@@ -2182,30 +2157,10 @@ function openReq(t,alvo){
 }
 function closeReq(){if(reqM){reqM.hidden=true;if(cfgM.hidden&&glM.hidden&&(!gestM||gestM.hidden))document.documentElement.style.overflow=''}}
 var XSVG='<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-
 /* ---------- ganchos nas telas existentes ---------- */
-var _renderCfg=renderCfg;
-renderCfg=function(f){_renderCfg(f);var R=$('#cfgR');if(R&&!R.querySelector('.reqsec')){R.insertAdjacentHTML('beforeend','<div class="reqsec">'+myReqHTML()+'</div>')}};
-var _placeCard=placeCard;
-placeCard=function(id,now,bare){
-  var s=_placeCard(id,now,bare);if(!s)return s;
-  var extra='';
-  if(RUS.indexOf(id)>=0)extra+='<div class="fila-in"><p class="small"><b>Fila agora</b></p>'+filaRow(id,now)+'</div>';
-  if(PL[id]&&PL[id].fechadoTemp)extra+='<div class="warnbox"><b>Fechado temporariamente</b>Informado pela gestão do app.</div>';
-  extra+='<button type="button" class="linkbtn sugg" data-req="servico||'+esc(PL[id].name)+'">Sugerir correção</button>';
-  return s.slice(0,-6)+extra+'</div>';
-};
-var _renderDetail=renderDetail;
-renderDetail=function(f){
-  _renderDetail(f);var s=state.sel;if(!s)return;var t=null,a='';
-  if(s.kind==='stop'&&STOPS[s.id]){t='ponto';a='Ponto '+STOPS[s.id].name}
-  else if(s.kind==='line'&&LINES[s.id]){t='onibus';a='Linha '+s.id+' · '+LINES[s.id].name}
-  else if(s.kind==='wifi'&&WIFI[s.id]){t='wifi';a='Wi-Fi '+WIFI[s.id].name}
-  if(t)detail.insertAdjacentHTML('beforeend','<button type="button" class="linkbtn sugg" data-req="'+t+'||'+esc(a)+'">Sugerir correção</button>');
-};
+aoFazer('ajustes montados',function(f){var R=$('#cfgR');if(R&&!R.querySelector('.reqsec')){R.insertAdjacentHTML('beforeend','<div class="reqsec">'+myReqHTML()+'</div>')}});
 function lineNote(id){var l=LINES[id];return (l.susp?'<div class="warnbox"><b>Linha suspensa</b>A gestão suspendeu esta linha. Os horários abaixo não estão valendo.</div>':'')+(l.aviso?'<div class="warnbox"><b>Aviso da gestão</b>'+esc(l.aviso)+'</div>':'')}
 function stopNote(id){var s=STOPS[id];return (s.off?'<div class="warnbox"><b>Ponto desativado</b>Os ônibus não estão parando aqui por enquanto.</div>':'')+(s.aviso?'<div class="warnbox"><b>Aviso da gestão</b>'+esc(s.aviso)+'</div>':'')}
-
 document.addEventListener('click',function(e){
   var t=e.target.closest('[data-filaopen],[data-fila],[data-req]');if(!t)return;
   if(t.dataset.filaopen){filaOpen=filaOpen===t.dataset.filaopen?null:t.dataset.filaopen;filaMsg='';refreshAll();if(!pPane.hidden)renderPredios();var b=document.querySelector('[data-filaopen="'+t.dataset.filaopen+'"]');if(b)b.focus({preventScroll:true});return}
@@ -2214,7 +2169,6 @@ document.addEventListener('click',function(e){
   if(t.dataset.req!=null){var p=t.dataset.req.split('||');openReq(p[0],p[1]||'');}
 });
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&reqM&&!reqM.hidden){e.stopPropagation();closeReq()}},true);
-
 /* ======================= tela do gestor ======================= */
 var gestM=null,gTab='geral',gEdit=null,gFilter={req:'abertas',q:'',svc:''},gNames={},ASSETS=null;
 var GTABS=[['geral','Visão geral'],['usuarios','Usuários'],['linhas','Linhas'],['pontos','Pontos'],['wifi','Redes Wi-Fi'],['servicos','Serviços e horários'],['solic','Solicitações'],['plantas','Plantas dos prédios'],['avisos','Avisos e filas']];
@@ -2240,7 +2194,8 @@ function setGestor(v){
   if(v===true&&SH.on){
     SH.db.collection('members').onSnapshot(function(s){SH.members=s.docs.map(function(d){var x=d.data()||{};return {id:d.id,first:+x.first||0,last:+x.last||0,visits:+x.visits||0,nome:String(x.nome||'').slice(0,60),email:String(x.email||'').slice(0,120)}});if(gestM&&!gestM.hidden&&gTab!=='solic'&&!(gTab==='admins'&&document.activeElement&&document.activeElement.id==='admBusca'))renderGest()},function(){});
     SH.db.collection('requests').onSnapshot(function(s){SH.req=flatReq(s.docs);if(gestM&&!gestM.hidden)renderGest()},function(){});
-  }
+  };
+  etapas('gestor definido',v);
 }
 function names(ids){
   ids=ids.filter(function(id){return id&&!(id in gNames)});
@@ -2253,6 +2208,8 @@ function dmy(ts){if(!ts)return '—';var d=new Date(ts);return String(d.getDate(
 function allReqs(){return SH.on?SH.req:reqLocal.map(function(r){return Object.assign({owner:''},r)})}
 function renderGest(){
   if(!gestM)return;
+  computePerms();
+  if(gTab!=='admins'){var p=TAB_PERM[gTab];if(p&&!gcan(p))gTab='geral'}/* aba sem permissão volta para a visão geral */
   var role=GESTOR===true&&FBMODE?'Você é gestor porque seu e-mail está na coleção gestores do Firebase. Para incluir outro gestor, crie lá um documento com o e-mail dele.':GESTOR===true?'Você é gestor porque tem acesso de editor a esta página. Para incluir outro gestor, compartilhe com acesso de editor.':'Modo demonstração: aberto fora do claude.ai, as mudanças ficam só neste aparelho.';
   $('#gRole').textContent=role;
   var pend=allReqs().filter(function(r){var s=reqStatus(r.id).st;return s==='nova'||s==='analise'}).length;
@@ -2261,6 +2218,12 @@ function renderGest(){
   var f={geral:gGeral,usuarios:gUsers,linhas:gLinhas,pontos:gPontos,wifi:gWifiTab,servicos:gServicos,solic:gSolic,plantas:gPlantas,avisos:gAvisos}[gTab]||gGeral;
   $('#gBody').innerHTML=f();
   if(keep){var el=document.getElementById(keep);if(el){if(val!=null&&el.value!==undefined&&el.type!=='file')el.value=val;el.focus({preventScroll:true})}}
+  var gb=$('#gBody');
+  if(gTab==='gps'){var at=document.activeElement,aid=at&&at.id;gb.innerHTML=gGps();if(aid){var fe=document.getElementById(aid);if(fe)fe.focus({preventScroll:true})}}
+  if(gTab==='admins')gb.innerHTML=gAdmins();
+  gestM.querySelectorAll('[data-gtab]').forEach(function(b){var p=TAB_PERM[b.dataset.gtab];if(p&&!gcan(p))b.hidden=true});
+  var r=$('#gRole');if(r&&!ME.principal&&ME.perms)r.textContent='Seus privilégios: '+permSummary(ME.perms,false)+'.';
+  etapas('gestão montada');
 }
 function tile(n,l,tab,tone){return '<button type="button" class="gtile'+(tone?' '+tone:'')+'" data-gtab="'+tab+'"><b>'+n+'</b><span>'+l+'</span></button>'}
 function gGeral(){
@@ -2279,7 +2242,8 @@ function gGeral(){
     tile((GST.plantas.items||[]).length,'Plantas enviadas','plantas')+
   '</div>'+
   '<h3 class="gh">Fila do RU</h3><div class="glist">'+RUS.map(function(k){var f=filaOf(k);return '<div class="grow2"><span class="grow"><b>'+esc(PL[k].name)+'</b><small>'+(f?f.count+' aviso(s) · último '+agoTxt(f.last):'Ninguém informou nos últimos 45 min')+'</small></span>'+filaPill(k)+'</div>'}).join('')+'</div>'+
-  '<h3 class="gh">Últimas solicitações</h3>'+(reqs.length?'<div class="glist">'+reqs.slice(0,4).map(function(r){var s=reqStatus(r.id),S=REQ_ST[s.st];return '<button type="button" class="grow2 btnrow" data-gtab="solic"><span class="grow"><b>'+esc(reqTipo(r.t))+'</b><small>'+esc(r.alvo||'')+' · '+agoTxt(r.ts)+'</small></span><span class="pill '+S[1]+'">'+S[0]+'</span></button>'}).join('')+'</div>':'<p class="muted small">Nenhuma solicitação ainda.</p>');
+  '<h3 class="gh">Últimas solicitações</h3>'+(reqs.length?'<div class="glist">'+reqs.slice(0,4).map(function(r){var s=reqStatus(r.id),S=REQ_ST[s.st];return '<button type="button" class="grow2 btnrow" data-gtab="solic"><span class="grow"><b>'+esc(reqTipo(r.t))+'</b><small>'+esc(r.alvo||'')+' · '+agoTxt(r.ts)+'</small></span><span class="pill '+S[1]+'">'+S[0]+'</span></button>'}).join('')+'</div>':'<p class="muted small">Nenhuma solicitação ainda.</p>')+
+    demoCard()+errCard()+acessoCard();/* exemplos do modo apresentação, erros dos aparelhos e acesso */
 }
 /* ---------- usuários ---------- */
 function userStats(id){
@@ -2293,14 +2257,22 @@ function usersList(){
   if(!l.length)return '<p class="muted small">'+(q?'Ninguém com esse nome.':'Ninguém abriu o app desde que a gestão foi ligada.')+'</p>';
   return l.map(function(m){var st=userStats(m.id),b=blocked(m.id);
     return '<div class="grow2 urow'+(b?' isblk':'')+'"><span class="grow"><b>'+esc(who(m.id))+'</b>'+(b?' <span class="pill bad">Bloqueado</span>':'')+'<small>Primeira visita '+dmy(m.first)+' · última '+agoTxt(m.last)+' · '+m.visits+' visita(s)</small><small>'+st.av+' aviso(s) ao vivo · '+st.fi+' fila(s) · '+st.rq+' solicitação(ões)</small></span>'+
-      (m.id===SH.uid?'':'<button type="button" class="copy'+(b?'':' danger')+'" data-gblock="'+esc(m.id)+'">'+(b?'Desbloquear':'Bloquear')+'</button>')+'</div>'}).join('');
+      (m.id===SH.uid?'':(FBMODE&&gcan('usuarios')?'<button type="button" class="copy" data-gfree="'+esc(m.id)+'">Liberar vaga</button>':'')+'<button type="button" class="copy'+(b?'':' danger')+'" data-gblock="'+esc(m.id)+'">'+(b?'Desbloquear':'Bloquear')+'</button>')+'</div>'}).join('');
 }
 function gUsers(){
   if(!SH.on)return '<h3 class="gh">Usuários</h3><p class="muted">A lista de usuários aparece quando o app está publicado no claude.ai: cada pessoa que abre o app entra aqui, com a data da primeira e da última visita e o que ela enviou.</p><div class="glist"><div class="grow2"><span class="grow"><b>Este aparelho</b><small>'+filaLocal.length+' fila(s) · '+reqLocal.length+' solicitação(ões)</small></span></div></div>';
-  return '<h3 class="gh">Usuários ('+SH.members.length+')</h3>'+
+  return '<h3 class="gh">Usuários ('+SH.members.length+')</h3>'+(FBMODE?gVagasCard():'')+
     '<p class="muted small">Bloquear esconde os avisos e as filas da pessoa e impede novos envios pelo app. '+(FBMODE?'Para tirar o acesso de vez, desative a pessoa em Authentication, no console do Firebase.':'Para tirar o acesso de vez, use o menu Compartilhar da página.')+'</p>'+
     '<label class="gf"><span class="sr">Buscar pessoa</span><input type="search" id="gUq" placeholder="Buscar pelo nome" value="'+esc(gFilter.q)+'"></label>'+
     '<div class="glist" id="gUlist">'+usersList()+'</div>';
+}
+/* cartão das vagas para participar (só no site com Firebase) */
+function gVagasCard(){
+  var n=VAGAS.ok?VAGAS.n:null,max=VAGAS.max,full=n!=null&&n>=max;
+  var card='<div class="gcard vagas"><div class="grow2"><span class="grow"><b>Vagas para participar</b><small>'+(n==null?'Ainda não configurado. Abra esta tela com o privilégio Usuários para criar o contador.':n+' de '+max+' em uso'+(full?' · lotado: quem chegar agora só consulta':''))+'</small></span>'+(n==null?'':'<span class="pill '+(full?'bad':n>=max*.9?'warn':'good')+'">'+Math.max(0,max-n)+' livre(s)</span>')+'</div>'+
+    (n==null?'':'<div class="vbar" aria-hidden="true"><i style="width:'+Math.min(100,Math.round(n/max*100))+'%"></i></div>')+
+    (gcan('usuarios')?'<form class="gform vform" data-gform="vagas"><label class="gf">Limite de pessoas<input type="number" id="gVmax" min="1" max="2000" step="1" value="'+max+'"></label><button type="submit" class="copy">Salvar limite</button>'+(n==null?'':'<button type="button" class="copy" id="gVrecount">Recontar</button>')+'</form><p class="muted small">Gestores não ocupam vaga. Ao liberar a vaga de alguém, a pessoa continua vendo o app e volta a ocupar uma vaga se entrar de novo e ainda houver espaço.</p>':'')+'</div>';
+  return card;
 }
 /* ---------- linhas ---------- */
 function gLinhas(){
@@ -2391,8 +2363,8 @@ function svcList(){
         '<p class="err small" id="gErr" role="alert"></p><div class="gbtns"><button type="submit" class="copy primary">Salvar</button>'+(GST.servicos[k]?'<button type="button" class="copy" data-greset="servicos:'+k+'">Voltar ao original</button>':'')+'</div></form>':'')+'</div>'}).join('');
 }
 function gServicos(){
-  return '<h3 class="gh">Serviços e horários</h3><p class="muted small">Restaurantes, bibliotecas, secretarias e segurança. Deixe o campo vazio para manter o horário original.</p>'+
-    '<label class="gf"><span class="sr">Buscar serviço</span><input type="search" id="gSq" placeholder="Buscar: RU, biblioteca, secretaria" value="'+esc(gFilter.svc)+'"></label><div class="glist" id="gSlist">'+svcList()+'</div>';
+  return '<h3 class="gh">Serviços e horários</h3><p class="muted small">Restaurantes, bibliotecas, secretarias e segurança. Deixe o campo vazio para manter o horário original.</p><button type="button" class="copy" id="gSvJump">Mudar a localização dos serviços no mapa</button>'+
+    '<label class="gf"><span class="sr">Buscar serviço</span><input type="search" id="gSq" placeholder="Buscar: RU, biblioteca, secretaria" value="'+esc(gFilter.svc)+'"></label><div class="glist" id="gSlist">'+svcList()+'</div><div id="gSvSec"></div>'+svcMapaHTML();
 }
 /* ---------- solicitações ---------- */
 var REQ_GO={onibus:'linhas',ponto:'pontos',wifi:'wifi',servico:'servicos',planta:'plantas'};
@@ -2563,7 +2535,8 @@ function lugRow(k,now,we){
   var it=PL[k],open=pstate.pl===k&&pstate.open;
   return '<div class="lgi'+(open?' open':'')+'"><button class="lgrow" type="button" data-lgo="'+k+'" aria-expanded="'+open+'"><span class="grow"><b>'+esc(it.name)+'</b><small>'+esc(it.s&&it.bld?it.where:it.where)+'</small></span><span class="lgr"><span class="mono lgh2">'+lugHrs(it,we)+'</span>'+pill(statusOf(it,now))+(RUS.indexOf(k)>=0&&filaOf(k)?filaPill(k):'')+'</span></button>'+(open?lugDetail(k,now):'')+'</div>';
 }
-hoursHTML=function(now){
+/* lista de lugares com horário, busca e filtros (fica dentro da dobra "Onde fica e quando abre") */
+function hoursListHTML(now){
   if(!LCAT.some(function(c){return c[0]===pstate.cat}))pstate.cat='todos';
   var q=glFold(pstate.q.trim()),we=isWeekend()&&!state.manual;
   var all=Object.keys(PL).filter(function(k){var it=PL[k];return LORD[it.cat]!==undefined&&!it.line});
@@ -2580,14 +2553,12 @@ hoursHTML=function(now){
     if(pstate.pl&&g.indexOf(pstate.pl)>=0&&show.indexOf(pstate.pl)<0)show=show.concat([pstate.pl]);
     out+='<div class="lgg"><h3 class="lgt">'+LNAME[c]+' <span class="muted">'+g.length+'</span></h3>'+show.map(function(k){return lugRow(k,now,we)}).join('')+
       (show.length<g.length?'<button type="button" class="linkbtn lgmore" data-lgmore="'+c+'">Ver mais '+(g.length-show.length)+'</button>':'')+'</div>'});
-  return '<div><p class="eyebrow">'+(we?'Fim de semana':'Dia útil')+' · '+fmt(now)+'</p><h2>Onde fica e quando abre</h2></div>'+
-    '<label class="fld"><span class="sr">Buscar local</span><input type="search" id="hq" placeholder="Buscar local, sala ou bloco" value="'+esc(pstate.q)+'"></label>'+
+  return '<label class="fld"><span class="sr">Buscar local</span><input type="search" id="hq" placeholder="Buscar local, sala ou bloco" value="'+esc(pstate.q)+'"></label>'+
     '<div class="chips lgchips" role="group" aria-label="Filtrar">'+LCAT.map(function(c){return '<button class="chip" type="button" data-cat="'+c[0]+'" aria-pressed="'+(pstate.cat===c[0])+'">'+c[1]+(c[0]==='aberto'?' <span class="cnum">'+nOpen+'</span>':'')+'</button>'}).join('')+'</div>'+
     (nSoon?'<p class="small lgsoon"><i class="pin-dot warn"></i>'+nSoon+(nSoon>1?' locais fecham':' local fecha')+' em até 30 min</p>':'')+
     '<div class="lglist">'+(out||'<p class="muted">Nada encontrado. Tente outra palavra.</p>')+'</div>'+
     '<p class="muted small keep">Horários de dias úteis informados pela UFRJ; em férias e feriados podem mudar. Os horários dos ônibus estão na aba Trajetos.</p>';
-};
-function saveFolds(){try{localStorage.setItem('cse-folds',JSON.stringify({f:!!pstate.filaBox,b:!!pstate.bldOpen}))}catch(e){}}
+}function saveFolds(){try{localStorage.setItem('cse-folds',JSON.stringify({f:!!pstate.filaBox,b:!!pstate.bldOpen}))}catch(e){}}
 (function(){try{var o=JSON.parse(localStorage.getItem('cse-folds'))||{};pstate.filaBox=!!o.f;pstate.bldOpen=!!o.b}catch(e){}})();
 function filaResumo(){
   var known=RUS.map(function(k){return [k,filaOf(k)]}).filter(function(x){return x[1]});
@@ -2608,11 +2579,6 @@ function filaBody(){
 function foldHTML(id,open,title,sub,body){
   return '<details class="fold" id="'+id+'"'+(open?' open':'')+'><summary><span class="fold-t"><b>'+title+'</b>'+sub+'</span><span class="fold-c" aria-hidden="true"></span></summary><div class="fold-b">'+body+'</div></details>';
 }
-buildingHTML=function(now){
-  var fila=CFG.reps?foldHTML('fdFila',pstate.filaBox,'Fila do RU agora',filaResumo(),pstate.filaBox?filaBody():''):'';
-  var np=(GST.plantas.items||[]).length;
-  return fila+foldHTML('fdBld',pstate.bldOpen,'Prédios por dentro','<span class="fsum muted">Blocos, andares e salas do CT e do CCMN'+(np?' · '+np+' planta'+(np>1?'s':'')+' oficial'+(np>1?'is':''):'')+'</span>',pstate.bldOpen?bldInner(now):'');
-};
 function bldInner(now){
   var extra=[];(GST.plantas.items||[]).forEach(function(p){if(!BLD[p.bld]&&extra.indexOf(p.bld)<0)extra.push(p.bld)});
   if(!BLD[pstate.bld]&&extra.indexOf(pstate.bld)<0)pstate.bld='ct';
@@ -2620,6 +2586,12 @@ function bldInner(now){
   var head=chips;
   if(!BLD[pstate.bld])return head+'<p class="small"><b>'+esc(plantName(plantasDe(pstate.bld)[0]))+'</b></p>'+plantasHTML(pstate.bld);
   var B=BLD[pstate.bld],sel=PL[pstate.pl]&&PL[pstate.pl].bld===pstate.bld&&PL[pstate.pl].b?pstate.pl:null;
+  if(pstate.bld==='ct'){
+    /* no CT, a planta real substitui o esquema de exemplo; uma sala escolhida em outro lugar (glossário, grade) abre no bloco e andar dela */
+    var P=PL[pstate.pl];if(pstate.pl!==CTP.lastPl){CTP.lastPl=pstate.pl;if(P&&P.bld==='ct'){if(P.b)CTP.bl=P.b;if(P.f!=null)CTP.pav=P.f<=0?'subsolo':'pav'+P.f;CTP.f={biblio:'estudo',aula:'aula',wc:'wc',lab:'lab'}[P.cat]||'';CTP.vb=null;CTP.sel=null}}
+    if(CTP.d&&CTP.bl&&!CTP.d.salas.some(function(s){return s[0]===CTP.bl})){var alt=CTP.d.salas.filter(function(s){return s[0].indexOf(CTP.bl)>=0})[0];CTP.bl=alt?alt[0]:''}
+    return head+'<p class="small"><b>'+B.name+'</b> · <span class="muted">'+B.addr+'</span></p>'+plantasHTML('ct')+ctpHTML();
+  }
   return head+'<p class="small"><b>'+B.name+'</b> · <span class="muted">'+B.addr+'</span></p>'+plantasHTML(pstate.bld)+planHTML(sel)+
     '<details class="det lgabout"><summary>Sobre este esquema</summary><p class="muted small keep">'+B.note+' Planta ilustrativa: a UFRJ não publica as plantas dos prédios. Bloco, andar e número da sala são oficiais; a posição exata da sala no corredor é aproximada. Quando a fonte só dá a sala, o andar sai do número (sala 527 → 5º andar).</p></details>';
 };
@@ -2627,8 +2599,6 @@ pPane.addEventListener('toggle',function(e){var d=e.target;if(!d||!d.classList||
   var was=d.id==='fdFila'?pstate.filaBox:pstate.bldOpen;if(was===d.open)return;
   if(d.id==='fdFila')pstate.filaBox=d.open;else if(d.id==='fdBld')pstate.bldOpen=d.open;else return;
   saveFolds();if(d.open){var b=d.querySelector('.fold-b');if(b&&!b.firstChild){renderPredios();var n=document.getElementById(d.id);if(n){var s=n.querySelector('summary');if(s)s.focus({preventScroll:true})}}}},true);
-var _renderPredios=renderPredios;
-renderPredios=function(f){_renderPredios(f);if(pPane.hidden)return;pPane.querySelectorAll('.planbox .pick .chips').forEach(function(el){var c=el.querySelector('[aria-pressed="true"]');if(c&&el.scrollWidth>el.clientWidth){var r1=el.getBoundingClientRect(),r2=c.getBoundingClientRect();el.scrollLeft+=r2.left+r2.width/2-(r1.left+r1.width/2)}})};
 pPane.addEventListener('click',function(e){
   var t=e.target.closest('[data-lgo],[data-goplan],[data-lgmore]');if(!t)return;
   if(t.dataset.lgmore){pstate.more[t.dataset.lgmore]=true;renderPredios();return}
@@ -2651,8 +2621,6 @@ function trackMember(uid){
 }
 if((!window.claude||typeof window.claude.use!=='function')&&!FBMODE){loadLocalG();if(Object.keys(GST.linhas).length||Object.keys(GST.pontos).length||Object.keys(GST.wifi).length||Object.keys(GST.servicos).length||(GST.plantas.items||[]).length)rebuildAll();setGestor('demo')}
 $('#gestBtn').addEventListener('click',function(){if(gestM&&!gestM.hidden)closeGest();else openGest()});
-
-
 /* ======================= conta: claude.ai ou Google (Firebase) + ajustes na nuvem ======================= */
 /* No claude.ai a conta do Claude identifica a pessoa (ajustes em data/users/<id>/ajustes, privado).
    Fora dele (GitHub Pages), com js/config.js preenchido, entra com Google via Firebase Auth e guarda em Firestore usuarios/<uid>. */
@@ -2670,6 +2638,7 @@ function applyRemote(d){
   if(ACC.kind==='google'&&Array.isArray(d.grade)&&d.grade.length){GRADE=d.grade.filter(function(x){return x&&x.nome}).slice(0,40);saveGrade();syncAulas();renderGrade()}
   ACC.mute=false;
   if(!cfgM.hidden)renderCfg();
+  applyExtra(d);
 }
 function accQueue(){if(!ACC.kind||ACC.mute)return;clearTimeout(ACC.t);ACC.state='salvando';accPaint();ACC.t=setTimeout(accPush,900)}
 function accPush(){
@@ -2677,14 +2646,17 @@ function accPush(){
   var s=accSettings(),p;
   if(ACC.kind==='claude')p=SH.db.doc('data/users/'+ACC.uid+'/ajustes').set({cfg:s.cfg,rota:s.rota,ts:Date.now()});
   else p=ACC.fb.db.collection('usuarios').doc(ACC.uid).set({cfg:s.cfg,rota:s.rota,grade:GRADE||[],nome:ACC.name||'',ts:Date.now()},{merge:true});
+  /* contato para a volta à noite e contagem de contribuições vão junto */
+  try{if(ACC.kind==='google'&&ACC.fb)ACC.fb.db.collection('usuarios').doc(ACC.uid).set({contato:CONT,contrib:CONTRIB},{merge:true}).catch(function(){});
+    else if(ACC.kind==='claude'&&SH.db)SH.db.doc('data/users/'+ACC.uid+'/extra').set({contato:CONT,contrib:CONTRIB,ts:Date.now()}).catch(function(){})}catch(e){}
   return p.then(function(){ACC.last=Date.now();ACC.state='ok';accPaint()},function(){ACC.state='erro';accPaint()});
 }
-var _saveCfgA=saveCfg;saveCfg=function(){_saveCfgA();if(!ACC.mute)accQueue()};
-var _savePrefsA=savePrefs;savePrefs=function(){_savePrefsA();if(!ACC.mute)accQueue()};
-var _saveGradeA=saveGrade;saveGrade=function(){_saveGradeA();if(ACC.kind==='google'&&!ACC.mute)accQueue()};
 /* claude.ai */
 function accClaude(user,uid){
+  if(user&&user.me)user.me().then(function(me){if(me&&me.avatarUrl)savePhoto(me.avatarUrl)},function(){});/* foto da conta do Claude */
   if(!uid||!SH.db)return;
+  /* contato da volta à noite e contribuições guardadas na conta */
+  try{SH.db.doc('data/users/'+uid+'/extra').get().then(function(d){if(d.exists){applyExtra(d.data());if(!cfgM.hidden)renderCfgKeep()}},function(){})}catch(e){}
   ACC.kind='claude';ACC.uid=uid;ACC.state='carregando';
   (user?user.me():Promise.resolve({})).then(function(me){ACC.name=me&&me.name||'';ACC.photo=me&&me.avatarUrl||'';accPaint()});
   SH.db.doc('data/users/'+uid+'/ajustes').get().then(function(d){
@@ -2733,6 +2705,9 @@ function accGoogle(u){
     if(d.exists){applyRemote(d.data()||{});ACC.last=+(d.data()||{}).ts||Date.now();ACC.state='ok';gToast(ACC.prov==='email'?'Ajustes carregados da sua conta.':'Ajustes carregados da sua conta Google.')}else accPush();
     accPaint();
   },function(){ACC.state='erro';accPaint()});
+  /* foto: a da conta Google ou, para e-mail e senha, a do Gravatar */
+  if(ACC.photo)savePhoto(ACC.photo);else gravatar(u.email).then(function(url){if(url&&ACC.uid===u.uid)savePhoto(url)});
+  gradeAuthSync();
 }
 /* Firebase também como banco compartilhado: fila, avisos, notas, pedidos, calendário e gestão */
 function fbShared(fb){
@@ -2745,6 +2720,7 @@ function fbShared(fb){
     GKEYS.forEach(function(k){if(!seen[k])GST[k]=k==='plantas'?{items:[]}:k==='bloqueados'?{ids:[]}:{}});if(!Array.isArray(GST.plantas.items))GST.plantas.items=[];GST.plantas.items=GST.plantas.items.filter(function(x){return x&&typeof x==='object'});if(!Array.isArray(GST.bloqueados.ids))GST.bloqueados.ids=[];
     rebuildAll();if(!cfgM.hidden)renderCfg()},function(){});
   refreshAll();
+  etapas('Firebase conectado',fb);
 }
 var fbReqUnsub=null;
 function fbUserOn(u){
@@ -2755,11 +2731,12 @@ function fbUserOn(u){
   fbReqUnsub=db.doc('requests/'+uid).onSnapshot(function(d){var it=d.exists?((d.data()||{}).items||[]):[];SH.myReq=flatReq([{id:uid,data:function(){return {items:it}}}]);if(!cfgM.hidden)renderCfg()},function(){});
   if(u.email)db.doc('gestores/'+String(u.email).toLowerCase()).get().then(function(d){if(d.exists){var gx=d.data()||{};ME.principal=gx.super===true||!('perms' in gx);ME.perms=ME.principal?null:(gx.perms||{});MUD_OWNER=true;setGestor(true);if(cPane&&!cPane.hidden)renderCal();gToast('Você entrou como gestor.')}},function(){});
   refreshAll();
-}
+setTimeout(covLoop,3000);}
 function fbUserOff(){
   SH.uid=null;SH.write=false;SH.myReq=[];if(fbReqUnsub){fbReqUnsub();fbReqUnsub=null}
   MUD_OWNER=false;if(GESTOR===true){if(gestM&&!gestM.hidden)closeGest();GESTOR=false;var b=$('#gestBtn');if(b)b.hidden=true}
   refreshAll();if(cPane&&!cPane.hidden)renderCal();
+  etapas('usuário saiu');
 }
 if(FB_ON){
   fbInit().then(function(fb){
@@ -2780,21 +2757,16 @@ function accHTML(){
       '<p class="muted small keep">Seus ajustes, o trajeto favorito e a grade ficam na sua conta e aparecem em qualquer aparelho em que você entrar.</p><div class="accmail"><div class="row">'+(em?'<button type="button" class="copy" id="accReset">Trocar a senha</button>':'')+'<button type="button" class="copy" id="accOut">Sair da conta</button></div></div>'}
   else if(FB_ON)h+='<p class="small">Entre com a conta Google ou com e-mail e senha para levar seus ajustes, o trajeto favorito e a grade para qualquer aparelho.</p><div class="accmail"><div class="row"><button type="button" class="copy primary" data-goo>Entrar com Google</button><button type="button" class="copy primary" data-mail>Entrar com e-mail</button></div></div><p class="muted small keep">Sem entrar, tudo fica salvo só neste aparelho.</p>';
   else h+='<p class="small">Seus ajustes ficam salvos só neste aparelho.</p><p class="muted small keep">Para entrar com Google, publique o app com o arquivo js/config.js preenchido (passo a passo no README do projeto). No claude.ai, a sua conta do Claude já guarda tudo.</p>';
+  /* com conta: contribuições e dados; sem conta: o que se ganha entrando */
+  if(contaOk())h+=contribHTML()+dadosHTML();
+  else if(FB_ON)h+='<p class="small keep la-p"><b>Com uma conta você também tem:</b></p>'+laBenHTML();
   return h+'</div>';
 }
 function accPaint(){var s=$('#accsec');if(s&&!cfgM.hidden){var tmp=document.createElement('div');tmp.innerHTML=accHTML();s.replaceWith(tmp.firstChild)}}
-var _renderCfgA=renderCfg;
-renderCfg=function(f){_renderCfgA(f);var R=$('#cfgR');if(R&&!R.querySelector('#accsec'))R.insertAdjacentHTML('afterbegin',accHTML())};
+aoFazer('ajustes montados',function(f){var R=$('#cfgR');if(R&&!R.querySelector('#accsec'))R.insertAdjacentHTML('afterbegin',accHTML())});
 document.querySelectorAll('#login .lg-goo').forEach(function(b){b.hidden=!FB_ON});
 /* login com e-mail e senha (Firebase) */
 var MAIL={mode:'in',busy:false};
-var _lgShowM=lgShow;
-lgShow=function(which){
-  var m=$('#lgMail');if(m)m.hidden=which!=='mail';
-  if(which!=='mail'){_lgShowM(which);return}
-  $('#lgSaved').hidden=true;$('#lgNew').hidden=true;mailMode(MAIL.mode);
-  setTimeout(function(){var f=MAIL.mode==='up'?$('#lgMailNome'):$('#lgMailEmail');if(f)f.focus({preventScroll:true})},50);
-};
 function mailMode(m){
   MAIL.mode=m;var up=m==='up';
   $('#lgMailIn').setAttribute('aria-pressed',String(!up));$('#lgMailUp').setAttribute('aria-pressed',String(up));
@@ -2854,14 +2826,11 @@ document.addEventListener('click',function(e){
       accPaint()},function(){gToast('Não deu para conferir agora.',1)});return}
   if(e.target.closest('#accReset')&&ACC.email){mailReset(ACC.email,function(good,msg){gToast(good?'Enviamos um link para '+ACC.email+' trocar a senha.':msg,!good)})}
 });
-
 document.addEventListener('click',function(e){
   if(e.target.closest('[data-goo]')){e.preventDefault();googleIn();return}
   if(e.target.closest('#accOut')){googleOut()}
 });
 setInterval(function(){if(ACC.kind&&ACC.state==='ok')accPaint()},60000);
-
-
 /* ======================= fonte: família e tamanho ======================= */
 var FONTS=[
   ['aparelho','Do aparelho','A fonte do seu celular ou computador. Carrega na hora.',null,null],
@@ -2890,8 +2859,7 @@ function fontFoldHTML(){
     '<p class="small fslab"><b>Tamanho do texto</b></p><div class="chips fsizes" role="radiogroup" aria-label="Tamanho do texto">'+FSIZES.map(function(s){return '<button type="button" class="chip" role="radio" aria-checked="'+(s[0]===sz[0])+'" aria-pressed="'+(s[0]===sz[0])+'" data-fsize="'+s[0]+'"><span style="font-size:'+Math.round(14*s[2])+'px">A</span> '+s[1]+'</button>'}).join('')+'</div>'+
     '<p class="muted small keep">As fontes vêm do Google Fonts e baixam na primeira vez que você escolhe. O tamanho vale para os painéis; o mapa tem o zoom próprio.</p></details>';
 }
-var _renderCfgF=renderCfg;
-renderCfg=function(f){_renderCfgF(f);var L=$('#cfgL');if(L&&!L.querySelector('#fontdet')){L.insertAdjacentHTML('beforeend',fontFoldHTML());if(fontOpen)FONTS.forEach(loadFont);if(f&&/data-f(ont|size)/.test(f)){var el=L.querySelector(f);if(el)el.focus({preventScroll:true})}}};
+aoFazer('ajustes montados',function(f){var L=$('#cfgL');if(L&&!L.querySelector('#fontdet')){L.insertAdjacentHTML('beforeend',fontFoldHTML());if(fontOpen)FONTS.forEach(loadFont);if(f&&/data-f(ont|size)/.test(f)){var el=L.querySelector(f);if(el)el.focus({preventScroll:true})}}});
 document.addEventListener('toggle',function(e){if(e.target&&e.target.id==='fontdet'){fontOpen=e.target.open;if(fontOpen)FONTS.forEach(loadFont)}},true);
 document.addEventListener('click',function(e){
   var t=e.target.closest('[data-font],[data-fsize]');if(!t||!t.closest('#fontdet'))return;
@@ -2899,7 +2867,6 @@ document.addEventListener('click',function(e){
   else{CFG.fsize=t.dataset.fsize;saveCfg();applyFont();renderCfg('[data-fsize="'+t.dataset.fsize+'"]')}
 });
 applyFont();
-
 /* ======================= localização do aparelho ======================= */
 /* O mapa é uma imagem: a posição do GPS vira x,y por uma transformação de semelhança
    (escala, rotação, espelho e deslocamento) ajustada em pontos de referência.
@@ -2909,7 +2876,6 @@ applyFont();
 var GEO0={lat0:-22.855,lng0:-43.228,a:0.142691,b:0.216408,tx:768.63,ty:348.65,n:0,err:15};
 var GEO=Object.assign({},GEO0);
 var GPS_REF=['est','hu','eefd','res','pu','cenpes1','ccmn','ctl','reit','cetem','coppead','parque','graf'];
-function geoK(){return {kx:111320*Math.cos(GEO.lat0*Math.PI/180),ky:110574}}
 function ll2map(lat,lng,G){G=G||GEO;var kx=111320*Math.cos(G.lat0*Math.PI/180),e=(lng-G.lng0)*kx,n=(lat-G.lat0)*110574;return [G.a*e-G.b*n+G.tx,-G.b*e-G.a*n+G.ty]}
 function mPerUnit(){return 1/Math.hypot(GEO.a,GEO.b)}
 function parseLL(s){var m=String(s||'').match(/(-?\d{1,2}[.,]\d+)\s*[,;\s]\s*(-?\d{1,3}[.,]\d+)/);if(!m)return null;var la=+m[1].replace(',','.'),lo=+m[2].replace(',','.');if(la>0)la=-la;if(lo>0)lo=-lo;if(la<-23.1||la>-22.6||lo<-43.5||lo>-43.0)return null;return [la,lo]}
@@ -2932,7 +2898,7 @@ function fitGeo(){var G=fitGeoFrom(GST.calib&&GST.calib.pts);GEO=G||Object.assig
 var LOC={on:false,watch:null,p:null,ll:null,acc:0,ts:0,first:true,near:null,wifi:null,out:false};
 function nearestOf(obj,p,skip){var best=null;Object.keys(obj).forEach(function(id){if(skip&&skip(obj[id],id))return;var q=obj[id].p;if(!q)return;var d=Math.hypot(q[0]-p[0],q[1]-p[1]);if(!best||d<best.d)best={id:id,d:d}});if(best){best.m=best.d*mPerUnit();best.min=Math.max(1,Math.ceil(best.m*1.25/80))}return best}
 function locUpdate(first){
-  if(!LOC.p)return;
+  if(!LOC.p){if(CMP.on)cmpSchedule();return}
   var B=BASE,mg=60;LOC.out=LOC.p[0]<B.x-mg||LOC.p[0]>B.x+B.w+mg||LOC.p[1]<B.y-mg||LOC.p[1]>B.y+B.h+mg;
   LOC.near=LOC.out?null:nearestOf(STOPS,LOC.p,function(s){return s.off});
   LOC.wifi=LOC.out?null:nearestOf(WIFI,LOC.p);
@@ -2943,6 +2909,7 @@ function locUpdate(first){
       gToast('Ponto mais perto: '+(STOPS[LOC.near.id].short||STOPS[LOC.near.id].name)+' · '+LOC.near.min+' min a pé')}
   }
   if(!state.sel&&!detail.contains(document.activeElement))renderDetail();
+  if(CMP.on)cmpSchedule();
 }
 function drawLoc(){
   var w=$('#world');if(!w)return;var g=$('#gLoc');
@@ -2951,8 +2918,8 @@ function drawLoc(){
   var p=LOC.p,r=Math.max(4,Math.min(400,LOC.acc/mPerUnit()));
   g.innerHTML='<circle class="locacc" cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+r.toFixed(1)+'"/><g class="locmk" transform="translate('+p[0].toFixed(1)+','+p[1].toFixed(1)+') scale('+MS.toFixed(3)+')"><circle class="locpulse" r="13"/><circle class="locdot" r="9"/></g>';
 }
-var _buildMapL=buildMap;buildMap=function(){_buildMapL();drawLoc()};
-var _applyViewL=applyView;applyView=function(f){_applyViewL(f);var m=document.querySelector('#gLoc .locmk');if(m&&LOC.p)m.setAttribute('transform','translate('+LOC.p[0].toFixed(1)+','+LOC.p[1].toFixed(1)+') scale('+MS.toFixed(3)+')')};
+aoFazer('mapa montado',drawLoc);
+aoFazer('vista aplicada',function(){var m=document.querySelector('#gLoc .locmk');if(m&&LOC.p)m.setAttribute('transform','translate('+LOC.p[0].toFixed(1)+','+LOC.p[1].toFixed(1)+') scale('+MS.toFixed(3)+')')});
 function locErr(e){
   if(LOC.on&&LOC.p&&e&&e.code!==1){if(!LOC.warned){LOC.warned=1;gToast('O sinal do GPS oscilou. Mostrando a última posição conhecida.')}return}
   var inClaude=!!(window.claude&&typeof window.claude.use==='function');
@@ -2964,10 +2931,11 @@ function locStart(){
   LOC.on=true;LOC.first=true;var b=$('#zloc');if(b){b.setAttribute('aria-pressed','true');b.classList.add('busy')}
   LOC.watch=navigator.geolocation.watchPosition(function(pos){
     var c=pos.coords;LOC.ll=[c.latitude,c.longitude];LOC.acc=c.accuracy||50;LOC.ts=Date.now();LOC.p=ll2map(c.latitude,c.longitude);
+    try{gpsFix(c,pos.timestamp||Date.now())}catch(e){}
     var bb=$('#zloc');if(bb)bb.classList.remove('busy');var f=LOC.first;LOC.first=false;locUpdate(f);
-  },locErr,{enableHighAccuracy:true,maximumAge:15000,timeout:25000});
+  },locErr,{enableHighAccuracy:true,maximumAge:3000,timeout:25000});
 }
-function locStop(){if(LOC.watch!=null&&navigator.geolocation)navigator.geolocation.clearWatch(LOC.watch);LOC.watch=null;LOC.on=false;LOC.p=null;LOC.near=null;var b=$('#zloc');if(b){b.setAttribute('aria-pressed','false');b.classList.remove('busy')}drawLoc();if(!state.sel)renderDetail()}
+function locStop(){if(LOC.watch!=null&&navigator.geolocation)navigator.geolocation.clearWatch(LOC.watch);LOC.watch=null;LOC.on=false;LOC.p=null;LOC.near=null;var b=$('#zloc');if(b){b.setAttribute('aria-pressed','false');b.classList.remove('busy')}drawLoc();if(!state.sel)renderDetail();if(CMP.on)cmpSchedule()}
 function locCardHTML(){
   if(!LOC.on)return '';
   if(!LOC.p)return '<div class="loccard"><p class="small"><span class="locping"></span> Procurando onde você está…</p></div>';
@@ -2996,8 +2964,6 @@ function gGps(){
     '<p class="err small" id="gErr" role="alert"></p><div class="gbtns"><button type="submit" class="copy primary">Salvar calibração</button>'+(Object.keys(pts).length?'<button type="button" class="copy" data-gcalclr>Voltar à calibração inicial</button>':'')+'</div></form>';
 }
 GTABS.splice(GTABS.length-1,0,['gps','GPS e mapa']);
-var _renderGestL=renderGest;
-renderGest=function(){if(gTab==='gps'&&gestM){var keep=gTab;_renderGestL();var a=document.activeElement,id=a&&a.id;$('#gBody').innerHTML=gGps();if(id){var el=document.getElementById(id);if(el)el.focus({preventScroll:true})}}else _renderGestL()};
 document.addEventListener('click',function(e){
   var t=e.target.closest('[data-ggps],[data-gcalclr]');if(!t||!t.closest('#gestM'))return;
   if(t.dataset.ggps!=null){var id=t.dataset.ggps,inp=$('#gG_'+id);if(!navigator.geolocation){gToast('Este navegador não informa a localização.',1);return}
@@ -3011,10 +2977,8 @@ document.addEventListener('submit',function(e){
   if(Object.keys(pts).length&&!fitGeoFrom(pts)){er.textContent='Com esses pontos a conta não fecha. Confira se cada coordenada é do ponto certo.';return}
   saveG('calib',{pts:pts});
 },true);
-var _applyGL=applyG;applyG=function(){_applyGL();fitGeo()};
+aoFazer('dados da gestão aplicados',function(){fitGeo()});
 fitGeo();
-
-
 /* ---------- legenda: cores das linhas ---------- */
 function lgShort(n){var m=/^Estação\s*×\s*(.+)$/.exec(n);return m?m[1]:n}
 function drawLegendLines(){
@@ -3023,9 +2987,8 @@ function drawLegendLines(){
     return '<button type="button" class="lg-line'+(l.susp?' susp':'')+'" data-legline="'+id+'" title="Linha '+id+' · '+esc(l.name)+(l.susp?' (suspensa)':'')+'"><i style="background:var(--m'+id+')"></i><b>'+id+'</b><span>'+esc(lgShort(l.name))+(l.susp?' · suspensa':'')+'</span></button>'}).join('');
 }
 document.addEventListener('click',function(e){var b=e.target.closest('[data-legline]');if(!b)return;select('line',b.dataset.legline,true)});
-var _rebuildAllLg=rebuildAll;rebuildAll=function(){_rebuildAllLg();drawLegendLines()};
+aoFazer('tudo reconstruído',function(){drawLegendLines()});
 drawLegendLines();
-
 /* ======================= tema: aparelho, horário (nascer/pôr do sol), claro, escuro ======================= */
 var TEMAS=[['sistema','Do aparelho','Segue o modo claro ou escuro do seu celular ou computador.'],['horario','Pelo horário','Claro de dia e escuro à noite, pelo nascer e pôr do sol na Ilha do Fundão.'],['claro','Sempre claro','Fica claro o tempo todo.'],['escuro','Sempre escuro','Fica escuro o tempo todo.']];
 var temaOpen=false,temaAgora='';
@@ -3061,8 +3024,7 @@ function temaFoldHTML(){
       return '<button type="button" class="temaopt" role="radio" aria-checked="'+on+'" data-tema="'+x[0]+'"><span class="tic t-'+x[0]+'" aria-hidden="true"></span><span class="grow"><b>'+x[1]+'</b><small>'+x[2]+(x[0]==='horario'?' Hoje: claro das '+hm(s.rise)+' às '+hm(s.set)+'.':'')+'</small></span></button>'}).join('')+'</div>'+
     '<p class="muted small keep">O mapa fica sempre escuro, nos dois temas. No modo Pelo horário, mudar o Simular horário aqui em Ajustes também muda o tema, para você testar.</p></details>';
 }
-var _renderCfgT=renderCfg;
-renderCfg=function(f){_renderCfgT(f);var L=$('#cfgL'),bg=L&&L.querySelector('#bgdet');if(L&&!L.querySelector('#temadet')){if(bg)bg.insertAdjacentHTML('beforebegin',temaFoldHTML());else L.insertAdjacentHTML('beforeend',temaFoldHTML());if(f&&/data-tema/.test(f)){var el=L.querySelector(f);if(el)el.focus({preventScroll:true})}}};
+aoFazer('ajustes montados',function(f){var L=$('#cfgL'),bg=L&&L.querySelector('#bgdet');if(L&&!L.querySelector('#temadet')){if(bg)bg.insertAdjacentHTML('beforebegin',temaFoldHTML());else L.insertAdjacentHTML('beforeend',temaFoldHTML());if(f&&/data-tema/.test(f)){var el=L.querySelector(f);if(el)el.focus({preventScroll:true})}}});
 document.addEventListener('toggle',function(e){if(e.target&&e.target.id==='temadet')temaOpen=e.target.open},true);
 document.addEventListener('click',function(e){var b=e.target.closest('[data-tema]');if(!b||!b.closest('#temadet'))return;CFG.tema=b.dataset.tema;saveCfg();applyTheme();renderCfg('[data-tema="'+CFG.tema+'"]')});
 document.addEventListener('input',function(e){if(e.target&&e.target.id==='clk')setTimeout(applyTheme,0)});
@@ -3071,8 +3033,6 @@ try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',
 setInterval(applyTheme,30000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)applyTheme()});
 applyTheme();
-
-
 /* ======================= administradores e privilégios ======================= */
 var GPERMS=[['linhas','Linhas','suspender, avisos e horários'],['pontos','Pontos','nome, posição e desativar'],['wifi','Redes Wi-Fi','cadastrar e remover'],['servicos','Serviços e horários','RU, bibliotecas e secretarias'],['solicitacoes','Solicitações','responder os pedidos dos alunos'],['plantas','Plantas dos prédios','enviar e remover'],['avisos','Avisos e filas','moderar o que os alunos enviam'],['usuarios','Usuários','ver a lista e bloquear'],['gps','GPS e mapa','calibrar a localização'],['calendario','Calendário','publicar mudanças de data'],['admins','Administradores','adicionar outros e mudar privilégios']];
 var TAB_PERM={usuarios:'usuarios',linhas:'linhas',pontos:'pontos',wifi:'wifi',servicos:'servicos',solic:'solicitacoes',plantas:'plantas',avisos:'avisos',gps:'gps',admins:'admins'};
@@ -3179,17 +3139,8 @@ document.addEventListener('submit',function(e){
   var l3=Object.assign({},(GST.admins&&GST.admins.list)||{});l3[sel.value]={perms:perms};saveAdminLocal(l3);
 },true);
 /* aplica os privilégios na tela da gestão */
-var _renderGestA=renderGest;
-renderGest=function(){
-  if(!gestM)return;computePerms();
-  if(gTab==='admins'){_renderGestA();$('#gBody').innerHTML=gAdmins()}else{var p=TAB_PERM[gTab];if(p&&!gcan(p))gTab='geral';_renderGestA()}
-  gestM.querySelectorAll('[data-gtab]').forEach(function(b){var p=TAB_PERM[b.dataset.gtab];if(p&&!gcan(p))b.hidden=true});
-  var r=$('#gRole');if(r&&!ME.principal&&ME.perms)r.textContent='Seus privilégios: '+permSummary(ME.perms,false)+'.';
-};
-var _setGestorA=setGestor;
-setGestor=function(v){_setGestorA(v);computePerms()};
-var _applyGA=applyG;applyG=function(){_applyGA();if(GESTOR)computePerms()};
-
+aoFazer('gestor definido',function(v){computePerms()});
+aoFazer('dados da gestão aplicados',function(){if(GESTOR)computePerms()});
 /* ======================= Seu trajeto: buscar o ponto ======================= */
 function place2stop(k){var it=PL[k];if(!it)return null;if(it.bld&&BLD[it.bld]&&BLD[it.bld].stop&&STOPS[BLD[it.bld].stop])return BLD[it.bld].stop;
   if(it.p){var n=nearestOf(STOPS,it.p,function(s){return s.off});return n&&n.id}return null}
@@ -3244,26 +3195,20 @@ function enhanceStopSelect(sel){
   ul.addEventListener('mousedown',function(e){e.preventDefault()});
   ul.addEventListener('click',function(e){var li=e.target.closest('li[data-i]');if(li)choose(+li.dataset.i)});
 }
-var _renderPlanS=renderPlan;
-renderPlan=function(f){
-  var a=document.activeElement,wasQ=a&&a.classList&&a.classList.contains('scb-in')?a.id:null;
-  _renderPlanS(f&&/^#(from|to)Q$/.test(f)?f.slice(0,-1):f);
-  enhanceStopSelect($('#from'));enhanceStopSelect($('#to'));
-  var fid=f==='#from'||f==='#fromQ'?'fromQ':f==='#to'||f==='#toQ'?'toQ':wasQ;
-  if(fid){var el=document.getElementById(fid);if(el){SCB.quiet=true;el.focus({preventScroll:true});setTimeout(function(){SCB.quiet=false},0)}}
-};
 renderPlan();
-
 /* ======================= rosa dos ventos: bússola que aponta para o destino ======================= */
 var CMP={on:false,h:null,hRaw:null,lastTxt:'',got:false,raf:0,timer:0};
 function angN(){return Math.atan2(-GEO.b,GEO.a)*180/Math.PI}/* norte real no mapa, em graus a partir do topo */
 function norm180(a){a=((a+180)%360+360)%360-180;return a}
 function cardinal(b){var n=['norte','nordeste','leste','sudeste','sul','sudoeste','oeste','noroeste'];return n[Math.round(((b%360)+360)%360/45)%8]}
 function cmpGeom(){
-  var to=STOPS[state.to];if(!to)return null;
-  var fromLoc=typeof LOC!=='undefined'&&LOC.on&&LOC.p&&!LOC.out,S=fromLoc?LOC.p:(STOPS[state.from]&&STOPS[state.from].p);if(!S)return null;
-  var vx=to.p[0]-S[0],vy=to.p[1]-S[1],m=Math.hypot(vx,vy)*mPerUnit(),angV=Math.atan2(vx,-vy)*180/Math.PI,bear=((angV-angN())%360+360)%360;
-  return {to:to,fromLoc:fromLoc,m:m,angV:angV,bear:bear};
+  var ori=CFG.bussolaAlvo==='origem',alvo=STOPS[ori?state.from:state.to];if(!alvo)return null;
+  var hasLoc=typeof LOC!=='undefined'&&LOC.on&&LOC.p&&!LOC.out;
+  var S=hasLoc?LOC.p:(STOPS[ori?state.to:state.from]&&STOPS[ori?state.to:state.from].p);
+  if(!S)return null;
+  var vx=alvo.p[0]-S[0],vy=alvo.p[1]-S[1],m=Math.hypot(vx,vy)*mPerUnit();
+  var angV=Math.atan2(vx,-vy)*180/Math.PI,bear=((angV-angN())%360+360)%360;
+  return {to:alvo,fromLoc:hasLoc,m:m,angV:angV,bear:bear,origem:ori};
 }
 function distTxt(m){return m<1000?(Math.round(m/10)*10)+' m':(m/1000).toFixed(1).replace('.',',')+' km'}
 function drawRose(){
@@ -3284,6 +3229,19 @@ function drawRose(){
   var rc=$('#rosecard');if(rc){rc.hidden=false;var full=txt+(sub?' · '+sub:'');
     rc.innerHTML='<b>'+esc(txt)+'</b>'+(sub?'<small>'+esc(sub)+'</small>':'')+(hasH?(CMP.acc!=null&&(CMP.acc<0||CMP.acc>25)?'<small class="cmp-cal">Bússola imprecisa: mova o celular desenhando um 8 no ar.</small>':''):'<small class="cmp-hint">'+(CMP.got?'':'Sem bússola neste aparelho: a seta segue o mapa.')+'</small>');
     if(full!==CMP.lastTxt){CMP.lastTxt=full}}
+  /* GPS: precisão e como a bússola está se ajustando */
+  drawRoseGps();
+}
+function drawRoseGps(){
+  var rc=$('#rosecard');if(!CMP.on||!rc||rc.hidden)return;
+  var g=cmpGeom(),bits=[];
+  if(g&&g.fromLoc){bits.push('GPS ± '+Math.round(LOC.acc)+' m');if(LOC.acc>40&&g.m>25)bits.push('posição imprecisa: vá para um lugar aberto')}
+  else if(typeof LOC!=='undefined'&&LOC.on&&!LOC.p)bits.push('procurando o GPS…');
+  if(CMP.gpsH&&!CMP.got)bits.push('direção pelo seu movimento');
+  else if(CMP.offN>=5&&CMP.h!=null)bits.push('bússola ajustada pelo GPS');
+  else if(CMP.got&&LOC.on)bits.push('ande uns passos olhando para a tela para ajustar');
+  if(bits.length)rc.insertAdjacentHTML('beforeend','<small class="cmp-gps">'+esc(bits.join(' · '))+'</small>');
+  if(g&&g.fromLoc&&g.m>25&&g.m<=LOC.acc){var b=rc.querySelector('b');if(b)b.textContent=(g.to.short||g.to.name)+': você está bem perto'}
 }
 function cmpSchedule(){if(CMP.raf)return;CMP.raf=requestAnimationFrame(function(){CMP.raf=0;drawRose()})}
 /* v24: bússola corrigida.
@@ -3333,12 +3291,7 @@ function cmpStop(){CMP.on=false;window.removeEventListener('deviceorientationabs
 })();
 document.addEventListener('change',function(e){if(e.target&&e.target.id==='cfgCompass'){CFG.bussola=e.target.checked;saveCfg();if(CFG.bussola&&!CMP.on)cmpStart();else if(!CFG.bussola&&CMP.on)cmpStop()}});
 if(CFG.bussola)setTimeout(function(){if(!CMP.on)cmpStart()},800);
-var _locUpdateC=locUpdate;locUpdate=function(f){_locUpdateC(f);if(CMP.on)cmpSchedule()};
-var _renderPlanC=renderPlan;renderPlan=function(f){_renderPlanC(f);if(CMP.on)cmpSchedule()};
-var _locStopC=locStop;locStop=function(){_locStopC();if(CMP.on)cmpSchedule()};
-
-
-/* ---------- filtros do topo: encurta os nomes se não couberem numa linha ---------- */
+aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- filtros do topo: encurta os nomes se não couberem numa linha ---------- */
 (function(){var bar=document.querySelector('.bar'),ch=bar&&bar.querySelector('.chips');if(!ch)return;
   function fit(){bar.classList.remove('short');if(getComputedStyle(ch).display!=='grid')return;
     var over=[].some.call(ch.children,function(c){var l=c.lastElementChild,r=c.getBoundingClientRect();return c.scrollWidth>c.clientWidth||(l&&l.getBoundingClientRect().right>r.right-9)})||ch.scrollWidth>ch.clientWidth;
@@ -3349,12 +3302,10 @@ var _locStopC=locStop;locStop=function(){_locStopC();if(CMP.on)cmpSchedule()};
   new MutationObserver(later).observe(document.documentElement,{attributes:true,attributeFilter:['data-font','style','class']});
   fit();
 })();
-
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261107-1700';
+var APP_VERSION='20261107-1807';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
-
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
 function stamp(o){try{if(FBMODE&&window.firebase&&firebase.firestore&&firebase.firestore.FieldValue)o.at=firebase.firestore.FieldValue.serverTimestamp()}catch(e){}return o}
@@ -3365,12 +3316,11 @@ function postGap(k){
   if(wait>0){gToast('Espere '+wait+' s para enviar de novo. O limite evita envios repetidos.',1);return false}
   return true;
 }
-function postDone(k){try{localStorage.setItem('cse-post-'+k,String(Date.now()))}catch(e){}}
+function postDone(k){try{localStorage.setItem('cse-post-'+k,String(Date.now()))}catch(e){};var m={fila:'fila',rep:'avisos',req:'pedidos'}[k];if(m){CONTRIB[m]++;saveContrib();if(contaOk())accQueue()}}
 function postFail(){
   if(FBMODE){gToast(SH.full&&GESTOR!==true?fullMsg('enviar'):'Não deu para enviar agora. Espere alguns segundos e tente de novo.',1);return}
   SH.denied=true;refreshAll();
 }
-
 /* ---------- limite de pessoas que participam (vagas) ---------- */
 var VAGAS={n:null,max:80,ok:false};SH.full=false;SH.member=false;
 function fullMsg(acao){return 'As '+VAGAS.max+' vagas para participar já foram preenchidas. Você continua vendo tudo, mas não consegue '+acao+'.'}
@@ -3404,27 +3354,9 @@ function initVagas(){
   }).catch(function(){});
 }
 function watchVagas(){vagasRef().onSnapshot(function(d){if(!d.exists)return;var x=d.data()||{};VAGAS.n=+x.n||0;VAGAS.max=+x.max||80;VAGAS.ok=true;if(gestM&&!gestM.hidden&&(gTab==='usuarios'||gTab==='geral'))renderGest()},function(){})}
-var _setGestorV=setGestor;
-setGestor=function(v){_setGestorV(v);if(v===true&&FBMODE&&SH.db&&!VAGAS.watch){VAGAS.watch=true;watchVagas()}};
-var _fbUserOffV=fbUserOff;
-fbUserOff=function(){_fbUserOffV();SH.full=false;SH.member=false};
-
+aoFazer('gestor definido',function(v){if(v===true&&FBMODE&&SH.db&&!VAGAS.watch){VAGAS.watch=true;watchVagas()}});
+aoFazer('usuário saiu',function(){SH.full=false;SH.member=false});
 /* gestão › Usuários: vagas e liberar vaga */
-var _gUsersV=gUsers;
-gUsers=function(){
-  var h=_gUsersV();if(!FBMODE||!SH.on)return h;
-  var n=VAGAS.ok?VAGAS.n:null,max=VAGAS.max,full=n!=null&&n>=max;
-  var card='<div class="gcard vagas"><div class="grow2"><span class="grow"><b>Vagas para participar</b><small>'+(n==null?'Ainda não configurado. Abra esta tela com o privilégio Usuários para criar o contador.':n+' de '+max+' em uso'+(full?' · lotado: quem chegar agora só consulta':''))+'</small></span>'+(n==null?'':'<span class="pill '+(full?'bad':n>=max*.9?'warn':'good')+'">'+Math.max(0,max-n)+' livre(s)</span>')+'</div>'+
-    (n==null?'':'<div class="vbar" aria-hidden="true"><i style="width:'+Math.min(100,Math.round(n/max*100))+'%"></i></div>')+
-    (gcan('usuarios')?'<form class="gform vform" data-gform="vagas"><label class="gf">Limite de pessoas<input type="number" id="gVmax" min="1" max="2000" step="1" value="'+max+'"></label><button type="submit" class="copy">Salvar limite</button>'+(n==null?'':'<button type="button" class="copy" id="gVrecount">Recontar</button>')+'</form><p class="muted small">Gestores não ocupam vaga. Ao liberar a vaga de alguém, a pessoa continua vendo o app e volta a ocupar uma vaga se entrar de novo e ainda houver espaço.</p>':'')+'</div>';
-  h=h.replace(/(<h3 class="gh">Usuários \(\d+\)<\/h3>)/,'$1'+card);
-  return h;
-};
-var _usersListV=usersList;
-usersList=function(){
-  var h=_usersListV();if(!FBMODE||!SH.on||!gcan('usuarios'))return h;
-  return h.replace(/<button type="button" class="copy( danger)?" data-gblock="([^"]+)">/g,function(all,d,id){return '<button type="button" class="copy" data-gfree="'+id+'">Liberar vaga</button>'+all});
-};
 document.addEventListener('submit',function(e){
   var f=e.target.closest('form[data-gform="vagas"]');if(!f)return;e.preventDefault();e.stopPropagation();
   var mx=Math.round(+$('#gVmax').value);if(!(mx>=1&&mx<=2000)){gToast('Use um número entre 1 e 2000.',1);return}
@@ -3436,7 +3368,6 @@ document.addEventListener('click',function(e){
     b.commit().then(function(){gToast('Vaga liberada.')},function(){gToast('Não deu para liberar a vaga.',1)});return}
   if(e.target.closest('#gVrecount')){SH.db.collection('members').get().then(function(s){return vagasRef().set({n:s.docs.length,max:VAGAS.max})}).then(function(){gToast('Contador refeito.')},function(){gToast('Não deu para recontar.',1)})}
 });
-
 /* ---------- registro de erros dos aparelhos (só no site com Firebase) ---------- */
 var ERR={n:0,seen:{},queue:[]};
 function errUA(){var u=navigator.userAgent||'';return u.slice(0,200)}
@@ -3450,8 +3381,7 @@ window.addEventListener('error',function(e){if(e&&e.message)errLog(e.message,e.f
 window.addEventListener('unhandledrejection',function(e){var r=e&&e.reason;if(r&&r.code&&/^(auth|permission|firestore)\//.test(String(r.code)))return;
   /* falhas conhecidas do IndexedDB do Safari, dentro do login do Firebase: o login segue funcionando, então não viram erro */
   if(/Indexed ?Database|IndexedDB|IDBDatabase|in-progress transaction|Connection to Indexed Database server lost/i.test(String(r&&(r.message||r)||''))){try{e.preventDefault()}catch(x){}return}errLog('Promessa rejeitada: '+(r&&(r.message||r.code)||r),'',0)});
-var _fbSharedE=fbShared;
-fbShared=function(fb){_fbSharedE(fb);ERR.queue.splice(0).forEach(function(o){SH.db.collection('erros').add(o).catch(function(){})})};
+aoFazer('Firebase conectado',function(fb){ERR.queue.splice(0).forEach(function(o){SH.db.collection('erros').add(o).catch(function(){})})});
 var ERRL=null;
 function loadErrs(){SH.db.collection('erros').get().then(function(s){ERRL=s.docs.map(function(d){var x=d.data()||{};return {id:d.id,msg:String(x.msg||''),src:String(x.src||''),linha:+x.linha||0,ua:String(x.ua||''),ver:String(x.ver||''),ts:+x.ts||0}}).sort(function(a,b){return b.ts-a.ts});if(gestM&&!gestM.hidden&&gTab==='geral')renderGest()},function(){ERRL=[];})}
 function uaShort(u){var os=/iPhone|iPad/.test(u)?'iPhone/iPad':/Android/.test(u)?'Android':/Windows/.test(u)?'Windows':/Mac OS/.test(u)?'Mac':'outro';
@@ -3468,12 +3398,11 @@ document.addEventListener('click',function(e){
   if(e.target.closest('#gErrReload')){loadErrs();return}
   if(e.target.closest('#gErrClear')){var b=SH.db.batch();(ERRL||[]).forEach(function(x){b.delete(SH.db.doc('erros/'+x.id))});b.commit().then(function(){ERRL=[];renderGest();gToast('Erros apagados.')},function(){gToast('Não deu para apagar.',1)})}
 });
-
 /* ---------- modo apresentação: exemplos de fila e avisos ---------- */
 var DEMO_ID='exemplo-apresentacao';
 /* malha de cobertura de exemplo: parte da mesma simulação da prévia, agrupada em hexágonos de 30 m; quase toda com eduroam */
 function demoMesh(){
-  var src=typeof _covSamplesR==='function'?_covSamplesR():[],cells={},t=Math.floor(Date.now()/600000)*600000,r=covRand(4242),out=[];
+  var src=covSamplesExemplo(),cells={},t=Math.floor(Date.now()/600000)*600000,r=covRand(4242),out=[];
   src.forEach(function(s){var c=cellOf(s.p),o=cells[c.k]||(cells[c.k]={c:c,n:0,ok:0,mb:0});o.n++;if(s.ok){o.ok++;o.mb+=s.mb}});
   Object.keys(cells).forEach(function(k){var o=cells[k],ok=o.ok/o.n>=.5,mb=ok?Math.min(999,Math.round(o.mb/Math.max(1,o.ok)*10)/10):0,reps=o.n>=8?3:o.n>=4?2:1;
     for(var i=0;i<reps;i++)out.push({cell:k,x:o.c.x,y:o.c.y,ok:ok,edu:ok?r()<.85:null,mb:mb,ms:ok?Math.round(30+r()*150):0,tipo:'wifi',acc:20,t:t,ver:'exemplo'})});
@@ -3526,10 +3455,7 @@ document.addEventListener('click',function(e){
     if(FBMODE)ps.push(demoClearMed().catch(function(){}));try{localStorage.removeItem('cse-demo-med')}catch(x){}
     Promise.all(ps).then(function(){gToast('Exemplos removidos.');if(typeof COV!=='undefined'){COV.real=null;if(COV.on&&FBMODE)covLoadReal()}})}
 });
-var _gGeralV=gGeral;
-gGeral=function(){return _gGeralV()+demoCard()+errCard()};
 /* os exemplos não contam como usuário bloqueado nem aparecem como pessoa */
-
 /* ---------- navegador interno (WhatsApp, Instagram, Facebook…) ---------- */
 var INAPP=(function(){var u=navigator.userAgent||'';
   if(/FBAN|FBAV|FB_IAB|Instagram|Line\/|LinkedInApp|Snapchat|musical_ly|TikTok|BytedanceWebview|WhatsApp|GSA\//i.test(u))return true;
@@ -3589,7 +3515,6 @@ if(ON_SITE&&INAPP){
     iaGate();
   },true);
 }
-
 /* ---------- aviso de versão nova (site) ---------- */
 function verCheck(){
   if(!ON_SITE||APP_VERSION==='dev'||!window.fetch)return;
@@ -3600,7 +3525,6 @@ function verCheck(){
 }
 document.addEventListener('click',function(e){if(e.target.closest('#newverGo'))location.reload()});
 if(ON_SITE&&APP_VERSION!=='dev'){setTimeout(verCheck,4000);setInterval(verCheck,5*60000);document.addEventListener('visibilitychange',function(){if(!document.hidden)verCheck()})}
-
 /* ======================= gestão: serviços no mapa (posição, referência, esconder, novos) ======================= */
 GKEYS.push('svcmapa');GST.svcmapa={};
 ORIG.svc=SVC.map(function(s){return {id:s.id,t:s.t,p:s.p.slice(),near:s.near}});
@@ -3621,9 +3545,8 @@ function applySvcMapa(){
   SVC.forEach(function(sv){if(sv.t!=='ru')return;var k=ruLinkOf(sv.id);if(k&&PL[k]&&RUS.indexOf(k)>=0){PL[k].p=sv.p.slice();sv.ru=k;sv.full=PL[k].name+' · perto de '+sv.near}});
   if(state.sel&&state.sel.kind==='svc'&&!SVCMAP[state.sel.id])state.sel=null;
 }
-var _applyGS=applyG;applyG=function(){_applyGS();applySvcMapa()};
+aoFazer('dados da gestão aplicados',function(){applySvcMapa()});
 if(!FBMODE&&ON_SITE&&GESTOR==='demo'){try{var _sv=JSON.parse(localStorage.getItem(GLS+'svcmapa'));if(_sv){GST.svcmapa=_sv;rebuildAll()}}catch(e){}}
-
 function svcMapaHTML(){
   var g=GST.svcmapa||{},types=Object.keys(SVC_T);
   var hidden=ORIG.svc.filter(function(o){return g[o.id]&&g[o.id].removed});
@@ -3648,10 +3571,6 @@ function svcMapaHTML(){
     '<div class="gcard'+(newOpen?' open':'')+'"><div class="grow2"><span class="grow"><b>Adicionar serviço no mapa</b><small>Um banco, lanchonete ou ponto de táxi que ainda não aparece</small></span><button type="button" class="copy" data-gedit="sv:+">'+(newOpen?'Fechar':'Adicionar')+'</button></div>'+(newOpen?form('+',null):'')+'</div>'+
     (hidden.length?'<h4 class="gh4">Escondidos do mapa</h4><div class="glist">'+hidden.map(function(o){return '<div class="grow2"><span class="grow"><b>'+esc(SVC_T[o.t].n)+'</b><small>Perto de '+esc(o.near)+'</small></span><button type="button" class="copy" data-svshow="'+esc(o.id)+'">Mostrar de novo</button></div>'}).join('')+'</div>':'');
 }
-var _gServicosS=gServicos;
-gServicos=function(){var h=_gServicosS();
-  h=h.replace('</p>','</p><button type="button" class="copy" id="gSvJump">Mudar a localização dos serviços no mapa</button>');
-  return h+'<div id="gSvSec"></div>'+svcMapaHTML()};
 document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('#gSvJump')){var t=$('#gSvSec');if(t)t.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});var s=$('#gSvT');if(s)setTimeout(function(){s.focus({preventScroll:true})},300)}});
 document.addEventListener('change',function(e){if(e.target&&e.target.id==='gSvT'){gFilter.svt=e.target.value;gEdit=null;pickP=null;renderGest();var s=$('#gSvT');if(s)s.focus()}});
 document.addEventListener('click',function(e){
@@ -3691,7 +3610,6 @@ document.addEventListener('submit',function(e){
       if(v)SVC.forEach(function(sv){if(sv.id===key||sv.t!=='ru'||ruLinkOf(sv.id)!==v)return;var z=o[sv.id]||{};z.ru='';o[sv.id]=z});}}
   gEdit=null;pickP=null;saveG('svcmapa',o);
 },true);
-
 /* ======================= foto de perfil da conta (Google, Claude ou Gravatar do e-mail) ======================= */
 function fotoAtual(){if(CFG.foto===false)return '';return ACC.photo||(PERFIL&&PERFIL.photo)||''}
 function faceHTML(name){var f=fotoAtual(),ini=esc(String(name||'?').charAt(0).toUpperCase());
@@ -3717,17 +3635,7 @@ function gravatar(email){
     return new Promise(function(res){var im=new Image();im.referrerPolicy='no-referrer';im.onload=function(){res(url)};im.onerror=function(){res('')};im.src=url;setTimeout(function(){res('')},6000)});
   },function(){return ''});
 }
-var _accGoogleF=accGoogle;
-accGoogle=function(u){
-  _accGoogleF(u);
-  if(ACC.photo){savePhoto(ACC.photo);return}
-  gravatar(u.email).then(function(url){if(url&&ACC.uid===u.uid)savePhoto(url)});
-};
-var _accClaudeF=accClaude;
-accClaude=function(user,uid){_accClaudeF(user,uid);if(user&&user.me)user.me().then(function(me){if(me&&me.avatarUrl)savePhoto(me.avatarUrl)},function(){})};
-var _lgShowF=lgShow;lgShow=function(w){_lgShowF(w);if(w==='saved')paintFaces()};
-var _renderCfgFoto=renderCfg;
-renderCfg=function(f){_renderCfgFoto(f);paintFaces();
+aoFazer('ajustes montados',function(f){paintFaces();
   var p=document.querySelector('#cfgR .prof');if(!p||!PERFIL||document.getElementById('cfgFotoRow'))return;
   var src=ACC.photo||PERFIL.photo;
   var desc=src?(ACC.kind==='claude'?'Usa a foto da sua conta do Claude.':ACC.prov==='email'?'Usa a foto ligada ao seu e-mail no Gravatar.':'Usa a foto da sua conta Google.'):
@@ -3737,29 +3645,18 @@ renderCfg=function(f){_renderCfgFoto(f);paintFaces();
   var anchor=document.getElementById('cfgBioRow')||p;anchor.insertAdjacentElement('afterend',row);
   var cb=row.querySelector('#cfgFoto');if(!src)cb.disabled=true;
   cb.addEventListener('change',function(){CFG.foto=cb.checked;saveCfg();paintFaces()});
-};
-var _savePerfilF=savePerfil;savePerfil=function(){_savePerfilF();setTimeout(paintFaces,0)};
-var _fbUserOffF=fbUserOff;fbUserOff=function(){_fbUserOffF();ACC.photo='';paintFaces()};
-
+});
+aoFazer('usuário saiu',function(){ACC.photo='';paintFaces()});
 /* ======================= planta interna: minimizada e só montada quando a pessoa abre ======================= */
 pstate.planOpen=false;
-var _planHTMLLazy=planHTML;
-planHTML=function(id){
-  var bk=pstate.bld,B=BLD[bk];if(!B)return '';
-  var it=PL[id]&&PL[id].bld===bk?PL[id]:null;
-  var sub=it?esc(it.s||it.name)+(it.b&&it.b!=='?'?' · '+(B.labels[it.b]||'Bloco '+it.b):'')+(it.f!=null?' · '+floorShort(it.f):''):'Escolha o bloco e o andar';
-  return '<details class="det plandet" id="planDet"'+(pstate.planOpen?' open':'')+' data-pid="'+esc(id||'')+'"><summary><span class="plandet-t">Planta interna <span class="pl-badge2">exemplo</span></span><span class="fsum muted">'+B.short+' · '+sub+'</span></summary>'+
-    '<div class="plandet-b">'+(pstate.planOpen?_planHTMLLazy(id):'')+'</div></details>';
-};
 document.addEventListener('toggle',function(e){
   var d=e.target;if(!d||d.id!=='planDet')return;
   pstate.planOpen=d.open;
   var b=d.querySelector('.plandet-b');
-  if(d.open&&b&&!b.firstChild){var id=d.dataset.pid||null;b.innerHTML=_planHTMLLazy(id);
+  if(d.open&&b&&!b.firstChild){var id=d.dataset.pid||null;b.innerHTML=planBodyHTML(id);
     var c=b.querySelector('.pick .chips [aria-pressed="true"]');if(c)c.focus({preventScroll:true});
     var w=b.querySelector('.planwrap'),sel=w&&w.querySelector('.pl-room.sel');if(w&&sel){var r1=w.getBoundingClientRect(),r2=sel.getBoundingClientRect();w.scrollLeft+=r2.left+r2.width/2-(r1.left+r1.width/2)}}
 },true);
-
 /* ======================= Ajustes › Desempenho ======================= */
 var PERFS=[['auto','Automático','O app decide pelo aparelho: no computador usa o Completo; no celular e no tablet, o Intermediário.'],
   ['leve','Leve','Tira as transparências, o desfoque, as sombras e as animações (capa e movimento nas rotas). Bom para celulares mais simples ou com pouca bateria.'],
@@ -3771,14 +3668,12 @@ function perfHTML(){
     '<div class="perfopts" role="radiogroup" aria-label="Desempenho">'+PERFS.map(function(x){var on=x[0]===cur[0];return '<button type="button" class="chip" role="radio" aria-checked="'+on+'" aria-pressed="'+on+'" data-perf="'+x[0]+'">'+x[1]+'</button>'}).join('')+'</div>'+
     '<p class="muted small keep">'+cur[2]+(cur[0]==='auto'?' Neste aparelho: '+(perfEff()==='completo'?'Completo.':'Intermediário.'):'')+'</p></div>';
 }
-var _renderCfgPerf=renderCfg;
-renderCfg=function(f){_renderCfgPerf(f);var L=$('#cfgL');if(L&&!L.querySelector('#perfsec'))L.insertAdjacentHTML('beforeend',perfHTML());if(f&&/data-perf/.test(f)){var el=document.querySelector(f);if(el)el.focus({preventScroll:true})}};
+aoFazer('ajustes montados',function(f){var L=$('#cfgL');if(L&&!L.querySelector('#perfsec'))L.insertAdjacentHTML('beforeend',perfHTML());if(f&&/data-perf/.test(f)){var el=document.querySelector(f);if(el)el.focus({preventScroll:true})}});
 document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-perf]');if(!b)return;
   CFG.perf=b.dataset.perf;saveCfg();applyPerf();updateMap();if(typeof placeCoverMap==='function'&&!cover.hidden)placeCoverMap();
   var sec=$('#perfsec');if(sec){var t=document.createElement('div');t.innerHTML=perfHTML();sec.replaceWith(t.firstChild)}
   var nb=document.querySelector('[data-perf="'+CFG.perf+'"]');if(nb)nb.focus({preventScroll:true});
   gToast(CFG.perf==='leve'?'Modo leve ligado.':CFG.perf==='completo'?'Modo completo ligado.':CFG.perf==='intermediario'?'Modo intermediário ligado.':'Desempenho automático.')});
-
 /* ======================= cobertura do Wi-Fi da UFRJ (prévia com dados de exemplo) ======================= */
 /* Hexágonos de ~30 m (≈60 m de longe) coloridos pela qualidade medida, transparência pela quantidade de
    medições; prédios da planta coloridos pelo que foi medido dentro deles. Nesta prévia as medições são inventadas. */
@@ -3787,7 +3682,8 @@ var COV_U=30/3.86; /* 30 m em unidades do mapa */
 var COV_C=['#8FA9C4','#3F86E0','#2FB6FF'];
 var COV_N=['Fraco','Bom','Rápido'];
 function covRand(seed){var s=seed>>>0;return function(){s=(s*1664525+1013904223)>>>0;return s/4294967296}}
-function covSamples(){
+/* amostras de exemplo (prévia do mapa de cobertura) */
+function covSamplesExemplo(){
   if(COV.samples)return COV.samples;
   var r=covRand(20261030),out=[],now=Date.now(),day=864e5;
   function g(){var u=r()||1e-9,v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
@@ -3836,9 +3732,19 @@ function drawCov(){
     h+='<path class="cov-b" data-cov="b:'+i+'" d="'+blds[i].d+'Z" style="fill:'+COV_C[lv]+';fill-opacity:'+op.toFixed(2)+'"/>';bIx['b:'+i]=c});
   COV.idx=bIx;g.innerHTML=h;
 }
+function covTagHTML(){
+  if(FBMODE&&COV.real&&COV.real.length&&!COV.demo)return '<span class="pill good cov-tag">'+COV.real.length+' medições dos alunos · 30 dias</span>';
+  return '<span class="pill warn cov-tag">'+(FBMODE&&COV.real&&!COV.real.length?'Exemplo · ainda sem medições reais':'Prévia · dados de exemplo')+'</span>';
+}
 function covCardHTML(){
+  var h=covCardBody();
+  if(FBMODE)h+='<p class="small cov-help">'+(CFG.covShare?'Você está ajudando a mapear. <button type="button" class="linkbtn" id="covNow">Medir agora</button>':'<button type="button" class="linkbtn" id="covJoin">Ajudar a mapear o Wi-Fi</button>')+'</p>';
+  return h;
+}
+/* corpo do cartão de cobertura */
+function covCardBody(){
   var c=COV.pick&&COV.idx&&COV.idx[COV.pick];
-  var head='<div class="cov-h1"><b>Cobertura do Wi-Fi da UFRJ</b><button type="button" class="cov-x" id="covX" aria-label="Fechar cobertura">×</button></div><span class="pill warn cov-tag">Prévia · dados de exemplo</span>';
+  var head='<div class="cov-h1"><b>Cobertura do Wi-Fi da UFRJ</b><button type="button" class="cov-x" id="covX" aria-label="Fechar cobertura">×</button></div>'+covTagHTML();
   if(c){var lv=covLevel(c),ok=c.ok,n=c.n,mb=c.okn?(c.mb/c.okn):0,ago=Math.round((Date.now()-c.last)/36e5);
     return head+'<p class="cov-sum"><span class="cov-sw" style="background:'+COV_C[lv]+'"></span><b>'+COV_N[lv]+'</b> · '+(COV.pick.charAt(0)==='b'?'dentro do prédio':'nesta área de ~'+(COV.lvl===2?60:30)+' m')+'</p>'+
       '<p class="small">A rede da UFRJ funcionou em <b>'+ok+' de '+n+'</b> medições · média <b>'+mb.toFixed(0)+' Mb/s</b> · última há '+(ago<1?'menos de 1 h':ago<48?ago+' h':Math.round(ago/24)+' dias')+'</p>'+
@@ -3850,7 +3756,7 @@ function covCardHTML(){
 function covPaintCard(){var c=$('#covCard');if(!c)return;c.hidden=!COV.on;if(COV.on)c.innerHTML=covCardHTML()}
 function covSet(on){COV.on=on;COV.pick=null;
   if(on){covLoadBld();if(!state.layers.wifi){var w=$('#chWifi');if(w)setLayer('wifi',w)}wifiChip();}
-  drawCov();covPaintCard();wifiChip()}
+  drawCov();covPaintCard();wifiChip();if(on&&FBMODE&&COV.real==null)covLoadReal();}
 (function(){
   var mw=document.querySelector('.mapwrap');if(!mw)return;
   mw.insertAdjacentHTML('beforeend','<div class="covcard glass" id="covCard" hidden></div>');
@@ -3863,12 +3769,9 @@ function covSet(on){COV.on=on;COV.pick=null;
   svg.addEventListener('click',function(e){var h=e.target.closest&&e.target.closest('[data-cov]');if(!h||e.target.closest('.mk'))return;
     if(suppressClick)return;e.stopImmediatePropagation();suppressClick=false;COV.pick=h.dataset.cov;covPaintCard()},true);
 })();
-var _buildMapCov=buildMap;
-buildMap=function(){_buildMapCov.apply(this,arguments);var gl=$('#gLines');if(gl&&!$('#gCov')){var g=document.createElementNS('http://www.w3.org/2000/svg','g');g.id='gCov';gl.parentNode.insertBefore(g,gl)}drawCov()};
-var _applyViewCov=applyView;
-applyView=function(f){_applyViewCov(f);if(!COV.on)return;var ppu=box().w/view.w,lv=ppu<(box().w<680?1.2:1.6)?2:1;if(lv!==COV.lvl){COV.pick=null;drawCov();covPaintCard()}};
+aoFazer('mapa montado',function(){var gl=$('#gLines');if(gl&&!$('#gCov')){var g=document.createElementNS('http://www.w3.org/2000/svg','g');g.id='gCov';gl.parentNode.insertBefore(g,gl)}drawCov()});
+aoFazer('vista aplicada',function(){if(!COV.on)return;var ppu=box().w/view.w,lv=ppu<(box().w<680?1.2:1.6)?2:1;if(lv!==COV.lvl){COV.pick=null;drawCov();covPaintCard()}});
 if($('#gLines')&&!$('#gCov')){var _g0=document.createElementNS('http://www.w3.org/2000/svg','g');_g0.id='gCov';$('#gLines').parentNode.insertBefore(_g0,$('#gLines'))}
-
 /* ======================= rede da UFRJ: diagnóstico, coleta de medições e cobertura real ======================= */
 /* O navegador não informa o nome da rede Wi-Fi. A pista é o endereço de internet: na rede da UFRJ ele cai
    na faixa da universidade (146.164.0.0/16). A gestão pode cadastrar faixas extras e a faixa do eduroam. */
@@ -3988,18 +3891,8 @@ function covLoadReal(){
     COV.loadingReal=false;COV.samples=null;drawCov();covPaintCard();
   },function(){COV.loadingReal=false;COV.real=[]});
 }
-var _covSamplesR=covSamples;
-covSamples=function(){if(FBMODE&&COV.real&&COV.real.length&&!COV.demo)return COV.real;return _covSamplesR()};
-var _covCardR=covCardHTML;
-covCardHTML=function(){
-  var h=_covCardR(),real=FBMODE&&COV.real&&COV.real.length&&!COV.demo;
-  if(real)h=h.replace('<span class="pill warn cov-tag">Prévia · dados de exemplo</span>','<span class="pill good cov-tag">'+COV.real.length+' medições dos alunos · 30 dias</span>');
-  else if(FBMODE&&COV.real&&!COV.real.length)h=h.replace('Prévia · dados de exemplo','Exemplo · ainda sem medições reais');
-  if(FBMODE)h+='<p class="small cov-help">'+(CFG.covShare?'Você está ajudando a mapear. <button type="button" class="linkbtn" id="covNow">Medir agora</button>':'<button type="button" class="linkbtn" id="covJoin">Ajudar a mapear o Wi-Fi</button>')+'</p>';
-  return h;
-};
-var _covSetR=covSet;
-covSet=function(on){_covSetR(on);if(on&&FBMODE&&COV.real==null)covLoadReal()};
+/* medições reais dos alunos, quando há; senão, o exemplo */
+function covSamples(){if(FBMODE&&COV.real&&COV.real.length&&!COV.demo)return COV.real;return covSamplesExemplo()}
 document.addEventListener('click',function(e){
   if(e.target.closest&&e.target.closest('#covNow')){covMeasure(true);return}
   if(e.target.closest&&e.target.closest('#covJoin')){$('#tab-cfg').click();setTimeout(function(){var el=$('#netsec');if(el)el.scrollIntoView({block:'center'})},250)}
@@ -4013,12 +3906,11 @@ function netSecHTML(){
     (CFG.covShare&&can?'<p class="small" id="covStat">'+esc(COVCOL.msg||'Esperando a próxima medição.')+(COVCOL.sent?' · '+COVCOL.sent+' enviada(s) nesta visita':'')+'</p>':'')+
     '<div class="gbtns"><button type="button" class="copy" id="netTest">Testar minha conexão</button></div><div id="netRes">'+netHTML(NET.last,false)+'</div></div>';
 }
-var _renderCfgNet=renderCfg;
-renderCfg=function(f){_renderCfgNet(f);var R=$('#cfgR');if(!R||R.querySelector('#netsec'))return;var tg2=R.querySelectorAll('.tgls')[0];
+aoFazer('ajustes montados',function(f){var R=$('#cfgR');if(!R||R.querySelector('#netsec'))return;var tg2=R.querySelectorAll('.tgls')[0];
   var box=document.createElement('div');box.innerHTML=netSecHTML();if(tg2&&tg2.nextSibling)R.insertBefore(box.firstChild,tg2.nextSibling);else R.appendChild(box.firstChild);
   var cb=$('#cfgCovShare');if(cb){if(!(FBMODE&&ON_SITE))cb.disabled=true;cb.addEventListener('change',function(){
     if(cb.checked&&FBMODE&&!SH.uid){cb.checked=false;gToast('Entre com Google ou e-mail para ajudar a mapear.',1);return}
-    CFG.covShare=cb.checked;saveCfg();if(cb.checked){gToast('Obrigado! O app vai medir a rede enquanto estiver aberto no campus.');COVCOL.last=0;covLoop()}else clearTimeout(NET.timer);renderCfgKeep()})}};
+    CFG.covShare=cb.checked;saveCfg();if(cb.checked){gToast('Obrigado! O app vai medir a rede enquanto estiver aberto no campus.');COVCOL.last=0;covLoop()}else clearTimeout(NET.timer);renderCfgKeep()})}});
 function renderCfgKeep(){var y=$('#pane-cfg .cfgsheet');var t=y?y.scrollTop:0;renderCfg();if(y)y.scrollTop=t}
 document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('#netTest,#gNetTest');if(!b)return;
   var full=b.id==='gNetTest',out=full?$('#gNetRes'):$('#netRes');b.disabled=true;b.textContent='Testando…';
@@ -4043,8 +3935,7 @@ function eduListHTML(){
     :'<p class="muted small">Nenhum ainda. Meça a rede acima, no campus, e toque em "É o eduroam" ou "É outra rede da UFRJ". O app deixa de perguntar aos alunos nesses endereços.</p>');
 }
 document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-edudel]');if(!b)return;var R=clone(GST.redes||{});R.eduIps=Object.assign({},R.eduIps||{});delete R.eduIps[b.dataset.edudel];saveG('redes',R)});
-var _renderGestNet=renderGest;
-renderGest=function(){_renderGestNet();if(gTab==='rede'&&$('#gBody')){$('#gBody').innerHTML=gRede();var o=$('#gNetRes');if(o&&NET.last)o.insertAdjacentHTML('beforeend',eduMarkHTML(NET.last))}};
+aoFazer('gestão montada',function(){if(gTab==='rede'&&$('#gBody')){$('#gBody').innerHTML=gRede();var o=$('#gNetRes');if(o&&NET.last)o.insertAdjacentHTML('beforeend',eduMarkHTML(NET.last))}});
 document.addEventListener('submit',function(e){var f=e.target.closest&&e.target.closest('form[data-gform="redes"]');if(!f)return;e.preventDefault();e.stopPropagation();
   var u=$('#gRu').value.trim(),ed=$('#gRe').value.trim(),bad=[u,ed].join(' ').split(/[\s,;]+/).filter(function(x){return x&&!/^\d+\.\d+\.\d+\.\d+(\/\d+)?$/.test(x)});
   if(bad.length){$('#gErr').textContent='Formato inválido: '+bad[0]+'. Use como 146.164.0.0/16.';return}
@@ -4054,8 +3945,6 @@ document.addEventListener('click',function(e){if(!(e.target.closest&&e.target.cl
   var lim=Date.now()-30*864e5,old=GNET.docs.filter(function(d){return (+(d.data()||{}).t||0)<lim});if(!old.length){gToast('Nenhuma medição antiga.');return}
   var b=SH.db.batch();old.slice(0,450).forEach(function(d){b.delete(SH.db.doc('medicoes/'+d.id))});
   b.commit().then(function(){gToast(old.length+' medição(ões) apagadas.');GNET.n=null;renderGest()},function(){gToast('Não deu para apagar. Você precisa do privilégio Redes Wi-Fi.',1)})});
-var _fbUserOnNet=fbUserOn;fbUserOn=function(u){_fbUserOnNet(u);setTimeout(covLoop,3000)};
-
 /* ======================= Wi-Fi num botão só: pontos e cobertura no mesmo menu ======================= */
 function wifiChip(){var c=$('#chWifi');if(!c)return;var on=!!(state.layers.wifi||COV.on);c.setAttribute('aria-pressed',String(on));c.setAttribute('aria-expanded',String(!!$('#wifiMenu')&&!$('#wifiMenu').hidden))}
 (function(){
@@ -4083,13 +3972,11 @@ function wifiChip(){var c=$('#chWifi');if(!c)return;var on=!!(state.layers.wifi|
   window.addEventListener('scroll',function(){if(!m.hidden)place()},{passive:true});
   wifiChip();
 })();
-
 /* mapa vetorial: some durante o arrasto e o zoom (redesenhar 700 KB de traços a cada quadro trava) e volta quando a mão para */
 var vecHideT=0;
-var _applyViewVec=applyView;
-applyView=function(f){_applyViewVec(f);var e=$('#imgVec');if(!e||!vecOn)return;
+aoFazer('vista aplicada',function(){var e=$('#imgVec');if(!e||!vecOn)return;
   if(perfEff()==='leve'){e.style.display='none';return}
-  e.style.display='none';clearTimeout(vecHideT);vecHideT=setTimeout(function(){var v=$('#imgVec');if(v&&perfEff()!=='leve')v.style.display=''},260)};
+  e.style.display='none';clearTimeout(vecHideT);vecHideT=setTimeout(function(){var v=$('#imgVec');if(v&&perfEff()!=='leve')v.style.display=''},260)});
 /* ---------- desempenho: pausa a animação das rotas quando ninguém está vendo ---------- */
 (function(){
   var mw=document.querySelector('.mapwrap'),vis=true;
@@ -4156,19 +4043,24 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!cover.hidd
 $('#showCover').addEventListener('click',openCover);$('#coverBtn').addEventListener('click',openCover);
 applyCoverStyle();applyBg();
 if(CFG.cover==='none'){cover.hidden=true}else{coverToday();placeCoverMap();document.documentElement.style.overflow='hidden';}
-
 /* ---------- login: perfil salvo (protótipo; guardado só neste aparelho) ---------- */
 var PERFIL=null;try{PERFIL=JSON.parse(localStorage.getItem('cse-perfil'))}catch(e){}
 if(PERFIL&&!PERFIL.name)PERFIL=null;
 function pinHash(s){var x=5381;for(var i=0;i<s.length;i++)x=((x<<5)+x+s.charCodeAt(i))|0;return 'h'+(x>>>0).toString(36)}
-function savePerfil(){try{if(PERFIL)localStorage.setItem('cse-perfil',JSON.stringify(PERFIL));else localStorage.removeItem('cse-perfil')}catch(e){}document.documentElement.classList.toggle('noprof',!PERFIL)}
+function savePerfil(){try{if(PERFIL)localStorage.setItem('cse-perfil',JSON.stringify(PERFIL));else localStorage.removeItem('cse-perfil')}catch(e){}document.documentElement.classList.toggle('noprof',!PERFIL);setTimeout(paintFaces,0)}
 document.documentElement.classList.toggle('noprof',!PERFIL);
 var login=$('#login');
 function lgShow(which){
+  var m=$('#lgMail');if(m)m.hidden=which!=='mail';
+  if(which==='mail'){/* entrar com e-mail e senha */
+    $('#lgSaved').hidden=true;$('#lgNew').hidden=true;mailMode(MAIL.mode);
+    setTimeout(function(){var f=MAIL.mode==='up'?$('#lgMailNome'):$('#lgMailEmail');if(f)f.focus({preventScroll:true})},50);
+    return;
+  }
   $('#lgSaved').hidden=which!=='saved';$('#lgNew').hidden=which!=='new';
   if(which==='saved'){$('#lgInit').textContent=PERFIL.name.charAt(0).toUpperCase();$('#lgName').textContent=PERFIL.name;
     lgBioState();$('#lgPinForm').hidden=true;$('#lgUsePin').hidden=!PERFIL.pin;$('#lgPin').value='';$('#lgPinErr').textContent='';
-    setTimeout(function(){$('#lgBio').focus({preventScroll:true})},50)}
+    setTimeout(function(){$('#lgBio').focus({preventScroll:true})},50);paintFaces()}
   else{$('#lgNewErr').textContent='';bioCheck().then(function(v){$('#lgNewBioW').hidden=!v});setTimeout(function(){$('#lgNewName').focus({preventScroll:true})},50)}
 }
 function openLogin(){
@@ -4179,8 +4071,7 @@ function openLogin(){
 function closeLogin(){
   var rm=window.matchMedia('(prefers-reduced-motion:reduce)').matches;login.classList.add('closing');if(!cover.hidden)setTimeout(cvEnter,rm?0:120);
   setTimeout(function(){login.hidden=true;if(cover.hidden)document.documentElement.style.overflow='';else{var b=cover.querySelector('.cv-btn.main');if(b)b.focus({preventScroll:true})}},rm?0:300);
-  if(!$('#pane-cfg').hidden)renderCfg();
-}
+  if(!$('#pane-cfg').hidden)renderCfg();setTimeout(function(){refreshAll();if(!pPane.hidden)renderPredios()},0);}
 $('#lgBio').addEventListener('click',function(){bioLogin()});
 $('#lgUsePin').addEventListener('click',function(){this.hidden=true;$('#lgPinForm').hidden=false;$('#lgPin').focus()});
 $('#lgPinForm').addEventListener('submit',function(e){e.preventDefault();
@@ -4210,7 +4101,6 @@ document.addEventListener('click',function(e){
   if(e.target.closest('#cfgForget')){var fb=FBMODE&&ACC.kind==='google'&&ACC.fb;PERFIL=null;savePerfil();
     (fb?ACC.fb.auth.signOut():Promise.resolve()).then(function(){renderCfg();openLogin();gToast('Perfil apagado deste aparelho.')})}
 });
-
 /* ======================= biometria de verdade (WebAuthn) ======================= */
 /* Usa o autenticador do próprio aparelho (Face ID, Touch ID, digital, Windows Hello).
    A biometria nunca sai do aparelho: o app só guarda o id da credencial e a chave pública,
@@ -4237,7 +4127,7 @@ function bioErrMsg(e){
 }
 function bioCreate(name){
   var ch=crypto.getRandomValues(new Uint8Array(32)),uid=crypto.getRandomValues(new Uint8Array(16));
-  return navigator.credentials.create({publicKey:{challenge:ch,rp:{name:'Chegar e se conectar'},user:{id:uid,name:name,displayName:name},
+  return navigator.credentials.create({publicKey:{challenge:ch,rp:{name:'Chega aí UFRJ'},user:{id:uid,name:name,displayName:name},
     pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
     authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'discouraged',requireResidentKey:false},
     timeout:60000,attestation:'none'}}).then(function(c){
@@ -4288,34 +4178,26 @@ function bioEnable(btn,done){
     function(e){btn.disabled=false;btn.textContent=t;gToast(bioErrMsg(e),1);if(done)done(false)});
 }
 /* perfil em Ajustes: estado da biometria */
-var _renderCfgB=renderCfg;
-renderCfg=function(f){_renderCfgB(f);var p=document.querySelector('#cfgR .prof');if(!p||!PERFIL||document.getElementById('cfgBioRow'))return;
+aoFazer('ajustes montados',function(f){var p=document.querySelector('#cfgR .prof');if(!p||!PERFIL||document.getElementById('cfgBioRow'))return;
   p.insertAdjacentHTML('afterend','<div class="biorow" id="cfgBioRow"><span class="grow"><b>Biometria</b><small>'+(PERFIL.bio?'Ativada neste aparelho. O rosto ou a digital nunca saem do celular.':'Desativada. Entre com o rosto ou a digital do aparelho.')+'</small></span>'+
     (PERFIL.bio?'<button type="button" class="copy" id="cfgBioOff">Desativar</button>':'<button type="button" class="copy" id="cfgBioOnBtn" hidden>Ativar</button>')+'</div>');
   if(!PERFIL.bio)bioCheck().then(function(v){var b=$('#cfgBioOnBtn');if(b)b.hidden=!v;if(!v){var s=document.querySelector('#cfgBioRow small');if(s)s.textContent='Este aparelho ou navegador não oferece biometria para sites.'}});
-};
+});
 document.addEventListener('click',function(e){
   if(e.target.closest('#cfgBioOff')){delete PERFIL.bio;savePerfil();renderCfg();gToast('Biometria desativada neste aparelho.');return}
   var on=e.target.closest('#cfgBioOnBtn');if(on){bioEnable(on,function(){renderCfg()});return}
   var la=e.target.closest('#lgBioOn');if(la){bioEnable(la,function(ok){if(ok)lgBioState()})}
 });
-
 /* ======================= só quem tem perfil informa ======================= */
 function needProfileHTML(acao){
   return '<div class="needprof"><p class="small"><b>Crie seu perfil para '+acao+'.</b> <span class="aux">Sem perfil, o app só mostra as informações.</span></p><button type="button" class="copy" data-needprof>Criar perfil</button></div>';
 }
 document.addEventListener('click',function(e){if(e.target.closest('[data-needprof]')){e.preventDefault();openLogin();if(!PERFIL)lgShow('new')}});
-var _closeLoginB=closeLogin;
-closeLogin=function(){_closeLoginB();setTimeout(function(){refreshAll();if(!pPane.hidden)renderPredios()},0)};
-var _openReqB=openReq;
-openReq=function(t,a){if(!PERFIL){openLogin();lgShow('new');gToast('Crie seu perfil para pedir correções.');return}_openReqB(t,a)};
-
 refreshAll();
 if(CFG.login)openLogin();
 if(!cover.hidden&&login.hidden)requestAnimationFrame(function(){cvEnter()});
 if('MutationObserver' in window)new MutationObserver(function(){if(login.hidden&&!cover.hidden&&cover.classList.contains('pre'))cvEnter()}).observe(login,{attributes:true,attributeFilter:['hidden']});
 setTimeout(function(){if(login.hidden&&!cover.hidden&&cover.classList.contains('pre'))cvEnter()},1500);
-
 $('#rosebox').innerHTML='<svg viewBox="-72 -72 144 144">'+rose(0,0,36,NORTH+ROT)+'</svg>';
 var opac=$('#opac'),opacv=$('#opacv');
 function setOpac(v){v=Math.max(15,Math.min(100,+v||80));opac.value=v;opacv.textContent=v+'%';var im=$('#baseimg');window.__opac=v/100;if(im)im.style.opacity=v/100}
@@ -4323,7 +4205,6 @@ var savedOp=80;try{savedOp=+localStorage.getItem('cse-ufrj-opac')||80}catch(e){}
 setOpac(savedOp);
 opac.addEventListener('input',function(){setOpac(opac.value);try{localStorage.setItem('cse-ufrj-opac',opac.value)}catch(e){}});
 renderAll();
-
 /* Liquid Glass: brilho segue o ponteiro; refração só em navegadores Chromium */
 try{if(LITE===false&&navigator.userAgentData&&navigator.userAgentData.brands&&navigator.userAgentData.brands.some(function(b){return /Chromium/.test(b.brand)}))document.documentElement.classList.add('refract')}catch(e){}
 document.addEventListener('pointermove',function(e){
@@ -4335,17 +4216,12 @@ document.addEventListener('pointermove',function(e){
 document.addEventListener('pointerdown',function(e){var el=e.target.closest&&e.target.closest('.cv-btn');if(!el)return;var r=el.getBoundingClientRect();
   el.style.setProperty('--mx',(e.clientX-r.left)+'px');el.style.setProperty('--my',(e.clientY-r.top)+'px');
   el.classList.remove('tap');void el.offsetWidth;el.classList.add('tap');setTimeout(function(){el.classList.remove('tap')},650)},{passive:true});
-
 /* ======================= v10: modo simplificado, abas, bússola, destino pelo mapa e tempo ======================= */
-
 /* ---------- 1. modo simplificado: esconde as linhas de apoio ---------- */
 CFG.simples=CFG.simples===true;
 function applySimples(){document.documentElement.classList.toggle('simples',!!CFG.simples)}
 applySimples();
-
 /* ---------- 2. ordem e visibilidade das abas ---------- */
-var TABS=[['trajeto','Trajetos','Linhas, horários e o próximo ônibus'],['predios','Lugares','Onde fica, quando abre e as plantas'],['grade','Grade','Suas aulas da semana'],['cal','Calendário','Prazos, feriados e mudanças de data']];
-var TABID=TABS.map(function(t){return t[0]});
 var CV_OF={trajeto:'trajeto',grade:'grade',cal:'cal'};
 function tabOrder(){
   var o=Array.isArray(CFG.tabs)?CFG.tabs.filter(function(t){return TABID.indexOf(t)>=0}):[];
@@ -4356,7 +4232,6 @@ function tabOff(){var f=Array.isArray(CFG.tabsOff)?CFG.tabsOff.filter(function(t
   return f.length>=TABID.length?f.slice(0,TABID.length-1):f}            /* nunca esconde todas */
 function tabOn(t){return tabOff().indexOf(t)<0}
 function tabVis(){return tabOrder().filter(tabOn)}
-function tabName(t){for(var i=0;i<TABS.length;i++)if(TABS[i][0]===t)return TABS[i][1];return t}
 function applyTabs(){
   var bar=document.querySelector('.tabs');if(!bar)return;
   tabOrder().forEach(function(t){var b=$('#tab-'+t);if(b)bar.appendChild(b)});        /* reordena */
@@ -4365,11 +4240,6 @@ function applyTabs(){
   var cur=document.querySelector('.tabs [data-tab][aria-selected="true"]');
   if(cur&&cur.hidden)setTab(tabVis()[0]);
 }
-var _setTabV=setTab;
-setTab=function(t){
-  if(t!=='cfg'&&(TABID.indexOf(t)<0||!tabOn(t)))t=tabVis()[0];
-  _setTabV(t);
-};
 function tabsCfgHTML(){
   var o=tabOrder(),vis=tabVis().length;
   return '<div><p class="eyebrow">Ajustes</p><h2>Abas do app</h2></div>'+
@@ -4394,19 +4264,8 @@ document.addEventListener('change',function(e){
   if(off.length>=TABID.length)return;
   saveTabs(tabOrder(),off);
 });
-
 /* ---------- 3. bússola: apontar para o destino ou para o ponto de partida ---------- */
 CFG.bussolaAlvo=CFG.bussolaAlvo==='origem'?'origem':'destino';
-cmpGeom=function(){
-  var ori=CFG.bussolaAlvo==='origem',alvo=STOPS[ori?state.from:state.to];if(!alvo)return null;
-  var hasLoc=typeof LOC!=='undefined'&&LOC.on&&LOC.p&&!LOC.out;
-  var S=hasLoc?LOC.p:(STOPS[ori?state.to:state.from]&&STOPS[ori?state.to:state.from].p);
-  if(!S)return null;
-  var vx=alvo.p[0]-S[0],vy=alvo.p[1]-S[1],m=Math.hypot(vx,vy)*mPerUnit();
-  var angV=Math.atan2(vx,-vy)*180/Math.PI,bear=((angV-angN())%360+360)%360;
-  return {to:alvo,fromLoc:hasLoc,m:m,angV:angV,bear:bear,origem:ori};
-};
-
 /* ---------- 4. ponto escolhido no mapa vira o destino ---------- */
 CFG.autoDest=CFG.autoDest!==false;
 function stopNear(p){var n=nearestOf(STOPS,p,function(s){return s.off});return n&&n.id}
@@ -4415,19 +4274,6 @@ function pointStop(kind,id){
   var o=kind==='wifi'?WIFI[id]:kind==='svc'?SVCMAP[id]:kind==='place'?PL[id]:null;
   return o&&o.p?stopNear(o.p):null;
 }
-var _selectV=select;
-select=function(kind,id,scroll){
-  if(CFG.autoDest&&['stop','wifi','svc','place'].indexOf(kind)>=0){
-    var to=pointStop(kind,id);
-    if(to&&to!==state.to){
-      var from=(typeof LOC!=='undefined'&&LOC.on&&LOC.near&&LOC.near.id!==to)?LOC.near.id:state.from;
-      if(from===to)from=state.to!==to?state.to:(to==='est'?'ctl':'est');
-      state.to=to;state.from=from;savePrefs();
-    }
-  }
-  _selectV(kind,id,scroll);
-};
-
 /* ---------- 5. previsão do tempo da Ilha do Fundão (Open-Meteo, sem cadastro) ---------- */
 CFG.clima=CFG.clima!==false;CFG.chuva=CFG.chuva!==false;
 var CLIMA={d:null,busy:false,err:false,t:0};
@@ -4508,7 +4354,6 @@ document.addEventListener('click',function(e){if(e.target.closest&&e.target.clos
 if(CFG.clima)setTimeout(function(){climaLoad(false)},600);
 setInterval(function(){if(CFG.clima&&!document.hidden&&Date.now()-CLIMA.t>18e5)climaLoad(false)},3e5);
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&CFG.clima&&Date.now()-CLIMA.t>18e5)climaLoad(false)});
-
 /* ---------- ajustes: as novas opções ---------- */
 function v10CfgHTML(){
   return '<div><p class="eyebrow">Ajustes</p><h2>Tela e navegação</h2></div>'+
@@ -4531,16 +4376,14 @@ function bussolaAlvoHTML(){
       return '<button type="button" data-balvo="'+o[0]+'" aria-pressed="'+(CFG.bussolaAlvo===o[0])+'">'+o[1]+'</button>'}).join('')+
     '</div><p class="muted small keep">A agulha laranja aponta para o destino ou para o ponto de partida do Seu trajeto.</p>';
 }
-var _renderCfgV10=renderCfg;
-renderCfg=function(f){
-  _renderCfgV10(f);
+aoFazer('ajustes montados',function(f){
   var Rr=$('#cfgR');if(!Rr)return;
   if(!Rr.querySelector('#cfgSimples')){
     var first=Rr.querySelector('.tgls');                      /* a escolha da bússola fica junto do mapa */
     if(first)first.insertAdjacentHTML('afterend',bussolaAlvoHTML());
     Rr.insertAdjacentHTML('beforeend',v10CfgHTML()+tabsCfgHTML());
   }
-};
+});
 document.addEventListener('click',function(e){
   var f=e.target.closest&&e.target.closest('[data-faixa]');if(!f)return;
   CFG.faixa=+f.dataset.faixa||0;saveCfg();renderAll();renderCfgKeep();gToast(CFG.faixa?'Horários em faixas de '+CFG.faixa+' min.':'Horários exatos.');
@@ -4558,7 +4401,6 @@ document.addEventListener('change',function(e){
   if(id==='cfgChuva')drawClima();
 });
 applyTabs();
-
 /* ======================= v11: exigir login para consultar (a gestão liga e desliga) ======================= */
 var ACESSO={login:false};
 var AUTH_READY=!FBMODE;   /* no site, só decide depois que o Firebase diz se há conta entrada */
@@ -4586,23 +4428,19 @@ function gateUpdate(){
   GATE_ON=need;
 }
 /* o Firebase avisa quando há conta entrada (ou nenhuma) e quando a gestão muda a regra */
-var _fbSharedV11=fbShared;
-fbShared=function(fb){
-  _fbSharedV11(fb);
+aoFazer('Firebase conectado',function(fb){
   fb.db.doc('meta/acesso').onSnapshot(function(s){
     ACESSO.login=!!(s.exists&&(s.data()||{}).login===true);
     try{localStorage.setItem('cse-acesso',ACESSO.login?'1':'0')}catch(e){}
     gateUpdate();if(gestM&&!gestM.hidden&&gTab==='geral')renderGest();
   },function(){gateUpdate()});
   fb.auth.onAuthStateChanged(function(u){AUTH_USER=!!u;AUTH_READY=true;gateUpdate()});
-};
+});
 if(FBMODE&&!FB_ON)AUTH_READY=true;
-var _rebuildV11=rebuildAll;rebuildAll=function(){_rebuildV11.apply(this,arguments);gateUpdate()};
-
+aoFazer('tudo reconstruído',function(){gateUpdate()});
 /* com a regra ligada: sem clique direito nem arrastar em imagens, mapa e fotos (só desanima; print de tela continua possível) */
 document.addEventListener('contextmenu',function(e){if(!acessoOn())return;var t=e.target;if(t&&t.closest&&t.closest('img,svg,canvas,.mapwrap,.planwrap,.cvdet,.cv-map,.lg-bg'))e.preventDefault()});
 document.addEventListener('dragstart',function(e){if(acessoOn()&&e.target&&e.target.tagName==='IMG')e.preventDefault()});
-
 /* gestão › Visão geral: o interruptor (só quem tem o privilégio de administradores) */
 function acessoCard(){
   if(!gcan('admins'))return '';
@@ -4610,7 +4448,6 @@ function acessoCard(){
     tg('gAcessoLogin',acessoOn(),'Exigir login para consultar','Quem não entrou com Google ou e-mail não vê o mapa, os trajetos nem as fotos. Também bloqueia clique direito e arrastar nas imagens.')+
     '</div><p class="muted small keep">'+(FBMODE?'Vale para todos os aparelhos. Os dados do Firebase só ficam protegidos de verdade depois de publicar as regras novas (arquivo firestore.rules).':'Modo demonstração: vale só para este aparelho.')+'</p>';
 }
-var _gGeralV11=gGeral;gGeral=function(){return _gGeralV11()+acessoCard()};
 document.addEventListener('change',function(e){
   if(!e.target||e.target.id!=='gAcessoLogin')return;
   var v=e.target.checked,box=e.target;
@@ -4657,23 +4494,15 @@ function pWifiHTML(){
         (open?'<div class="wbody"><dl class="kv"><dt>Rede</dt><dd>'+esc(w.ssid||'Nome a confirmar no local')+'</dd><dt>Acesso</dt><dd>'+esc(w.acesso||'Sem senha')+'</dd><dt>Dica</dt><dd>'+esc(w.note||'—')+'</dd><dt>Nota</dt><dd>'+br(a)+' de 5 · '+votesOf(id)+' avaliações</dd></dl>'+
           (PERFIL?'<p><b>Como está o sinal aqui agora?</b></p>'+wScale(id):needProfileHTML('dar nota ao sinal'))+
           '<div class="gbtns"><button type="button" class="copy" data-wmap="'+id+'">Ver no mapa</button></div></div>':'')+'</div>'}).join('')+'</div>'+
-    '<button class="item tint" type="button" style="--c:var(--good)" data-wedu><span class="lb" style="--c:var(--good)">Wi-Fi</span><span class="grow">Tutorial do eduroam<small>Wi-Fi global das universidades, com o login da UFRJ</small></span></button>';
+    '<div class="educard"><div class="educard-t"><span class="lb" style="--c:var(--good)">edu</span><span class="grow"><b>eduroam</b><small class="keep">Wi-Fi seguro das universidades, com o login da UFRJ</small></span></div>'+
+    (EDUC.open?eduCfgHTML(false):'<div class="row"><button type="button" class="copy primary" data-educfg>Configurar eduroam</button><button type="button" class="linkbtn" data-wedu>Ver tutorial</button></div>')+'</div>';
 }
 function renderWifiPane(){var el=$('#pWifi');if(el&&!pPane.hidden)el.innerHTML=pWifiHTML()}
 /* "Onde fica e quando abre" vira uma seção recolhível, fechada por padrão */
 pstate.hrsOpen=(function(){try{return localStorage.getItem('cse-fold-hrs')==='1'}catch(e){return false}})();
-var _hoursInnerV15=hoursHTML;
-hoursHTML=function(now){
-  var we=isWeekend()&&!state.manual,nOpen=Object.keys(PL).filter(function(k){var it=PL[k];if(it.cat==='aula')return false;var st=statusOf(it,now);return !(st.c==='bad'||/Confirmar|Sem horário/.test(st.t))}).length;
-  var body=pstate.hrsOpen?_hoursInnerV15(now).replace(/^<div><p class="eyebrow">[^<]*<\/p><h2>Onde fica e quando abre<\/h2><\/div>/,''):'';
-  return foldHTML('fdHrs',pstate.hrsOpen,'Onde fica e quando abre','<span class="fsum muted">'+nOpen+' abertos agora · '+(we?'fim de semana':'dia útil')+', '+fmt(now)+'</span>',body);
-};
 pPane.addEventListener('toggle',function(e){var d=e.target;if(!d||d.id!=='fdHrs'||pstate.hrsOpen===d.open)return;
   pstate.hrsOpen=d.open;try{localStorage.setItem('cse-fold-hrs',d.open?'1':'0')}catch(x){}
   if(d.open){var b=d.querySelector('.fold-b');if(b&&!b.firstChild){pH.innerHTML=hoursHTML(nowMin());var s2=$('#fdHrs summary');if(s2)s2.focus({preventScroll:true})}}},true);
-var _renderPrediosV13=renderPredios;
-renderPredios=function(f){_renderPrediosV13(f);renderWifiPane()};
-
 /* balão no mapa ao tocar num ícone de Wi-Fi */
 function wifiPopClose(){var p=$('#wPop');if(p)p.remove()}
 function wifiPopHTML(id){
@@ -4703,7 +4532,6 @@ svg.addEventListener('click',function(e){
 },true);
 svg.addEventListener('pointerdown',function(e){if(!(e.target.closest&&e.target.closest('.mk.wifi')))wifiPopClose()},true);
 document.addEventListener('keydown',function(e){if(e.key==='Escape')wifiPopClose()});
-
 document.addEventListener('click',function(e){
   var t=e.target.closest&&e.target.closest('[data-wrate],[data-wsel],[data-wmap],[data-wmore],[data-wedu],[data-wpopx],[data-nightoff]');if(!t)return;
   if(t.dataset.wpopx!==undefined){wifiPopClose();return}
@@ -4722,7 +4550,6 @@ document.addEventListener('click',function(e){
   if(t.dataset.wmore){var wm=t.dataset.wmore;wifiPopClose();WSEL=wm;setTab('predios');try{history.replaceState(null,'','#predios')}catch(x){}
     setTimeout(function(){var r=$('#wrow-'+wm);if(r)r.scrollIntoView({behavior:'smooth',block:'center'})},60)}
 });
-
 /* Volta à noite: a lua aparece no mapa, o mapa escurece e o painel vem para a tela */
 function nightBadge(){
   var on=!!state.sel&&(state.sel.kind==='night'||state.sel.kind==='guard'),mw=document.querySelector('.mapwrap');if(!mw)return;
@@ -4730,18 +4557,8 @@ function nightBadge(){
   if(on&&!b)mw.insertAdjacentHTML('beforeend','<div class="nightbadge" id="nightBadge" role="status">'+MOON+'<span>Volta à noite</span><button type="button" data-nightoff>Sair</button></div>');
   else if(!on&&b)b.remove();
 }
-var _updateMapV13=updateMap;
-updateMap=function(){var r=_updateMapV13.apply(this,arguments);nightBadge();return r};
-var _selectV13=select;
-select=function(kind,id,scroll){
-  _selectV13(kind,id,scroll);
-  if(kind!=='wifi')wifiPopClose();
-  if(kind==='night'){nightBadge();setTimeout(function(){var d=$('#detail');if(!d)return;var r=d.getBoundingClientRect();
-    if(r.top>window.innerHeight*.55||r.bottom<80)d.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'})},80)}
-};
+aoFazer('mapa atualizado',nightBadge);
 wifiChip();
-
-
 /* ======================= v16: tela cheia no primeiro toque ======================= */
 var FSE=document.documentElement;
 function fsOk(){return !!(FSE.requestFullscreen||FSE.webkitRequestFullscreen)}
@@ -4771,7 +4588,6 @@ document.addEventListener('click',function(e){
 });
 function fsLabel(){var b=document.getElementById('fsNow');if(b)b.textContent=fsOn()?'Sair da tela cheia':'Entrar em tela cheia agora'}
 document.addEventListener('fullscreenchange',fsLabel);document.addEventListener('webkitfullscreenchange',fsLabel);
-
 /* ======================= v18: motivos para entrar com uma conta ======================= */
 function contaOk(){return ACC.kind==='google'||ACC.kind==='claude'}
 function semConta(){return FB_ON&&!contaOk()}
@@ -4802,16 +4618,10 @@ document.addEventListener('click',function(e){
   var s=$('#laSheet');if(s&&!s.hidden&&e.target===s)loginAskClose();
 });
 document.addEventListener('keydown',function(e){if(e.key==='Escape')loginAskClose()});
-
 /* fila: o botão Informar aparece também para quem não entrou e leva ao pedido de conta */
-var _filaRow18=filaRow;
-filaRow=function(k,now){var h=_filaRow18(k,now);if(canPost()||!semConta()||!SH.on)return h;var p=filaPill(k);return h.replace(p,p+askBtn('fila','Informar','la-sm'))};
-
 /* contribuições: contagem guardada na conta */
 var CONTRIB={fila:0,avisos:0,pedidos:0};try{var _c=JSON.parse(localStorage.getItem('cse-contrib'));if(_c&&typeof _c==='object')Object.keys(CONTRIB).forEach(function(k){CONTRIB[k]=+_c[k]||0})}catch(e){}
 function saveContrib(){try{localStorage.setItem('cse-contrib',JSON.stringify(CONTRIB))}catch(e){}}
-var _postDone18=postDone;
-postDone=function(k){_postDone18(k);var m={fila:'fila',rep:'avisos',req:'pedidos'}[k];if(m){CONTRIB[m]++;saveContrib();if(contaOk())accQueue()}};
 function contribTotal(){return CONTRIB.fila+CONTRIB.avisos+CONTRIB.pedidos+Object.keys(mine||{}).length}
 function seloOf(n){return n>=20?['Guia do Fundão','good']:n>=5?['Colaborador frequente','good']:n>=1?['Colaborador','']:['Ainda sem contribuições','']}
 function contribHTML(){
@@ -4820,17 +4630,16 @@ function contribHTML(){
     '<div class="la-nums"><span><b>'+CONTRIB.fila+'</b>filas</span><span><b>'+Object.keys(mine||{}).length+'</b>notas de Wi-Fi</span><span><b>'+CONTRIB.avisos+'</b>avisos</span><span><b>'+CONTRIB.pedidos+'</b>pedidos</span></div>'+
     '<p class="small keep la-p">'+(n?'Obrigado! Cada aviso ajuda quem está chegando agora.':'Informe a fila do RU ou dê nota a uma rede Wi-Fi para começar.')+(nx?' Faltam '+(nx-n)+' para o selo “'+seloOf(nx)[0]+'”.':'')+'</p></div>';
 }
-
 /* contato de confiança (Volta à noite) */
 var CONT={nome:'',tel:''};try{var _ct=JSON.parse(localStorage.getItem('cse-contato'));if(_ct&&typeof _ct==='object'){CONT.nome=String(_ct.nome||'').slice(0,40);CONT.tel=String(_ct.tel||'').slice(0,20)}}catch(e){}
 function saveCont(){try{localStorage.setItem('cse-contato',JSON.stringify(CONT))}catch(e){}if(contaOk())accQueue()}
 function telDig(t){var d=String(t||'').replace(/\D/g,'');if(d.length===10||d.length===11)d='55'+d;return d.length>=12?d:''}
 function nightMsg(kind,from,now){
   var hi=CONT.nome?'Oi, '+CONT.nome+'! ':'';
-  if(kind==='cheguei')return hi+'Cheguei bem na Estação BRT. (Chegar e se conectar · UFRJ)';
-  if(from==='est')return hi+'Estou na Estação BRT do Fundão saindo agora. Te aviso quando chegar. (Chegar e se conectar · UFRJ)';
+  if(kind==='cheguei')return hi+'Cheguei bem na Estação BRT. (Chega aí UFRJ)';
+  if(from==='est')return hi+'Estou na Estação BRT do Fundão saindo agora. Te aviso quando chegar. (Chega aí UFRJ)';
   var o=options(from,'est',now)[0]||lastTo(from,'est')[0];
-  return hi+'Estou saindo de '+STOPS[from].name+' agora'+(o?'. Vou pegar a Linha '+o.lid+' ('+LINES[o.lid].name+') por volta de '+hm(Math.round(o.dep))+' e devo chegar na Estação BRT perto de '+hm(Math.round(o.arr)):'')+'. Te aviso quando chegar. (Chegar e se conectar · UFRJ)';
+  return hi+'Estou saindo de '+STOPS[from].name+' agora'+(o?'. Vou pegar a Linha '+o.lid+' ('+LINES[o.lid].name+') por volta de '+hm(Math.round(o.dep))+' e devo chegar na Estação BRT perto de '+hm(Math.round(o.arr)):'')+'. Te aviso quando chegar. (Chega aí UFRJ)';
 }
 function hm(m){m=((m%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')}
 function nightSend(kind){
@@ -4845,13 +4654,10 @@ function nightShareHTML(){
   return h+'<div class="la-night"><p class="small keep">'+(CONT.nome||CONT.tel?'Enviar para <b>'+esc(CONT.nome||'seu contato')+'</b>'+(telDig(CONT.tel)?' pelo WhatsApp':'')+'.':'Escolha o app na hora de enviar, ou cadastre um contato.')+' <button type="button" class="linkbtn" data-ctedit>'+(CONT.nome||CONT.tel?'Trocar':'Cadastrar contato')+'</button></p>'+
     '<div class="row"><button type="button" class="copy primary" data-nsend="saindo">Avisar que estou saindo</button><button type="button" class="copy" data-nsend="cheguei">Avisar que cheguei</button></div></div>';
 }
-var _nightHTML18=nightHTML;
-nightHTML=function(now){var h=_nightHTML18(now),k='<h3>Telefones da segurança</h3>';return h.indexOf(k)>=0?h.replace(k,nightShareHTML()+k):h+nightShareHTML()};
 document.addEventListener('click',function(e){
   var s=e.target.closest&&e.target.closest('[data-nsend]');if(s){if(contaOk())nightSend(s.dataset.nsend);else loginAsk('noite');return}
   if(e.target.closest&&e.target.closest('[data-ctedit]')){openCfg();setTimeout(function(){var f=$('#ctNome');if(f){f.scrollIntoView({block:'center'});f.focus({preventScroll:true})}},120)}
 });
-
 /* alertas (só com conta): funcionam com o app aberto, mesmo em outra aba */
 function alertasHTML(){
   var h='<div class="accsec la-al" id="alsec"><h2>Alertas</h2>';
@@ -4896,7 +4702,6 @@ function alCheck(){
   if(CFG.alFila&&now>=660&&now<=840)RUS.forEach(function(k){var f=filaOf(k);if(f&&f.n<=1)alFire('fila:'+day+':'+k,PL[k].name+': '+(f.n?'fila pequena':'sem fila'),'Informado '+agoTxt(f.last)+'.')});
 }
 setInterval(alCheck,30000);setTimeout(alCheck,4000);
-
 /* Ajustes › Conta: contribuições, benefícios e seus dados */
 function dadosHTML(){
   var g=ACC.kind==='google';
@@ -4909,22 +4714,14 @@ function dadosHTML(){
     '<p class="small keep">Nada disso é vendido ou repassado. O uso é só o funcionamento do app (LGPD, art. 7º).</p>'+
     (g?'<div class="row"><button type="button" class="copy" id="laExport">Baixar meus dados</button><button type="button" class="copy la-del" id="laDelete">Apagar meus dados e a conta</button></div>':'')+'</div></details>';
 }
-var _accHTML18=accHTML;
-accHTML=function(){
-  var h=_accHTML18(),i=h.lastIndexOf('</div>');
-  if(contaOk())return h.slice(0,i)+contribHTML()+dadosHTML()+h.slice(i);
-  if(FB_ON)return h.slice(0,i)+'<p class="small keep la-p"><b>Com uma conta você também tem:</b></p>'+laBenHTML()+h.slice(i);
-  return h;
-};
-var _renderCfg18=renderCfg;
-renderCfg=function(f){_renderCfg18(f);var a=$('#accsec');if(a&&!$('#alsec'))a.insertAdjacentHTML('afterend',alertasHTML())};
+aoFazer('ajustes montados',function(f){var a=$('#accsec');if(a&&!$('#alsec'))a.insertAdjacentHTML('afterend',alertasHTML())});
 function myDocs(){var u=SH.uid||ACC.uid;return ['usuarios/'+u,'votes/'+u,'fila/'+u,'reports/'+u,'requests/'+u]}
 function laExport(){
   var db=ACC.fb&&ACC.fb.db;if(!db)return;
   Promise.all(myDocs().map(function(p){return db.doc(p).get().then(function(d){return [p.split('/')[0],d.exists?d.data():null]},function(){return [p.split('/')[0],'sem acesso']})})).then(function(r){
-    var o={app:'Chegar e se conectar',geradoEm:new Date().toISOString(),conta:{uid:ACC.uid,nome:ACC.name,email:ACC.email,foto:ACC.photo},nesteAparelho:{ajustes:CFG,contato:CONT,contribuicoes:CONTRIB}};
+    var o={app:'Chega aí UFRJ',geradoEm:new Date().toISOString(),conta:{uid:ACC.uid,nome:ACC.name,email:ACC.email,foto:ACC.photo},nesteAparelho:{ajustes:CFG,contato:CONT,contribuicoes:CONTRIB}};
     r.forEach(function(x){o[x[0]]=x[1]});
-    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'}));a.download='meus-dados-chegar-e-se-conectar.json';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000);
+    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'}));a.download='meus-dados-chega-ai-ufrj.json';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000);
     gToast('Arquivo com seus dados baixado.');
   });
 }
@@ -4944,23 +4741,11 @@ document.addEventListener('click',function(e){
   var d=e.target.closest&&e.target.closest('#laDelete');if(d)laDelete(d);
 });
 /* conta guarda contato e contribuições junto com os ajustes */
-var _accPush18=accPush;
-accPush=function(){
-  var p=_accPush18();
-  try{if(ACC.kind==='google'&&ACC.fb)ACC.fb.db.collection('usuarios').doc(ACC.uid).set({contato:CONT,contrib:CONTRIB},{merge:true}).catch(function(){});
-    else if(ACC.kind==='claude'&&SH.db)SH.db.doc('data/users/'+ACC.uid+'/extra').set({contato:CONT,contrib:CONTRIB,ts:Date.now()}).catch(function(){})}catch(e){}
-  return p;
-};
 function applyExtra(d){
   if(!d||typeof d!=='object')return;
   if(d.contato&&typeof d.contato==='object'&&!CONT.nome&&!CONT.tel){CONT.nome=String(d.contato.nome||'').slice(0,40);CONT.tel=String(d.contato.tel||'').slice(0,20);try{localStorage.setItem('cse-contato',JSON.stringify(CONT))}catch(e){}}
   if(d.contrib&&typeof d.contrib==='object'){Object.keys(CONTRIB).forEach(function(k){CONTRIB[k]=Math.max(CONTRIB[k],+d.contrib[k]||0)});saveContrib()}
 }
-var _applyRemote18=applyRemote;
-applyRemote=function(d){_applyRemote18(d);applyExtra(d)};
-var _accClaude18=accClaude;
-accClaude=function(user,uid){_accClaude18(user,uid);try{if(uid&&SH.db)SH.db.doc('data/users/'+uid+'/extra').get().then(function(d){if(d.exists){applyExtra(d.data());if(!cfgM.hidden)renderCfgKeep()}},function(){})}catch(e){}};
-
 /* lembrete leve: a partir da 3ª visita (em dias diferentes), sem conta; "Agora não" some por 5 dias */
 var VIS={n:0,d:''};try{VIS=JSON.parse(localStorage.getItem('cse-visitas'))||VIS}catch(e){}
 (function(){var d=new Date().toISOString().slice(0,10);if(VIS.d!==d){VIS.n=(+VIS.n||0)+1;VIS.d=d;try{localStorage.setItem('cse-visitas',JSON.stringify(VIS))}catch(e){}}})();
@@ -4976,25 +4761,11 @@ document.addEventListener('click',function(e){
   var el=$('#laNudge');if(el)el.remove();
 });
 setTimeout(nudgeShow,8000);setInterval(function(){if(!$('#laNudge'))nudgeShow();else if(!semConta())$('#laNudge').remove()},20000);
-
 /* ======================= v19: grade só para quem entrou com uma conta ======================= */
-var _gradeList19=gradeList;
-gradeList=function(){return semConta()?[]:_gradeList19.apply(this,arguments)};
-var _renderGrade19=renderGrade;
-renderGrade=function(f){
-  if(!gPane||gPane.hidden)return;
-  if(!semConta()){if(gWeek.hidden)gWeek.hidden=false;gPane.classList.remove('la-gl');return _renderGrade19(f)}
-  gWeek.hidden=true;gPane.classList.add('la-gl');
-  gNext.innerHTML='<div><p class="eyebrow keep">Sua semana</p><h2>Minha grade</h2></div>'+
-    '<div class="la-lock la-glock"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>'+
-    '<p class="keep"><b>Faça login para salvar sua grade.</b></p><p class="small keep la-p">Com uma conta, suas aulas ficam guardadas, aparecem no mapa e vão com você para qualquer aparelho.</p>'+askBtn('grade','Entrar')+'</div>';
-};
 LA_WHY.grade=['Faça login para salvar sua grade','Sua grade fica guardada na sua conta, só você vê, e aparece em qualquer aparelho em que você entrar.'];
 function gradeAuthSync(){try{syncAulas();if(typeof updateMap==='function')updateMap();renderGrade()}catch(e){}}
-var _accGoogle19=accGoogle;accGoogle=function(u){_accGoogle19(u);gradeAuthSync()};
-var _fbUserOff19=fbUserOff;fbUserOff=function(){_fbUserOff19();gradeAuthSync()};
+aoFazer('usuário saiu',function(){gradeAuthSync()});
 gradeAuthSync();
-
 /* ======================= v20: botão "Configurar eduroam" (leva ao geteduroam certo para o aparelho) ======================= */
 function eduPlat(){var u=navigator.userAgent||'';
   if(/android/i.test(u))return 'android';
@@ -5046,19 +4817,8 @@ document.addEventListener('click',function(e){
   if(t.dataset.edustep){eduMark(+t.dataset.edustep,true);eduCfgPaint();return}
   if(t.hasAttribute('data-educheck'))eduCheck();
 },true);
-var _pWifiHTML20=pWifiHTML;
-pWifiHTML=function(){
-  var h=_pWifiHTML20(),i=h.lastIndexOf('<button class="item tint" type="button" style="--c:var(--good)" data-wedu>');
-  var card='<div class="educard"><div class="educard-t"><span class="lb" style="--c:var(--good)">edu</span><span class="grow"><b>eduroam</b><small class="keep">Wi-Fi seguro das universidades, com o login da UFRJ</small></span></div>'+
-    (EDUC.open?eduCfgHTML(false):'<div class="row"><button type="button" class="copy primary" data-educfg>Configurar eduroam</button><button type="button" class="linkbtn" data-wedu>Ver tutorial</button></div>')+'</div>';
-  return i>=0?h.slice(0,i)+card:h+card;
-};
-var _eduHTML20=eduHTML;
-eduHTML=function(){var h=_eduHTML20(),k='<div><p class="small muted" id="eduprog">';var i=h.indexOf(k);return i>=0?h.slice(0,i)+'<h3>Configurar agora</h3>'+eduCfgHTML(true)+'<h3>Passo a passo</h3>'+h.slice(i):h};
-
 /* v21: setas na capa: voltar para o login e avançar para o app */
 $('#cvToLogin').addEventListener('click',function(e){e.stopPropagation();openLogin()});
-
 /* ======================= v23: a gestão define as configurações padrão ======================= */
 GKEYS.push('padrao');GST.padrao=GST.padrao||{};if(!SH.on||!FBMODE){try{var _gp=JSON.parse(localStorage.getItem(GLS+'padrao'));if(_gp)GST.padrao=_gp}catch(e){}}
 GTABS.splice(1,0,['padrao','Padrões do app']);TAB_PERM.padrao='admins';
@@ -5081,24 +4841,18 @@ var PAD_SNAP=null;
 ['click','change','input','keydown'].forEach(function(ev){document.addEventListener(ev,function(e){
   if(!e.isTrusted)return;if(e.target&&e.target.closest&&e.target.closest('#gestM'))return;
   var s={};PAD_KEYS.forEach(function(k){s[k]=CFG[k]});PAD_SNAP=s;setTimeout(function(){PAD_SNAP=null},1500)},true)});
-var _saveCfg23=saveCfg;
-saveCfg=function(){
-  if(PAD_SNAP)PAD_KEYS.forEach(function(k){if(CFG[k]!==PAD_SNAP[k])CFG.mine[k]=1});
-  return _saveCfg23.apply(this,arguments);
-};
 function padApply(){
   var P=GST.padrao||{},v=P.v||{},ch=false;
   if(P.forcar&&P.forcar!==CFG.padForc){PAD_KEYS.forEach(function(k){if(k in v)delete CFG.mine[k]});CFG.padForc=P.forcar;ch=true}
   PAD_KEYS.forEach(function(k){if(!(k in v)||CFG.mine[k]||!padOk(k,v[k]))return;if(CFG[k]!==v[k]){CFG[k]=v[k];ch=true}});
   if(!ch)return;
-  _saveCfg23();
+  saveCfgSemMarcar();
   try{applyTheme()}catch(e){}try{applySimples()}catch(e){}try{applyPerf()}catch(e){}try{applyCoverStyle()}catch(e){}try{applyFont()}catch(e){}
   try{renderAll()}catch(e){}try{if(CFG.clima&&!CLIMA.d)climaLoad(false)}catch(e){}
   try{if(cfgM&&!cfgM.hidden)renderCfgKeep()}catch(e){}
 }
-var _applyG23=applyG;applyG=function(){_applyG23.apply(this,arguments);padApply()};
+aoFazer('dados da gestão aplicados',function(){padApply()});
 padApply();
-
 function gPadrao(){
   var v=(GST.padrao||{}).v||{};
   return '<h3 class="gh">Configurações padrão</h3><p class="muted small keep">Valem para quem ainda não mudou a opção em Ajustes. Quem já escolheu mantém a própria escolha, a menos que você aplique para todos.</p>'+
@@ -5109,14 +4863,12 @@ function gPadrao(){
     '<div class="gbtns"><button type="submit" class="copy primary">Salvar padrões</button></div></form>'+
     ((GST.padrao||{}).forcar?'<p class="muted small keep">Última aplicação para todos: '+new Date((GST.padrao||{}).forcar).toLocaleString('pt-BR')+'.</p>':'');
 }
-var _renderGest23=renderGest;
-renderGest=function(){_renderGest23();if(gTab==='padrao'&&$('#gBody')&&gcan('admins'))$('#gBody').innerHTML=gPadrao()};
+aoFazer('gestão montada',function(){if(gTab==='padrao'&&$('#gBody')&&gcan('admins'))$('#gBody').innerHTML=gPadrao()});
 document.addEventListener('submit',function(e){var f=e.target.closest&&e.target.closest('form[data-gform="padrao"]');if(!f)return;e.preventDefault();e.stopPropagation();
   var v={};PAD_KEYS.forEach(function(k){var s=$('#gPad_'+k);if(s&&s.value!=='')v[k]=PAD_OPTS[k][1][+s.value][0]});
   var o={v:v};var old=GST.padrao||{};if($('#gPadForce').checked)o.forcar=Date.now();else if(old.forcar)o.forcar=old.forcar;
   saveG('padrao',o);renderGest();
 },true);
-
 /* ======================= v25: a bússola usa o GPS ======================= */
 /* 1) ponto de partida: a sua posição do GPS (já era); agora mostra a precisão e avisa quando ela é ruim.
    2) andando, o GPS dá o rumo real do movimento (sem interferência magnética). Com ele o app:
@@ -5145,29 +4897,7 @@ function gpsFix(c,t){
   /* sem bússola no aparelho: a direção do movimento vira a direção do celular */
   if(CMP.on&&(!CMP.got||Date.now()-(CMP.tRaw||0)>5000)&&sp!=null&&sp>=0.7){CMP.h=crs;CMP.gpsH=true;cmpSchedule()}
 }
-locStart=function(){
-  if(!('geolocation' in navigator)){gToast('Este navegador não informa a localização.',1);return}
-  LOC.on=true;LOC.first=true;var b=$('#zloc');if(b){b.setAttribute('aria-pressed','true');b.classList.add('busy')}
-  LOC.watch=navigator.geolocation.watchPosition(function(pos){
-    var c=pos.coords;LOC.ll=[c.latitude,c.longitude];LOC.acc=c.accuracy||50;LOC.ts=Date.now();LOC.p=ll2map(c.latitude,c.longitude);
-    try{gpsFix(c,pos.timestamp||Date.now())}catch(e){}
-    var bb=$('#zloc');if(bb)bb.classList.remove('busy');var f=LOC.first;LOC.first=false;locUpdate(f);
-  },locErr,{enableHighAccuracy:true,maximumAge:3000,timeout:25000});
-};
 /* texto do cartão da bússola: precisão do GPS e se a seta já foi ajustada */
-var _drawRose25=drawRose;
-drawRose=function(){
-  _drawRose25();var rc=$('#rosecard');if(!CMP.on||!rc||rc.hidden)return;
-  var g=cmpGeom(),bits=[];
-  if(g&&g.fromLoc){bits.push('GPS ± '+Math.round(LOC.acc)+' m');if(LOC.acc>40&&g.m>25)bits.push('posição imprecisa: vá para um lugar aberto')}
-  else if(typeof LOC!=='undefined'&&LOC.on&&!LOC.p)bits.push('procurando o GPS…');
-  if(CMP.gpsH&&!CMP.got)bits.push('direção pelo seu movimento');
-  else if(CMP.offN>=5&&CMP.h!=null)bits.push('bússola ajustada pelo GPS');
-  else if(CMP.got&&LOC.on)bits.push('ande uns passos olhando para a tela para ajustar');
-  if(bits.length)rc.insertAdjacentHTML('beforeend','<small class="cmp-gps">'+esc(bits.join(' · '))+'</small>');
-  if(g&&g.fromLoc&&g.m>25&&g.m<=LOC.acc){var b=rc.querySelector('b');if(b)b.textContent=(g.to.short||g.to.name)+': você está bem perto'}
-};
-
 /* ======================= v26: feedback dos usuários + app instalável (PWA) ======================= */
 var FBK_TIPOS=[['erro','Algo errado'],['ideia','Sugestão'],['elogio','Elogio'],['outro','Outro']];
 var FBK_LOCAL='cse-feedback-local';
@@ -5232,8 +4962,7 @@ function pwaHTML(){
   return h+'<p class="small keep">No menu do navegador, escolha <b>Instalar app</b> ou <b>Adicionar à tela inicial</b>.</p></div>';
 }
 function fbkCfgHTML(){return '<div class="accsec" id="fbksec"><h2>Fale com a gente</h2><p class="small keep">Achou um erro ou tem uma ideia? Sua mensagem vai direto para a equipe.</p><div class="row"><button type="button" class="copy primary" data-fbk>Algo errado? Conte aqui</button></div></div>'}
-var _renderCfg26=renderCfg;
-renderCfg=function(f){_renderCfg26(f);var a=$('#alsec')||$('#accsec');if(a&&!$('#fbksec'))a.insertAdjacentHTML('afterend',fbkCfgHTML()+pwaHTML())};
+aoFazer('ajustes montados',function(f){var a=$('#alsec')||$('#accsec');if(a&&!$('#fbksec'))a.insertAdjacentHTML('afterend',fbkCfgHTML()+pwaHTML())});
 document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('#pwaGo')&&PWA.evt){PWA.evt.prompt();PWA.evt.userChoice.then(function(){PWA.evt=null;renderCfgKeep()},function(){})}});
 /* service worker: só no site publicado (https) */
 if(ON_SITE&&'serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')&&APP_VERSION!=='dev'){
@@ -5258,15 +4987,13 @@ function gFeedback(){
     '<ul class="fbk-list">'+L.filter(function(o){return o.txt}).map(function(o){return '<li><div class="fbk-h"><span class="pill">'+(nomes[o.tipo]||esc(o.tipo))+'</span>'+(o.nota?'<span class="pill">nota '+o.nota+'</span>':'')+'<small>'+new Date(o.ts).toLocaleString('pt-BR')+' · '+esc(o.tela||'')+' · '+esc(o.disp||'')+' · v'+esc(o.ver||'')+'</small></div><p>'+esc(o.txt)+'</p>'+(o.email?'<p class="small"><a href="mailto:'+esc(o.email)+'">Responder: '+esc(o.email)+'</a></p>':'')+'<button type="button" class="linkbtn" data-fbkdel="'+esc(o.id)+'">Apagar</button></li>'}).join('')+'</ul>'+
     (L.some(function(o){return o.txt})?'':'<p class="muted small keep">Nenhuma mensagem ainda.</p>');
 }
-var _renderGest26=renderGest;
-renderGest=function(){_renderGest26();if(gTab==='feedback'&&$('#gBody')&&gcan('avisos'))$('#gBody').innerHTML=gFeedback()};
+aoFazer('gestão montada',function(){if(gTab==='feedback'&&$('#gBody')&&gcan('avisos'))$('#gBody').innerHTML=gFeedback()});
 document.addEventListener('click',function(e){
   if(e.target.closest&&e.target.closest('#fbkReload')){FBKG.list=null;renderGest();return}
   var d=e.target.closest&&e.target.closest('[data-fbkdel]');if(!d)return;var id=d.dataset.fbkdel;
   var p=FB_ON?fbInit().then(function(fb){return fb.db.collection('feedback').doc(id).delete()}):Promise.resolve((function(){try{var a=JSON.parse(localStorage.getItem(FBK_LOCAL)||'[]');a.splice(+id.slice(1),1);localStorage.setItem(FBK_LOCAL,JSON.stringify(a))}catch(x){}})());
   p.then(function(){FBKG.list=null;renderGest();gToast('Mensagem apagada.')},function(){gToast('Não deu para apagar.',1)});
 });
-
 /* ======================= v27: ônibus da cidade (GTFS da SMTR) que saem do Fundão ======================= */
 var EXT={"fonte":"SMTR / Prefeitura do Rio (GTFS, CC BY 4.0)","ate":"20261231","stops":{"terminal":["Terminal Fundão (Aroldo Melodia)",-22.839378,-43.23959],"ccshospitalunive":["CCS - Hospital Universitário",-22.842503,-43.23629],"edsonabdallasaad":["Edson Abdalla Saad",-22.845853,-43.237793],"prefeituraufrj":["Prefeitura - UFRJ",-22.846725,-43.237614],"cenpes":["CENPES",-22.850584,-43.234749],"ctletras":["CT - Letras",-22.86029,-43.2277],"cepecenpes":["CEPE - CENPES",-22.855355,-43.235928],"helio":["Fundão · Rua Hélio de Almeida",-22.865332,-43.221536],"cetem":["CETEM",-22.860132,-43.221473],"belasartesreitor":["Belas Artes - Reitoria",-22.861717,-43.224511],"ccseefd":["CCS - EEFD",-22.843147,-43.233445],"polodebiotecnolo":["Polo de Biotecnologia",-22.841551,-43.231612],"ctccmn":["CT - CCMN",-22.85817,-43.231466],"ccmngeografia":["CCMN - Geografia",-22.857952,-43.233802],"cenpesgeografia":["CENPES - Geografia",-22.855826,-43.233003]},"lines":[{"n":"321","nm":"Bancários - Castelo","d":"Castelo","g":"centro","c":"#EA0A2A","brt":false,"st":[["terminal",0],["ccshospitalunive",2],["edsonabdallasaad",3],["prefeituraufrj",3],["cenpes",5],["ctletras",9]],"t":{"U":[284,299,314,335,344,353,362,371,380,403,410,417,424,431,438,445,452,459,469,479,489,503,515,522,538,552,564,574,590,603,615,627,639,651,663,675,687,699,711,723,735,745,760,772,784,796,800,815,830,845,860,873,881,889,898,910,922,940,947,959,971,983,995,1007,1019,1031,1043,1053,1063,1073,1083,1093,1103,1115,1127,1139,1151,1163,1175,1187,1191,1206,1231,1254,1294,1319,1354],"S":[330,350,370,390,410,430,450,470,490,510,530,550,577,607,634,654,674,694,724,754,784,814,844,874,904,934,964,994,1024,1054,1084,1114,1144,1174,1204,1231,1290,1320,1350]}},{"n":"321","nm":"Bancários - Castelo","d":"Bancários","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"S":[395,425,455,485,515,545,575,605,635,665,695,725,754,774,794,814,834,854,875,905,935,965,995,1015,1035,1054,1069,1084,1099,1117,1137,1157,1175,1205,1235,1265,1293,1353,1413],"U":[348,363,378,400,415,430,440,455,465,475,485,495,505,515,525,535,541,547,553,561,569,580,600,615,630,645,660,675,690,708,718,728,738,748,759,768,777,789,801,813,825,837,849,861,873,885,897,912,927,942,952,960,968,976,986,996,1006,1016,1026,1036,1046,1060,1072,1084,1096,1108,1120,1132,1144,1156,1168,1180,1192,1197,1207,1217,1227,1237,1247,1257,1267,1273,1296,1326,1356,1381,1416]}},{"n":"323","nm":"Bananal - Castelo","d":"Castelo","g":"centro","c":"#EA0A2A","brt":false,"st":[["terminal",0],["ccshospitalunive",2],["edsonabdallasaad",3],["prefeituraufrj",3],["cenpes",5],["ctletras",9]],"t":{"U":[206,267,287,307,337,347,357,367,377,387,405,413,421,429,437,445,453,469,479,489,499,509,519,525,537,549,561,573,583,598,613,628,642,654,666,678,690,702,712,722,732,742,752,763,775,787,799,811,821,836,851,866,880,900,920,940,955,970,985,1000,1015,1030,1045,1060,1075,1090,1105,1117,1139,1161,1183,1205,1227,1249,1266,1290,1350],"S":[395,455,515,575,635,695,755,815,875,935,995]}},{"n":"323","nm":"Bananal - Castelo","d":"Bananal","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"U":[264,329,349,369,395,407,419,431,443,455,467,479,491,503,515,527,539,551,563,576,591,606,621,636,651,666,681,696,711,726,741,759,771,783,795,807,817,832,847,862,877,892,907,922,937,952,967,982,1005,1017,1029,1041,1053,1065,1080,1095,1110,1125,1140,1155,1170,1178,1198,1218,1232,1262,1292,1322,1349,1409],"S":[456,516,576,636,696,756,816,876,936,996,1056]}},{"n":"324","nm":"Ribeira - Candelária","d":"Ribeira","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"S":[333,363,396,411,426,441,456,471,486,501,516,531,546,561,574,594,614,634,654,674,698,713,728,743,755,775,795,817,832,847,862,877,889,901,913,925,936,951,966,981,997,1009,1021,1033,1045,1056,1071,1086,1101,1116,1136,1156,1176,1196,1216,1236,1266,1296,1326,1356,1386],"U":[335,347,359,371,383,402,410,418,426,434,442,450,458,466,474,482,490,498,506,514,522,530,538,546,554,562,567,577,597,617,637,657,677,698,713,728,743,759,779,799,819,839,859,880,895,910,925,940,948,956,964,972,980,988,1007,1014,1021,1028,1035,1042,1049,1056,1066,1076,1086,1096,1106,1116,1126,1136,1146,1156,1166,1176,1179,1191,1203,1215,1227,1235,1255,1275,1295,1315,1335,1352,1382],"D":[332,362,392,422,452,482,512,542,572,602,632,662,692,722,752,782,812,842,872,902,932,952,972,992,1012,1032,1052,1072,1092,1112,1132,1152,1177,1207,1237,1267,1297,1357]}},{"n":"325","nm":"Ribeira - Castelo","d":"Castelo","g":"centro","c":"#EA0A2A","brt":false,"st":[["terminal",0],["ccshospitalunive",1],["edsonabdallasaad",3],["prefeituraufrj",3],["cenpes",4],["ctletras",8]],"t":{"U":[268,334,354,374,394,414,434,454,474,494,523,553,583,613,643,673,703,733,763,793,823,853,883,913,943,973,998,1018,1038,1058,1088,1113,1173,1233,1293,1353]}},{"n":"325","nm":"Ribeira - Castelo","d":"Ribeira","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"U":[331,395,425,455,485,515,545,575,605,635,665,695,725,755,785,815,845,875,905,938,958,978,1004,1034,1064,1094,1124,1154,1184,1214,1244,1274,1290,1350,1410]}},{"n":"326","nm":"Bancários - Candelária","d":"Bancários","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"S":[207,267,336,366,395,415,435,455,475,495,515,535,555,574,604,634,664,697,717,737,757,777,797,817,837,857,879,894,909,924,936,956,976,996,1016,1036,1057,1087,1117,1147,1177,1197,1217,1237,1267,1294,1354,1414,1474],"D":[208,268,335,365,397,417,437,454,484,514,544,574,604,634,664,694,724,754,784,814,844,874,904,934,964,994,1024,1056,1076,1096,1116,1136,1156,1178,1208,1237,1297,1357,1413,1533],"U":[206,272,302,336,356,376,400,413,426,439,452,465,478,491,504,517,530,543,555,578,608,638,668,699,719,739,759,779,799,819,839,859,880,892,904,916,928,940,952,964,976,988,1000,1012,1024,1036,1048,1060,1072,1084,1096,1108,1124,1139,1154,1169,1179,1199,1219,1234,1264,1294,1324,1354,1384,1411,1471,1531]}},{"n":"327","nm":"Ribeira - Castelo","d":"Castelo","g":"centro","c":"#EA0A2A","brt":false,"st":[["terminal",0],["ccshospitalunive",2],["edsonabdallasaad",3],["prefeituraufrj",3],["cenpes",5],["ctletras",8]],"t":{"U":[201,241,294,328,363,398,433,482,522,561,608,668,728,788,848,906,936,967,1013,1073,1131,1176,1221,1262,1312,1362]}},{"n":"327","nm":"Ribeira - Castelo","d":"Ribeira","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"U":[243,297,360,397,437,482,527,572,617,662,707,756,816,876,936,1004,1044,1084,1121,1166,1211,1256,1291,1331,1368,1413]}},{"n":"328","nm":"Bananal - Candelária","d":"Bananal","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"S":[332,347,362,377,393,405,417,429,441,453,465,477,489,501,513,525,537,549,574,594,614,635,650,665,680,695,710,725,740,755,770,785,800,815,835,855,877,892,907,922,937,952,967,982,997,1009,1021,1033,1045,1057,1069,1081,1093,1105,1117,1137,1157,1177,1197,1217,1237,1257,1277,1296,1326,1354,1374,1394],"D":[330,393,423,453,473,493,513,533,553,573,593,613,633,653,673,693,713,733,752,782,812,832,852,875,905,932,952,972,992,1012,1032,1052,1072,1092,1112,1132,1152,1172,1192,1212,1237,1267,1297,1327,1357,1387],"U":[334,346,358,370,382,399,409,419,429,439,449,459,469,479,489,499,509,519,529,539,549,559,569,577,597,617,637,652,667,682,700,712,724,736,748,760,775,790,805,818,838,858,881,893,905,917,929,941,953,965,977,989,1001,1013,1025,1037,1049,1068,1078,1088,1098,1108,1118,1123,1135,1147,1159,1171,1178,1193,1208,1223,1234,1254,1274,1294,1314,1334,1354,1374,1394]}},{"n":"329","nm":"Bancários - Candelária","d":"Candelária","g":"centro","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"U":[199,262,282,302,329,337,345,353,361,369,377,396,404,412,420,428,436,444,456,468,480,492,504,514,529,544,559,571,591,611,631,651,671,689,704,719,734,750,770,790,810,830,850,870,890,910,929,944,959,974,989,1004,1019,1034,1049,1064,1079,1094,1108,1130,1152,1174,1196,1218,1240,1257,1283,1343,1403],"D":[261,325,355,383,403,423,444,474,504,534,564,594,624,654,684,714,744,774,804,834,864,894,925,985,1015,1045,1075,1105,1135,1164,1224,1284,1344,1404],"S":[262,292,324,339,354,369,384,399,414,429,450,470,490,510,530,550,567,597,627,647,667,687,717,748,768,788,807,837,867,897,927,957,987,1017,1047,1077,1107,1137,1165,1225,1285,1345]}},{"n":"329","nm":"Bancários - Candelária","d":"Bancários","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"U":[205,265,332,352,372,396,409,422,435,448,461,474,487,500,513,526,539,551,573,603,633,663,694,714,734,756,771,786,801,815,835,855,875,895,915,937,952,967,982,1002,1014,1026,1038,1050,1062,1074,1086,1098,1110,1119,1134,1149,1164,1175,1195,1215,1232,1262,1292,1322,1348,1408,1468],"S":[265,330,360,390,420,450,470,490,510,540,570,600,630,660,692,712,732,752,772,792,812,827,842,857,873,893,913,933,953,973,993,1013,1033,1053,1073,1093,1113,1133,1153,1171,1201,1232,1291,1321,1351,1381,1407,1467],"D":[329,359,389,419,449,479,509,539,569,599,629,659,689,719,749,779,809,839,869,889,909,930,960,990,1020,1053,1073,1093,1116,1146,1176,1206,1231,1293,1323,1353]}},{"n":"42","nm":"Galeão - Madureira","d":"Manacéia-Madureira","g":"norte","c":"#FF9900","brt":true,"st":[["terminal",0]],"t":{"U":[0,20,40,60,80,100,120,140,160,180,200,220,240,250,260,270,280,290,300,306,312,318,324,330,336,342,348,354,360,366,372,378,384,390,396,402,408,414,420,426,432,438,444,450,456,462,468,474,480,486,492,498,504,510,516,522,528,534,540,546,552,558,564,570,576,582,588,594,600,606,612,618,624,630,636,642,648,654,660,666,672,678,684,690,696,702,708,714,720,726,732,738,744,750,756,762,768,774,780,786,792,798,804,810,816,822,828,834,840,846,852,858,864,870,876,882,888,894,900,906,912,918,924,930,936,942,948,954,960,966,972,978,984,990,996,1002,1008,1014,1020,1026,1032,1038,1044,1050,1056,1062,1068,1074,1080,1086,1092,1098,1104,1110,1116,1122,1128,1134,1140,1146,1152,1158,1164,1170,1176,1182,1188,1194,1200,1206,1212,1218,1224,1230,1236,1242,1248,1254,1260,1266,1272,1278,1284,1290,1296,1302,1308,1314,1320,1328,1336,1344,1352,1360,1368,1376,1384,1392,1400,1408,1416,1424,1432,1440],"D":[0,20,40,60,80,100,120,140,160,180,200,220,240,255,270,285,300,310,320,330,340,350,360,370,380,390,400,410,420,430,440,450,460,470,480,490,500,510,520,530,540,550,560,570,580,590,600,610,620,630,640,650,660,670,680,690,700,710,720,730,740,750,760,770,780,790,800,810,820,830,840,850,860,870,880,890,900,910,920,930,940,950,960,970,980,990,1000,1010,1020,1030,1040,1050,1060,1070,1080,1090,1100,1110,1120,1130,1140,1150,1160,1170,1180,1190,1200,1208,1216,1224,1232,1240,1248,1256,1264,1272,1280,1288,1296,1304,1312,1320,1330,1340,1350,1360,1370,1380,1390,1400,1410,1420,1430],"S":[0,20,40,60,80,100,120,140,160,180,200,220,240,255,270,285,300,310,320,330,340,350,360,370,380,390,400,410,420,430,440,450,460,470,480,490,500,510,520,530,540,550,560,570,580,590,600,610,620,630,640,650,660,670,680,690,700,710,720,730,740,750,760,770,780,790,800,810,820,830,840,850,860,870,880,890,900,910,920,930,940,950,960,970,980,990,1000,1010,1020,1030,1040,1050,1060,1070,1080,1090,1100,1110,1120,1130,1140,1150,1160,1170,1180,1190,1200,1208,1216,1224,1232,1240,1248,1256,1264,1272,1280,1288,1296,1304,1312,1320,1330,1340,1350,1360,1370,1380,1390,1400,1410,1420,1430]}},{"n":"43","nm":"Terminal Fundão - Santa Efigênia","d":"Santa Efigênia","g":"oeste","c":"#FF9900","brt":true,"st":[["terminal",0]],"t":{"U":[300,310,320,330,340,350,360,370,380,390,400,410,420,430,440,450,460,470,480,490,500,510,520,530,540,960,970,980,990,1000,1010,1020,1030,1040,1050,1060,1070,1080,1090,1100,1110,1120,1130,1140,1150,1160,1170,1180,1190,1200]}},{"n":"485","nm":"Fundão - General Osório","d":"General Osório","g":"sul","c":"#EA0A2A","brt":false,"st":[["helio",0],["cetem",2],["belasartesreitor",4],["ctletras",5],["cenpes",8],["ccseefd",11],["polodebiotecnolo",14],["ccshospitalunive",16],["edsonabdallasaad",19],["prefeituraufrj",19],["ctccmn",23]],"t":{"U":[420,480,540,600,630,660,680,700,720,735,750,765,780,800,820,840,860,880,900,915,930,945,960,975,990,1005,1020,1040,1060,1080,1110,1140,1170,1200,1260],"S":[450,510,570,630,690,750,810]}},{"n":"616","nm":"Del Castilho - Fundão","d":"Metrô Del Castilho","g":"norte","c":"#EA0A2A","brt":false,"st":[["terminal",0],["ccshospitalunive",1],["edsonabdallasaad",3],["prefeituraufrj",3],["cenpes",4],["cepecenpes",6]],"t":{"U":[325,345,365,395,405,425,445,465,475,495,515,535,545,566,588,610,633,657,681,705,727,747,767,787,807,827,847,867,877,901,925,949,961,985,1009,1029,1039,1059,1079,1101,1128,1155,1185,1225,1265],"S":[360,420,480,540,600,660,720,780,840,900,960,1020,1080,1140,1200,1260],"D":[840,900,960,1020,1080,1140,1200]}},{"n":"634","nm":"Bananal - Saens Peña","d":"Bananal","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"D":[352,377,402,427,452,477,502,527,552,577,602,627,652,677,702,727,752,777,802,827,852,877,902,927,952,977,1002,1027,1052,1077,1102,1127,1152,1177,1202,1227,1252,1277,1302,1327,1361,1391,1421,1451,1471,1491,1514,1541,1591,1641,1691,1741],"S":[358,377,395,414,432,451,469,488,506,525,543,562,580,599,617,636,654,673,691,710,728,747,765,784,802,821,839,858,876,895,913,932,950,969,987,1006,1024,1043,1061,1080,1098,1117,1135,1154,1172,1191,1209,1228,1246,1265,1283,1302,1320,1339,1363,1393,1423,1453,1478,1494,1504,1514,1550,1600,1650,1700,1750],"U":[358,374,389,405,420,436,451,467,482,498,513,529,556,576,596,616,636,656,676,696,716,736,756,776,796,816,836,856,876,892,907,923,938,954,969,985,1000,1016,1031,1047,1062,1078,1093,1109,1124,1140,1155,1171,1186,1202,1217,1233,1248,1264,1279,1295,1310,1326,1341,1357,1360,1380,1400,1420,1440,1460,1480,1492,1502,1512,1549,1599,1649,1699,1749]}},{"n":"634","nm":"Bananal - Saens Peña","d":"Saens Peña","g":"tijuca","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"D":[267,292,317,342,367,392,417,442,467,492,517,542,567,592,617,642,667,692,717,742,767,792,817,842,867,892,917,942,967,992,1017,1042,1067,1092,1117,1142,1167,1192,1227,1257,1287,1317,1341,1361,1379,1411,1461,1511,1561,1611,1661],"U":[276,291,307,322,338,353,369,384,400,415,431,446,462,477,493,508,545,565,585,605,625,645,665,685,705,725,745,765,785,805,825,845,865,885,905,925,945,965,985,1005,1028,1044,1059,1074,1090,1106,1121,1136,1152,1168,1183,1198,1218,1238,1258,1278,1298,1318,1338,1358,1378,1397,1421,1471,1521,1571,1621,1671],"S":[276,294,313,331,350,368,387,405,424,442,461,479,498,516,535,553,572,590,609,627,646,664,683,701,720,738,757,775,794,812,831,849,868,886,905,923,942,960,979,997,1016,1034,1053,1071,1090,1108,1127,1145,1164,1182,1211,1241,1271,1301,1331,1355,1375,1395,1423,1473,1523,1573,1623,1673]}},{"n":"635","nm":"Bananal - Saens Peña","d":"Bananal","g":"ilha","c":"#EA0A2A","brt":false,"st":[["ccmngeografia",0],["cenpesgeografia",1],["ctccmn",2],["ctletras",5],["belasartesreitor",6],["cetem",7],["cenpes",12],["ccseefd",15],["polodebiotecnolo",17],["ccshospitalunive",19],["terminal",21]],"t":{"U":[450,510,570,630,690,931,1051]}},{"n":"635","nm":"Bananal - Saens Peña","d":"Saens Peña","g":"tijuca","c":"#EA0A2A","brt":false,"st":[["terminal",0],["ccshospitalunive",1],["edsonabdallasaad",3],["ccseefd",5],["polodebiotecnolo",7],["prefeituraufrj",10],["cenpes",11],["ctccmn",14],["ctletras",16],["belasartesreitor",18],["cetem",19]],"t":{"U":[398,458,518,578,638,698,937]}},{"n":"663","nm":"Méier - Fundão","d":"Méier","g":"norte","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"U":[480,540]}},{"n":"696","nm":"Méier - Praia do Dendê","d":"Praia do Dendê","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"D":[334,397,427,457,487,517,547,577,607,637,667,697,727,757,787,817,847,877,907,937,967,1000,1062,1092,1122,1152,1185,1245,1305],"S":[276,338,368,399,419,439,459,479,499,519,539,559,579,599,619,639,659,679,706,721,736,751,764,784,804,824,844,864,884,904,924,944,964,984,1004,1024,1044,1064,1084,1104,1122,1152,1182,1212,1242,1272,1302,1332],"U":[279,309,344,356,368,380,392,410,417,424,431,438,445,452,459,472,482,492,502,512,522,529,541,553,565,577,587,602,617,632,647,662,677,692,710,720,730,740,750,760,766,778,790,802,814,826,838,850,862,874,888,898,908,918,928,938,948,958,968,978,988,998,1016,1024,1032,1040,1048,1056,1064,1076,1088,1100,1112,1124,1129,1144,1159,1174,1189,1204,1219,1234,1239,1259,1279,1298,1328]}},{"n":"696","nm":"Méier - Praia do Dendê","d":"Méier","g":"norte","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"S":[340,355,370,385,400,415,430,445,460,475,490,505,520,535,550,565,587,607,627,650,665,680,695,710,722,734,746,758,768,788,808,830,844,860,874,888,908,928,948,968,988,1007,1037,1069,1089,1109,1129,1149,1169,1185,1215,1245,1275,1305,1335,1365],"U":[349,355,361,367,373,379,385,391,397,403,409,415,421,427,433,439,445,451,457,463,481,489,497,505,513,521,529,541,553,565,577,589,594,609,624,639,650,662,674,686,698,711,719,727,735,743,751,759,776,786,796,806,816,826,833,845,857,869,881,892,902,912,922,932,942,954,962,970,978,986,994,1002,1021,1029,1037,1045,1053,1061,1069,1079,1089,1099,1109,1119,1129,1132,1152,1172,1192,1212,1232,1252,1272,1292,1302,1362],"D":[340,370,400,430,460,490,523,543,563,586,616,646,676,706,736,766,796,826,856,886,916,946,1006,1036,1066,1096,1126,1156,1186,1246,1306,1366]}},{"n":"90","nm":"Terminal Fundão - Terminal Gentileza","d":"Terminal Gentileza","g":"centro","c":"#8a1812","brt":true,"st":[["terminal",0]],"t":{"U":[246,253,260,267,274,281,288,295,302,309,316,323,330,337,344,351,358,365,372,379,386,393,400,407,414,421,428,435,442,449,456,463,470,477,484,491,498,505,512,519,526,533,540,550,560,570,580,590,600,610,620,630,640,650,660,670,680,690,700,710,720,730,740,750,760,770,780,790,800,810,820,830,840,850,860,870,880,890,900,907,914,921,928,935,942,949,956,963,970,977,984,991,998,1005,1012,1019,1026,1033,1040,1047,1054,1061,1068,1075,1082,1089,1096,1103,1110,1117,1124,1131,1138,1145,1152,1159,1166,1173,1180,1187,1194,1201,1208,1215,1222,1229,1236,1243,1250,1257,1264,1274,1284,1294,1304,1314,1324,1334,1344,1354,1364,1374,1384,1394,1404,1414,1424,1434,1444],"D":[245,255,265,275,285,295,305,315,325,335,345,355,365,375,385,395,405,415,425,435,445,455,465,475,485,495,505,515,525,535,545,555,565,575,585,595,605,615,625,635,645,655,665,675,685,695,705,715,725,735,745,755,765,775,785,795,805,815,825,835,845,855,865,875,885,895,905,915,925,935,945,955,965,975,985,995,1005,1015,1025,1035,1045,1055,1065,1075,1085,1095,1105,1115,1125,1135,1145,1155,1165,1175,1185,1195,1205,1215,1225,1235,1245,1255,1265,1275,1285,1295,1305,1315,1325,1335,1345,1355,1365,1375,1385,1395,1405,1415,1425,1435,1445],"S":[246,256,266,276,286,296,306,316,326,336,346,356,366,376,386,396,406,416,426,436,446,456,466,476,486,496,506,516,526,536,546,556,566,576,586,596,606,616,626,636,646,656,666,676,686,696,706,716,726,736,746,756,766,776,786,796,806,816,826,836,846,856,866,876,886,896,906,916,926,936,946,956,966,976,986,996,1006,1016,1026,1036,1046,1056,1066,1076,1086,1096,1106,1116,1126,1136,1146,1156,1166,1176,1186,1196,1206,1216,1226,1236,1246,1256,1266,1276,1286,1296,1306,1316,1326,1336,1346,1356,1366,1376,1386,1396,1406,1416,1426,1436,1446]}},{"n":"901","nm":"Bonsucesso - Bananal","d":"Bananal","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"S":[310,362,418,473,535,601,656,703,756,814,874,934,992,1050,1105,1171,1230,1292,1344,1394],"U":[355,415,475,535,595,655,716,796,876,956,1036,1116,1196,1266,1333,1393],"D":[311,372,439,506,559,629,691,755,814,878,923,986,1052,1110,1179,1236,1292,1352]}},{"n":"910","nm":"Bananal - Irajá","d":"Bananal","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"S":[264,324,384,449,479,514,574,634,694,755,785,815,845,872,932,992,1054,1084,1113,1173,1233,1293,1353],"U":[209,267,297,327,357,402,417,432,447,465,495,525,555,583,640,670,700,730,758,816,846,876,906,936,966,996,1026,1056,1086,1116,1146,1176,1206,1231,1291,1351,1411],"D":[325,385,445,505,565,625,685,745,805,865,925,985,1045,1105,1165,1225,1285,1345]}},{"n":"910","nm":"Bananal - Irajá","d":"Irajá","g":"norte","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"U":[205,265,332,362,392,422,452,482,512,542,572,602,642,702,767,797,827,857,887,917,947,977,1007,1037,1068,1088,1108,1124,1184,1244,1304,1364],"S":[207,267,327,387,447,507,567,627,687,747,807,879,909,938,998,1058,1118,1178,1238,1298],"D":[268,328,388,448,508,568,628,688,748,808,868,928,988,1048,1108,1168,1228,1288]}},{"n":"913","nm":"Del Castilho - Fundão","d":"Metrô Del Castilho","g":"norte","c":"#EA0A2A","brt":false,"st":[["terminal",0],["ccshospitalunive",1],["edsonabdallasaad",3],["prefeituraufrj",3],["cenpes",4],["cepecenpes",6]],"t":{"U":[300,360,390,420,450,480,540,600,660,720,750,780,840,900,930,960,990,1020,1050,1080,1140,1200,1260,1320],"D":[360,420,480,540,600,660,720,780,840],"S":[370,430,490,550,610,670,730,790,850,910,970,1030,1090,1150,1210,1270]}},{"n":"915","nm":"Bonsucesso - Aeroporto Internacional do RJ","d":"Aeroporto Internacional","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"U":[252,312,372,432,492,552,612,672,732,792,852,912,972,1032,1092,1152,1212,1272],"D":[312,372,432,492,552,612,672,732,792,852,912,972,1032,1092,1152,1212,1272,1332],"S":[250,310,370,430,490,550,610,670,730,790,850,910,970,1030,1090,1150,1210,1270,1330]}},{"n":"922","nm":"Tubiacanga - Terminal Fundão","d":"Tubiacanga","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"S":[360,420,480,540,600,660,720,780,840,900,960],"D":[420,480,540,600,660,720,780,840,900,960],"U":[360,420,480,540,600,660,720,780,840,900,960,1020,1080,1140,1200,1260,1320]}},{"n":"975","nm":"Madureira - Terminal Fundão","d":"Madureira","g":"norte","c":"#1DA527","brt":false,"st":[["terminal",0]],"t":{"U":[240,270,300,330,360,390,420,450,487,502,517,532,547,562,577,592,607,622,637,652,667,682,697,712,727,742,757,772,787,802,817,832,870,900,930,960,990,1027,1042,1057,1072,1087,1102,1117,1132,1147,1162,1177,1192,1210,1230,1250,1270,1290]}},{"n":"979","nm":"Terminal Madureira - Terminal Fundão","d":"Terminal Madureira","g":"norte","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"U":[270,300,325,350,375,400,425,450,475,500,525,550,575,600,625,650,675,700,725,750,775,800,825,850,875,900,925,950,975,1000,1025,1050,1075,1100,1125,1150,1175,1200,1225,1250,1275,1300,1325,1350],"D":[330,375,420,465,510,540,570,600,630,660,690,720,750,780,810,840,870,900,930,960,990,1020,1050,1080,1110,1140,1170,1200,1230,1275,1320],"S":[270,300,330,360,390,420,450,480,510,540,570,600,630,660,690,720,750,780,810,840,870,900,930,960,990,1020,1050,1080,1110,1140,1170,1200,1230,1260,1290,1320,1350]}},{"n":"SN324","nm":"Ribeira - Candelária","d":"Ribeira","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"S":[1418,1478,1538,1598,1658,1713,1743],"U":[1422,1447,1482,1517,1554,1579,1615,1658,1735,1750],"D":[1415,1475,1535,1595,1655,1715]}},{"n":"SN328","nm":"Bananal - Candelária","d":"Bananal","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"S":[1418,1476,1506,1536,1566,1593,1653,1713,1743],"D":[1415,1477,1507,1536,1596,1656,1716],"U":[1412,1442,1472,1502,1526,1586,1646,1713,1743]}},{"n":"SN696","nm":"Méier - Praia do Dendê","d":"Praia do Dendê","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"S":[1358,1418,1478,1538,1598,1658],"U":[1355,1415,1475,1535,1595,1655],"D":[1355,1415,1475,1535,1595,1655]}},{"n":"SN696","nm":"Méier - Praia do Dendê","d":"Méier","g":"norte","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"D":[1419,1479,1539,1599,1659,1719],"S":[1424,1484,1544,1604,1664,1721,1751],"U":[1424,1484,1544,1604,1664,1724,1739,1754,1769]}},{"n":"SP324","nm":"Ribeira - Terminal Fundão","d":"Ribeira","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"U":[300,360,420,480,540,600,660,720,780,840,900,960,1020,1050,1080,1110,1140,1200,1260,1320]}},{"n":"SP328","nm":"Bananal - Terminal Fundão","d":"Bananal","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"U":[240,300,360,380,400,420,450,480,510,540,570,600,660,720,780,840,870,900,930,960,980,1000,1020,1032,1044,1056,1068,1080,1100,1120,1140,1170,1200,1260,1320,1440]}},{"n":"SP329","nm":"Bancários - Terminal Fundão","d":"Bancários","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"U":[300,360,420,480,540,600,660,720,780,840,900,960,1020,1080,1140,1200,1260,1320,1380]}},{"n":"SP635","nm":"Terminal Fundão - Saens Peña","d":"Saens Peña","g":"tijuca","c":"#EA0A2A","brt":false,"st":[["terminal",0],["ccshospitalunive",1],["edsonabdallasaad",3],["ccseefd",5],["polodebiotecnolo",8],["prefeituraufrj",10],["cenpes",11],["ctccmn",14],["ctletras",17],["belasartesreitor",18],["cetem",19]],"t":{"U":[420,480,540,600,660,720,780,840,900,960,1020,1080]}},{"n":"SPB326","nm":"Bancários - Terminal Fundão","d":"Bancários","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"U":[300,360,420,480,540,600,660,720,780,840,900,960,1020,1080,1110,1140,1170,1200,1260,1320]}},{"n":"SR328","nm":"Bananal - Candelária","d":"Bananal","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"U":[1006,1036,1096]}},{"n":"SV922","nm":"Tubiacanga - Fundão","d":"Tubiacanga","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"U":[300,360,420,480,540,600,660,720,780,840,900,960,1020,1080,1140,1200,1260,1320,1380],"D":[240,300,360,420,480,540,600,660,720,780,840,900,960,1020,1080,1140,1200,1260,1320,1380,1440],"S":[300,360,420,480,540,600,660,720,780,840,900,960,1020,1080,1140,1200,1260,1320,1380]}},{"n":"SVB901","nm":"Bonsucesso - Bananal","d":"Bananal","g":"ilha","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"U":[381,441,501,561,621,681,741,801,861,921,981,1041,1101,1161,1221]}},{"n":"SVB901","nm":"Bonsucesso - Bananal","d":"Bonsucesso","g":"norte","c":"#EA0A2A","brt":false,"st":[["terminal",0]],"t":{"U":[394,454,514,574,634,694,754,814,874,934,994,1054,1114,1174,1234]}}],"sh":{"979":[0,48,49],"SP329":[1,68],"321":[2,8],"634":[3,6],"SP485":[4],"975":[5,53],"910":[7,28],"323":[8,62],"696":[9,69],"SP328":[10,1],"328":[11,12,40],"663":[13,64],"43":[14,37],"90":[15,16,60],"325":[2,8],"SR328":[17,18,19],"SN696":[20,67],"913":[21,22,23],"915":[24,25],"922":[26,27],"42":[29,33,34],"SN328":[30,31,32,38],"327":[35,55],"635":[36,45],"616":[39,23,51],"SV922":[26,54,32],"SP635":[41,63],"901":[42,59],"SPB326":[43,1],"324":[11,44,50],"485":[4,66],"326":[11,44,50],"SP324":[1,46],"SVB901":[47,65],"486":[11,52],"329":[56,11,44],"SN324":[11,57,58,61]},"shp":[[-3952,-3949,-39,38,17,23,18,5,39,-44,74,-64,5,-11,1,-31,-65,-76,-7,-15,3,-17,62,-54,8,-18,2,-20,-6,-15,-12,-10,-17,-3,-33,13,-79,62,-62,108,-51,61,-52,37,-41,17,-64,11,-146,-18,-214,-75,-27,-34,-9,-23,-11,-130,-38,-230,-12,-122,-17,-41,-35,-50,-52,-41,-27,-13,-50,-16,-337,-44,-422,-5,-216,-11,-477,-10,7,-83,-15,-168,8,-2,65,-330,-83,-21,-195,-85,-21,-15,-34,-48,-563,195,-7,25,13,53,-14,74,-17,6,-8,-8,-4,-31,38,-346,44,-94,7,-89,16,-83,-20,-40,-18,-10,-31,-3,-101,22,-1,39,-18,23,-334,140,-141,117,-130,78,-96,105,-41,28,-41,12,-120,-5,-17,-5,-84,-51,-13,-11,67,-62,82,-114,83,-223,69,-120,53,-67,71,-56,17,-23,35,-86,16,-70,4,-98,-5,-99,-46,-160,-25,-73,-42,-73,-59,-78,-40,-67,-37,-87],[-3926,-3958,-61,52,13,18,18,5,39,-44,77,-67,5,-36,-67,-79,-7,-24,3,-8,76,-66,17,-9,29,-9,50,-1,349,33,28,24,5,20,-24,98,-2,36,7,59,19,45,88,111,67,60,44,29,138,67,141,87,284,232,28,37],[-2546,-3302,-319,-262,-299,-194,-61,-48,-60,-71,-73,-111,-10,-40,4,-35,52,-150,37,-44,87,-61,11,-20,0,-34,-22,-27,-22,-10,-28,8,-12,10,-13,24,-39,118,-22,29,-28,15,-19,3,-401,-38,-41,17,-94,84,0,21,56,69,-1,18,-127,115,21,44,-19,55,-386,279,-20,-7,-33,-42,-90,-140,-20,-22,-19,-15,-31,-10,-36,0,-36,9,-880,641,-92,55,-107,26,-29,21,-21,19,-30,53,-37,47,-53,49,-315,225,-14,4,-21,-9,-22,2,-180,-288,-38,-40,-83,-126,-25,-28,-12,-30,-94,-151,-25,-33,-27,-12,-29,5,-71,38,-64,22,-301,43,-75,5,-379,-18,-92,9,-119,30,-107,48,-198,134,-160,151,-128,105],[-8430,-4884,940,-354,431,-156,210,-72,133,-38,16,15,196,677,-323,53,-120,29,-130,57,-63,34,-24,-7,-10,-13,-4,-15,4,-22,9,-11,10,1,21,25,75,140,3,20,-3,17,-12,11,-43,0,-38,-9,-9,-12,1,-26,23,-13,113,35,34,-14,14,-28,13,-85,33,-42,120,-29,240,-39,180,-15,1075,29,133,8,70,12,93,40,64,41,84,73,128,144,29,58,31,104,28,227,14,29,63,92,32,31,45,19,38,3,136,-51,115,-8,41,-11,80,-46,77,-78,70,-57,26,-7,56,69,2,22,-2,12,-14,16,-111,93,13,18,18,5,39,-44,77,-67,5,-36,-67,-79,-7,-24,3,-8,76,-66,46,-18,26,-2,373,34,28,24,5,20,-24,98,-2,36,7,59,19,45,54,73,101,98,44,29,138,67,141,87,64,49,220,183,84,120],[-8375,-2852,181,-164,138,-94,105,-60,61,-24,109,-30,134,-8,315,19,88,-4,248,-37,258,-26,80,-15,182,-62,63,-31,38,-7,18,3,24,14,168,156,36,16,19,1,21,-5,66,-43,89,-39,234,-178,29,5,127,204,49,86,-1,13,-43,38,-92,55,-107,26,-23,-8,-12,-11,-105,-173,-27,-39,-13,-2,-6,18,138,220,-2,35,-30,53,-37,47,-53,49,-315,225,-14,4,-21,-9,-22,2,-18,14,-11,23,2,25,12,20,22,12,24,-2,279,448,10,48,-5,38,12,11,14,-8,3,-9,-17,-82,-277,-461,7,-13,2,-29,8,-11,340,-248,51,-25,97,-23,26,-15,24,-21,62,-97,29,-31,716,-516,29,-13,61,-6,316,69,54,30,38,49,335,535,7,-4,5,-7,-352,-568,7,-33,277,-199,25,2,82,-60,0,-17,-10,-5,-380,273,-20,-7,-33,-42,-90,-140,-20,-22,-19,-15,-31,-10,-36,0,-36,9,-880,641,-92,55,-107,26,-29,21,-21,19,-30,53,-37,47,-53,49,-315,225,-14,4,-34,-9,-20,9,-18,30,2,25,-326,243,104,169],[-3954,-3949,-37,38,17,23,18,5,39,-44,74,-64,5,-11,1,-31,-65,-76,-7,-15,3,-17,62,-54,8,-18,2,-20,-6,-15,-12,-10,-17,-3,-33,13,-79,62,-62,108,-51,61,-52,37,-41,17,-64,11,-146,-18,-214,-75,-27,-34,-9,-23,-11,-130,-38,-230,-6,-90,46,-133,104,17,11,-8,91,-252,544,-501,56,-66,137,-227,666,-1240],[-2546,-3302,-319,-262,-299,-194,-61,-48,-60,-71,-73,-111,-10,-40,4,-35,52,-150,37,-44,87,-61,11,-20,0,-34,-22,-27,-14,-8,-16,-1,-32,17,-13,24,-39,118,-22,29,-28,15,-19,3,-401,-38,-41,17,-94,84,0,21,57,75,-8,22,-120,103,-2,7,17,23,18,5,39,-44,77,-67,5,-36,-67,-79,-7,-15,3,-17,62,-54,8,-18,2,-20,-6,-15,-12,-10,-17,-3,-18,5,-73,49,-29,32,-54,97,-35,45,-50,42,-59,28,-64,11,-43,-2,-128,-22,-92,-31,-97,-38,-32,-44,-15,-143,-26,-146,-26,-213,-32,-63,-18,-21,-52,-41,-27,-13,-50,-16,-337,-44,-1116,-24,8,-85,-15,-168,8,-2,65,-330,-83,-21,-195,-85,-21,-15,-34,-48,-539,185,-600,230,-22,1,-73,-14,-31,5,-104,46,-256,97,-32,18,-44,58,-71,24],[-4216,-6996,-5,40,-35,60,-24,25,-45,16,-100,13,-1029,813,-7,14,229,281,93,167,110,-88,251,251,50,15,192,29,-15,151,150,179,-204,185,-63,45,-53,28,-66,19,-56,6,-72,-14,-197,-19,-33,-17,-6,-19,7,-19,27,-9,12,7,8,16,5,56,11,28,26,24,58,26,55,43,199,221,29,58,31,104,28,227,14,29,63,92,32,31,45,19,38,3,136,-51,115,-8,41,-11,80,-46,77,-78,70,-57,26,-7,56,69,2,22,-2,12,-14,16,-111,93,13,18,18,5,39,-44,77,-67,5,-36,-67,-79,-7,-24,3,-8,76,-66,46,-18,26,-2,373,34,28,24,5,20,-24,98,1,77,14,46,29,53,68,75,67,60,44,29,138,67,141,87,64,49,224,187,80,116],[-8375,-2852,181,-164,138,-94,105,-60,119,-42,51,-12,94,-8,355,19,88,-4,248,-37,258,-26,149,-35,109,-46,73,-53,114,-162,64,-68,41,-32,94,-51,134,-35,312,-59,131,-42,550,-220,50,-14,40,-6,67,1,96,26,145,85,143,51,51,37,82,-14,81,-2,59,-18,62,-39,77,-78,70,-57,26,-7,56,69,2,22,-2,12,-14,16,-111,93,13,18,18,5,39,-44,77,-67,6,-28,-8,-18,-60,-69,-7,-15,3,-17,76,-66,46,-18,26,-2,373,34,16,9,12,15,5,34,-24,84,1,77,23,63,54,73,101,98,44,29,138,67,141,87,64,49,220,183,84,120],[-2546,-3302,-319,-262,-299,-194,-61,-48,-60,-71,-73,-111,-10,-40,4,-35,52,-150,37,-44,87,-61,11,-20,0,-34,-22,-27,-14,-8,-16,-1,-32,17,-13,24,-39,118,-22,29,-28,15,-19,3,-401,-38,-41,17,-94,84,0,21,56,69,-1,18,-126,113,-2,7,26,28,9,0,39,-44,77,-67,5,-36,-67,-79,-7,-15,3,-17,62,-54,10,-32,-6,-21,-12,-10,-17,-3,-18,5,-73,49,-29,32,-54,97,-35,45,-68,53,-62,23,-86,3,-103,-16,-198,-66,-27,-20,-25,-46,-11,-130,-38,-230,-6,-90,-14,-55,-26,-47,-36,-38,-61,-37,-50,-16,-337,-44,-1158,-26,-119,6,-324,50,-39,-1,-22,-9,-58,-52,-33,-57,-24,-13,-134,-21,-39,-36,-19,-47,-20,-143,7,-121,37,-340,44,-94,7,-89,16,-83,-20,-40,-18,-10,-31,-3,-101,22,-1,39,-18,23,-334,140,-141,117,-130,78,-96,105,-41,28,-41,12,-120,-5,-17,-5,-99,-65,-111,86],[-2535,-3293,-330,-271,-299,-194,-61,-48,-60,-71,-71,-111,-7,-22,-1,-39,38,-132,14,-32,24,-32,100,-73,11,-20,0,-34,-22,-27,-14,-8,-16,-1,-32,17,-13,24,-39,118,-22,29,-28,15,-19,3,-401,-38,-41,17,-94,84,0,21,57,71,1,27,-5,11,-61,51],[-8498,-2605,20,-27,18,-52,-9,-58,-31,-93],[-8404,-3597,266,-245,491,-335,359,-286,161,-120,81,-51,74,-37,70,-25,332,-59,144,-15,1111,29,133,8,88,19,75,33,64,41,84,73,128,144,29,58,31,104,28,227,14,29,63,92,32,31,45,19,38,3,136,-51,115,-8,41,-11,80,-46,77,-78,70,-57,26,-7,56,69,2,22,-2,12,-14,16,-111,93,13,18,18,5,39,-44,77,-67,5,-36,-67,-79,-7,-24,3,-8,76,-66,46,-18,26,-2,373,34,28,24,5,20,-24,98,-2,36,7,59,19,45,54,73,101,98,44,29,138,67,141,87,64,49,220,183,84,120],[-3937,-3964,-54,53,17,23,18,5,39,-44,77,-67,5,-36,-67,-79,-7,-15,3,-17,62,-54,8,-18,2,-20,-6,-15,-12,-10,-17,-3,-33,13,-79,62,-62,108,-51,61,-52,37,-41,17,-64,11,-146,-18,-214,-75,-27,-34,-9,-23,-11,-130,-38,-230,-6,-90,-14,-55,-26,-47,-36,-38,-61,-37,-50,-16,-337,-44,-1158,-27,-119,7,-324,50,-39,-1,-33,-17,-47,-44,-33,-57,-24,-13,-121,-17,-22,-9,-30,-31,-19,-47,-18,-117,-3,-65,45,-422,44,-94,7,-89,16,-83,-20,-40,-33,-15,-117,24,-1,39,-18,23,-334,140,-141,117,-130,78,-96,105,-41,28,-41,12,-120,-5,-17,-5,-99,-65,-111,86],[-3948,-3980,-58,41,-44,-60,-37,33,-83,45,-36,8,-82,3,-40,10,-104,54,-39,0,-47,-34,-73,-75,-36,-44,-21,-37,-39,-307,-26,-82,-56,-49,-179,-195,-141,-178,-23,-11,-28,-2,-192,36,-18,-7,-7,-10,-82,-164,-60,-194,0,-41,47,-210,-16,-26,-291,-256,19,-48,13,-73,12,-10,56,-18,32,-17,151,-114,59,-86,64,-63,255,-198,77,-51,181,-142,49,-45,215,-162,154,-131,68,-69,19,-31],[-8498,-2655,12,-54,-5,-64],[-8354,-3659,95,-92,153,-131,511,-352,411,-323,104,-78,35,-19,99,-44,109,-29,393,-59,852,24,27,-9,156,2,27,-18,14,-43,-74,-166,-10,-32,9,-37,-3,-8,-14,-7,-8,4,-5,14,29,84,73,151,24,7,220,-41,38,14,49,53,131,173,177,189,16,28,37,117,22,205,10,48,36,59,116,117,31,16,28,-1,121,-57,108,-8,68,-21,82,-59,30,-39,111,-79,9,3,31,36,-84,71],[-2535,-3293,-330,-271,-299,-194,-61,-48,-60,-71,-71,-111,-7,-22,-1,-39,52,-164,37,-44,87,-61,11,-20,0,-34,-22,-27,-14,-8,-16,-1,-32,17,-13,24,-39,118,-22,29,-17,11,-30,7,-358,-34,-90,-26,-39,1,-33,13,-79,62,-62,108,-35,45,-68,53,-62,23,-43,5,-146,-18,-198,-66,-27,-20,-16,-23,-9,-23,-11,-130,-38,-230,-12,-122,-17,-41,-35,-50,-52,-41,-77,-29,-337,-44,-1189,-18,-89,5,-185,27,-229,46,-107,42,-78,42,-356,269,-261,206,-421,293,-68,55],[-8494,-2654,14,-86,-14,-66],[-8317,-3690,141,-135,71,-56,444,-300,548,-427,102,-58,65,-26,155,-37,222,-35,156,-16,623,16,52,14,423,9,133,8,88,19,75,33,64,41,84,73,128,144,29,58,31,104,28,227,14,29,63,92,32,31,45,19,38,3,136,-51,115,-8,41,-11,80,-46,77,-78,70,-57,26,-7,56,69,2,22,-2,12,-14,16,-111,93,13,18,18,5,39,-44,77,-67,5,-36,-67,-79,-7,-24,3,-8,76,-66,46,-18,26,-2,373,34,28,24,5,20,-24,98,-2,36,7,59,19,45,88,111,67,60,44,29,138,67,141,87,284,232,28,37],[-2535,-3293,-330,-271,-299,-194,-61,-48,-60,-71,-71,-111,-7,-22,-1,-39,52,-164,37,-44,87,-61,11,-20,0,-34,-22,-27,-14,-8,-16,-1,-32,17,-13,24,-39,118,-22,29,-28,15,-19,3,-401,-38,-41,17,-94,84,0,21,56,69,-1,18,-126,113,-2,7,26,28,9,0,39,-44,77,-67,5,-36,-67,-79,-7,-15,3,-17,62,-54,10,-32,-6,-21,-12,-10,-17,-3,-18,5,-73,49,-29,32,-54,97,-35,45,-68,53,-62,23,-86,3,-103,-16,-198,-66,-27,-20,-25,-46,-11,-130,-38,-230,-6,-90,-11,-46,-29,-56,-36,-38,-61,-37,-50,-16,-337,-44,-1058,-26,-219,6,-324,50,-39,-1,-22,-9,-58,-52,-33,-57,-24,-13,-134,-21,-39,-36,-19,-47,-20,-143,7,-121,37,-340,44,-94,7,-89,16,-83,-20,-40,-18,-10,-31,-3,-101,22,-1,39,-18,23,-334,140,-141,117,-130,78,-96,105,-41,28,-41,12,-120,-5,-17,-5,-99,-65,-111,86],[-7445,-6977,85,176,21,37,50,64,41,78,33,82,44,158,3,252,12,191,-11,61,0,52,-15,130,-2,124,-35,311,-6,145,49,320,42,115,234,423,71,101,77,77,58,41,72,40,201,71,80,35,59,41,24,31,137,220,63,106,6,19,1,48,-19,45,-93,78,-12,19,1,41,26,32,27,8,32,-5,66,-43,89,-39,234,-178,29,5,176,290,-1,13,-7,8,-93,67,-35,18,-107,26,-23,-8,-12,-11,-127,-206,-8,-8,-14,3,-2,15,138,220,-2,35,-30,53,-37,47,-53,49,-315,225,-14,4,-21,-9,-22,2,-25,25,-4,25,7,23,29,21,24,-2,279,448,9,31,-4,55,4,6,8,5,9,-4,8,-13,-17,-82,-277,-461,7,-13,2,-29,8,-11,340,-248,51,-25,97,-23,26,-15,24,-21,62,-97,29,-31,716,-516,29,-13,61,-6,316,69,54,30,38,49,335,535,7,-4,5,-7,-352,-568,1,-20,12,-18,268,-192,8,3,32,48,15,5,39,-40,33,-24,11,-24,-17,-75,3,-23,53,-68,65,-56,12,-39,-11,-9,-18,10,-68,57],[-3937,-3964,-53,48,21,44,-12,41,-13,20,-380,273,-20,-7,-33,-42,-90,-140,-20,-22,-19,-15,-31,-10,-36,0,-36,9,-567,414,-19,-12,-177,-283,-20,-10,-439,322,-31,9,-18,-4,-120,-172,-210,-338,-27,-33,-49,-31,-62,-27,-11,-14,-34,-11,-19,1,-149,-51,-88,-51,-50,-37,-75,-75,-46,-64,-64,-109,-214,-393,-14,-45,-14,-81,3,-37,-9,-64,-13,-34,-18,-117,-3,-65,45,-422,44,-94,7,-89,16,-83,-6,-200,-15,-104,-8,-151,-29,-176,-108,-220],[-8045,-6911,4,16,12,-4,23,-83,12,-16],[-6875,-5473,-273,91,-4,14,9,7,294,-105,237,-73,15,6,8,17,70,241,88,-31,134,20,21,-112,53,-1,302,39,35,19,74,70,48,20,94,18,103,5,32,11,34,-6,18,-18,53,1,37,8,66,37,40,41,33,48,106,218,155,86,4,20,-5,6,-26,6,-92,-8,-33,-19,-6,-19,7,-19,27,-9,12,7,8,16,5,56,11,28,26,24,58,26,55,43,199,221,29,58,31,104,28,227,14,29,63,92,32,31,31,15,52,7,136,-51,115,-8,59,-18,62,-39,77,-78,70,-57,26,-7,56,69,2,22,-2,12,-14,16,-111,93,13,18,18,5,39,-44,77,-67,6,-28,-8,-18,-60,-69,-7,-15,3,-17,76,-66,46,-18,50,-1,349,33,10,5,18,19,5,20,-24,98,1,77,23,63,54,73,101,98,44,29,138,67,103,62,156,120,59,62,36,66,70,74,89,110],[-2546,-3302,-319,-262,-299,-194,-61,-48,-60,-71,-73,-111,-10,-40,4,-35,52,-150,37,-44,87,-61,11,-20,0,-34,-22,-27,-14,-8,-16,-1,-32,17,-13,24,-40,120,-22,26,-21,13,-23,4,-58,-4,-319,-35,-84,-20,-31,1,-59,28,-33,25,-49,66,-32,63,-29,39,-32,34,-25,17,-56,26,-35,8,-115,1,-34,-13,-44,-7,-181,-63,-20,-12,-22,-29,-9,-23,-11,-130,-38,-230,-12,-122,-28,-60,-29,-37,-27,-23,-43,-25,-58,-17,-210,-19,-154,-22,-367,-7,-46,-439,116,7,34,9,19,-6,18,-18,25,-1,65,10,31,14,43,-97,53,-99,57,-86,-27,-50,-63,-82,-237,-293,-178,150,-117,113,-142,47,-86,56,-172,131,-59,26,-21,-1,-48,-16,-195,-85,-21,-15,-34,-48,-266,94],[-2546,-3302,-319,-262,-299,-194,-61,-48,-60,-71,-73,-111,-10,-40,4,-35,52,-150,37,-44,87,-61,11,-20,0,-34,-22,-27,-14,-8,-16,-1,-32,17,-13,24,-39,118,-22,29,-28,15,-19,3,-401,-38,-41,17,-94,84,0,21,56,69,0,34,-91,80],[-3953,-3935,-34,29,13,18,18,5,39,-44,77,-67,5,-36,-67,-79,-7,-24,3,-8,76,-66,17,-9,29,-9,50,-1,349,33,28,24,5,20,-24,98,-2,36,7,59,39,81,68,75,67,60,44,29,138,67,141,87,288,236,29,40],[-2546,-3302,-319,-262,-299,-194,-61,-48,-60,-71,-73,-111,-10,-40,4,-35,52,-150,37,-44,87,-61,11,-20,0,-34,-22,-27,-14,-8,-16,-1,-32,17,-13,24,-39,118,-22,29,-28,15,-19,3,-401,-38,-41,17,-94,84,0,21,56,69,-1,18,-126,113,-2,7,26,28,9,0,39,-44,77,-67,5,-36,-67,-79,-7,-15,3,-17,62,-54,8,-18,2,-20,-6,-15,-12,-10,-17,-3,-18,5,-73,49,-29,32,-54,97,-35,45,-68,53,-62,23,-43,5,-43,-2,-128,-22,-173,-60,-27,-20,-16,-23,-9,-23,-11,-130,-38,-230,-12,-122,-34,-70,-36,-38,-34,-24,-77,-29,-337,-44,-397,-7,-47,-437,116,7,34,9,19,-6,18,-18,25,-1,65,10,31,14,43,-97,53,-99,57,-86,36,-40,214,-175,207,-263,164,-101,-6,-67,275,-90,-24,-59,376,-314,7,-19,-235,-214,-15,-33,3,-101],[-3948,-3980,-58,41,-44,-60,-37,33,-84,46,-44,8,-73,2,-40,10,-104,54,-39,0,-47,-34,-90,-95,-40,-61,-39,-307,-26,-82,-56,-49,-179,-195,-141,-178,-23,-11,-28,-2,-192,36,-18,-7,-7,-10,-82,-164,-60,-194,0,-41,47,-210,-16,-24,-291,-258,19,-48,13,-73,12,-10,56,-18,32,-17,151,-114,59,-86,64,-63,255,-198,77,-51,181,-142,49,-45,215,-162,154,-131,75,-79],[-8498,-2605,20,-27,18,-52,-20,-106,-18,-46],[-8404,-3597,266,-245,491,-335,359,-286,161,-120,81,-51,74,-37,70,-25,332,-59,144,-15,1111,29,133,8,70,12,124,58,88,68,138,147,19,25,29,58,31,104,28,227,14,29,63,92,32,31,31,15,52,7,136,-51,115,-8,59,-18,62,-39,77,-78,70,-57,26,-7,56,69,2,22,-2,12,-14,16,-111,93,13,18,18,5,39,-44,77,-67,6,-28,-8,-18,-60,-69,-7,-15,3,-17,76,-66,46,-18,50,-1,349,33,10,5,18,19,5,20,-24,98,1,77,23,63,54,73,101,98,44,29,138,67,103,62,156,120,59,62,36,66,70,74,89,110],[-2523,-3188,-62,-86,-25,-25,0,-14,17,-8,31,35],[-4347,-6969,-75,79,-102,88,-267,205,-67,45,-54,57,-109,85,-160,113,-172,136,-64,63,-59,86,-151,114,-32,17,-73,23,-11,9,-16,117,280,249,11,23,1,23,-44,193,-1,47,68,219,66,139,15,18,16,1,220,-41,38,14,21,21,120,157,228,255,41,127,31,251,44,66,107,110,26,14,39,0,104,-54,40,-10,82,-3,35,-7,106,-62,36,-44,109,-82,34,28,16,21,0,10,-128,108,-15,-3,-37,-55,21,-27,171,-138,52,-7,32,6,59,30,189,145,117,112,158,166,41,25,78,20,41,17,160,103,81,57,338,283],[-2543,-3232,-307,-258,-81,-57,-160,-103,-124,-35,-29,-18,-158,-166,-111,-105,-78,-64,-173,-119,-41,-11,-48,5,-65,45,48,59,0,10,-78,69],[-8375,-2852,181,-164,138,-94,105,-60,119,-42,77,-15,108,-5,315,19,88,-4,248,-37,258,-26,149,-35,109,-46,73,-53,114,-162,64,-68,68,-50,64,-33,76,-24,373,-70,131,-42,550,-220,50,-14,40,-6,67,1,96,26,145,85,143,51,51,37,82,-14,81,-2,59,-18,62,-39,77,-78,70,-57,26,-7,56,69,2,22,-2,12,-14,16,-111,93,13,18,18,5,39,-44,77,-67,6,-28,-8,-18,-60,-69,-7,-15,3,-17,76,-66,46,-18,26,-2,373,34,16,9,12,15,5,34,-24,84,1,77,23,63,54,73,101,98,44,29,138,67,141,87,64,49,220,183,84,120],[-8375,-2852,181,-164,190,-127,114,-51,109,-30,94,-8,355,19,88,-4,248,-37,258,-26,80,-15,182,-62,63,-31,38,-7,18,3,24,14,168,156,36,16,19,1,21,-5,66,-43,89,-39,234,-178,29,5,127,204,49,86,-1,13,-43,38,-92,55,-107,26,-23,-8,-12,-11,-127,-206,-8,-8,-12,1,-4,17,138,220,-2,35,-30,53,-37,47,-53,49,-315,225,-14,4,-21,-9,-22,2,-18,14,-11,23,2,25,12,20,22,12,24,-2,279,448,10,48,-5,38,12,11,14,-8,3,-9,-17,-82,-277,-461,7,-13,2,-29,8,-11,340,-248,51,-25,97,-23,26,-15,24,-21,62,-97,29,-31,716,-516,29,-13,61,-6,316,69,54,30,38,49,335,535,7,-4,5,-7,-352,-568,1,-20,6,-13,274,-197,8,3,32,48,15,5,39,-40,33,-24,11,-24,-17,-75,3,-23,53,-68,65,-56,12,-39,-11,-9,-9,4,-2,12,-14,16,-111,93,13,18,18,5,39,-44,77,-67,5,-36,-67,-79,-7,-24,3,-8,76,-66,17,-9,29,-9,50,-1,349,33,16,9,12,15,5,34,-24,84,-2,36,7,59,19,45,88,111,67,60,44,29,138,67,141,87,284,232,28,37],[-4347,-6969,-75,79,-144,123,-274,203,-42,32,-30,37,-335,248,-106,86,-64,63,-59,86,-151,114,-32,17,-56,18,-12,10,-13,73,-19,48,280,249,11,23,-1,29,-42,187,-1,47,68,219,73,151,24,7,220,-41,38,14,21,21,120,157,228,255,41,127,31,251,44,66,86,90,47,34,39,0,104,-54,40,-10,82,-3,35,-7,106,-62,36,-44,109,-82,34,28,16,21,0,10,-78,69],[-2535,-3293,-330,-271,-299,-194,-61,-48,-60,-71,-71,-111,-7,-22,-1,-39,52,-164,37,-44,87,-61,11,-20,0,-34,-22,-27,-14,-8,-16,-1,-32,17,-13,24,-39,118,-22,29,-17,11,-30,7,-358,-34,-90,-26,-39,1,-33,13,-79,62,-62,108,-35,45,-68,53,-62,23,-43,5,-146,-18,-198,-66,-27,-20,-16,-23,-9,-23,-11,-130,-38,-230,-12,-122,-17,-41,-35,-50,-52,-41,-77,-29,-337,-44,-1158,-27,-119,7,-324,50,-119,29,-130,59,-49,32,-556,427,-79,56,-26,7,-99,67,-17,27,-152,101,-140,105,-260,237],[-3937,-3964,-53,48,21,44,-12,41,-13,20,-380,273,-20,-7,-33,-42,-90,-140,-20,-22,-19,-15,-31,-10,-36,0,-36,9,-567,414,-19,-12,-180,-287,-17,-6,-439,322,-31,9,-18,-4,-120,-172,-210,-338,-27,-33,-49,-31,-62,-27,-11,-14,-34,-11,-19,1,-149,-51,-88,-51,-50,-37,-75,-75,-46,-64,-64,-109,-214,-393,-14,-45,-14,-81,2,-50,-8,-51,-13,-34,-18,-117,-3,-65,45,-422,44,-94,7,-89,16,-83,-6,-200,-15,-104,-8,-151,-29,-176,-108,-220],[-2545,-3303,-320,-261,-299,-194,-61,-48,-60,-71,-71,-111,-7,-22,-1,-39,52,-164,37,-44,87,-61,11,-20,0,-34,-22,-27,-14,-8,-16,-1,-32,17,-13,24,-39,118,-22,29,-17,11,-30,7,-358,-34,-90,-26,-39,1,-33,13,-79,62,-62,108,-35,45,-68,53,-62,23,-43,5,-146,-18,-198,-66,-27,-20,-16,-23,-9,-23,-11,-130,-38,-230,-12,-122,-17,-41,-35,-50,-52,-41,-77,-29,-337,-44,-1158,-26,-119,6,-324,50,-119,29,-130,59,-49,32,-556,427,-79,56,-26,7,-99,67,-17,27,-152,101,-140,105,-260,237],[-8375,-2852,181,-164,190,-127,114,-51,109,-30,94,-8,355,19,88,-4,248,-37,258,-26,80,-15,182,-62,63,-31,38,-7,18,3,24,14,168,156,36,16,19,1,21,-5,66,-43,89,-39,234,-178,29,5,127,204,49,86,-1,13,-43,38,-92,55,-107,26,-23,-8,-12,-11,-127,-206,-8,-8,-12,1,-4,17,138,220,-2,35,-30,53,-37,47,-53,49,-315,225,-14,4,-21,-9,-22,2,-18,14,-11,23,2,25,12,20,22,12,24,-2,279,448,10,48,-5,38,12,11,14,-8,3,-9,-17,-82,-277,-461,7,-13,2,-29,8,-11,340,-248,51,-25,97,-23,26,-15,24,-21,62,-97,29,-31,716,-516,29,-13,61,-6,316,69,54,30,38,49,335,535,7,-4,5,-7,-352,-568,1,-20,6,-13,274,-197,8,3,32,48,15,5,39,-40,33,-24,11,-24,-17,-75,3,-23,53,-68,65,-56,12,-39,-11,-9,-18,10,-85,72],[-6875,-5473,-273,91,-147,58,-2,19,78,237,53,309,32,78,75,140,3,29,-15,19,-43,0,-38,-9,-9,-12,1,-26,23,-13,113,35,34,-14,14,-28,13,-85,33,-42,120,-29,240,-39,180,-15,1075,29,133,8,70,12,93,40,64,41,84,73,128,144,29,58,31,104,28,227,14,29,63,92,32,31,45,19,38,3,136,-51,115,-8,41,-11,80,-46,77,-78,70,-57,26,-7,56,69,2,22,-2,12,-14,16,-111,93,13,18,18,5,39,-44,77,-67,5,-36,-67,-79,-7,-24,3,-8,76,-66,46,-18,26,-2,373,34,28,24,5,20,-24,98,-2,36,7,59,19,45,54,73,101,98,44,29,138,67,141,87,64,49,220,183,84,120],[-2535,-3293,-330,-271,-299,-194,-61,-48,-60,-71,-71,-111,-7,-22,-1,-39,52,-164,37,-44,87,-61,11,-20,0,-34,-22,-27,-14,-8,-16,-1,-32,17,-13,24,-39,118,-22,29,-28,15,-19,3,-401,-38,-41,17,-94,84,0,21,59,73,-1,25,-5,11,-61,51],[-8404,-3598,213,-201,65,-52,591,-413,247,-199,161,-120,81,-51,74,-37,70,-25,332,-59,144,-15,1111,29,133,8,88,19,75,33,64,41,84,73,128,144,29,58,31,104,28,227,14,29,63,92,32,31,45,19,38,3,136,-51,115,-8,41,-11,80,-46,77,-78,70,-57,26,-7,56,69,2,22,-2,12,-14,16,-111,93,13,18,18,5,39,-44,77,-67,5,-36,-67,-79,-7,-24,3,-8,76,-66,46,-18,26,-2,373,34,28,24,5,20,-24,98,-2,36,7,59,19,45,54,73,101,98,44,29,138,67,141,87,64,49,220,183,84,120],[-2535,-3293,-330,-271,-299,-194,-61,-48,-60,-71,-71,-111,-7,-22,-1,-39,52,-164,37,-44,87,-61,11,-20,0,-34,-22,-27,-22,-10,-28,8,-12,10,-13,24,-39,118,-22,29,-28,15,-19,3,-401,-38,-41,17,-94,84,0,21,56,69,-1,18,-126,113,-2,7,22,39,-19,55,-386,279,-20,-7,-69,-94,-54,-88,-39,-37,-41,-11,-62,10,-94,72,-9,16,-5,35,8,23,25,25,272,60,33,15,31,25,363,574,12,-11,-494,-796,-39,-37,-27,-9,-40,-1,-36,9,-880,641,-92,55,-107,26,-23,-8,-12,-11,-127,-206,-8,-8,-12,1,-4,17,138,220,-2,35,-30,53,-37,47,-53,49,-315,225,-14,4,-21,-9,-22,2,-18,14,-11,23,2,25,12,20,22,12,24,-2,279,448,10,48,-5,38,12,11,14,-8,3,-9,-17,-82,-277,-461,10,-27,-6,-29,-20,-19,-34,-2,-180,-288,-38,-40,-83,-126,-25,-28,-12,-30,-94,-151,-25,-33,-27,-12,-29,5,-71,38,-64,22,-301,43,-75,5,-379,-18,-92,9,-119,30,-107,48,-198,134,-160,151,-128,105],[-2535,-3293,-330,-271,-299,-194,-61,-48,-60,-71,-71,-111,-7,-22,-1,-39,52,-164,37,-44,87,-61,11,-20,0,-34,-22,-27,-14,-8,-16,-1,-32,17,-13,24,-39,118,-22,29,-28,15,-19,3,-401,-38,-41,17,-94,84,0,21,58,72,0,26,-5,11,-61,51],[-2545,-3303,-320,-261,-299,-194,-61,-48,-60,-71,-71,-111,-7,-22,-1,-39,52,-164,37,-44,87,-61,11,-20,0,-34,-22,-27,-14,-8,-16,-1,-32,17,-13,24,-39,118,-22,29,-28,15,-19,3,-401,-38,-41,17,-94,84,0,21,57,75,-8,22,-120,103,-2,7,17,23,18,5,39,-44,77,-67,5,-36,-67,-79,-7,-15,3,-17,62,-54,8,-18,2,-20,-6,-15,-12,-10,-17,-3,-18,5,-73,49,-29,32,-54,97,-35,45,-68,53,-62,23,-43,5,-43,-2,-128,-22,-173,-60,-27,-20,-16,-23,-9,-23,-11,-130,-38,-230,-12,-122,-34,-70,-36,-38,-34,-24,-58,-22,-40,-8,-272,-28,-75,-13,-1085,-26,8,-85,-15,-168,8,-2,65,-330,-83,-21,-195,-85,-21,-15,-34,-48,-266,94],[-8075,-6980,42,96,109,164,13,29,77,258,19,124,-5,82,-12,47,-36,89,-17,23,-74,61,-50,62,-69,120,-73,204,-37,59,-68,88,-167,131],[-8421,-5332,16,-13,93,-9,53,-21,95,20,88,1,41,-12,41,-28,96,-105,130,-78,141,-117,334,-140,43,-13,54,10,17,19,8,37,-11,85,-2,124,-36,318,-15,32,-14,4,-9,-7,-18,-53,5,-27,12,-13,328,-120,215,-66,16,15,196,677,-323,53,-120,29,-77,32,-116,59,-24,-7,-10,-13,-4,-15,4,-22,9,-11,10,1,21,25,75,140,3,20,-3,17,-12,11,-43,0,-38,-9,-9,-12,1,-26,23,-13,113,35,34,-14,14,-28,13,-85,33,-42,120,-29,240,-39,180,-15,1075,29,133,8,70,12,93,40,64,41,84,73,128,144,29,58,31,104,28,227,14,29,63,92,32,31,45,19,38,3,136,-51,115,-8,41,-11,80,-46,77,-78,70,-57,26,-7,56,69,-1,18,-91,82],[-2546,-3302,-319,-262,-299,-194,-61,-48,-60,-71,-73,-111,-10,-40,4,-35,52,-150,37,-44,87,-61,11,-20,0,-34,-22,-27,-14,-8,-16,-1,-32,17,-13,24,-39,118,-22,29,-17,11,-30,7,-358,-34,-90,-26,-39,1,-33,13,-79,62,-62,108,-35,45,-68,53,-62,23,-43,5,-146,-18,-198,-66,-27,-20,-16,-23,-9,-23,-11,-130,-38,-230,-12,-122,-17,-41,-35,-50,-52,-41,-77,-29,-337,-44,-1158,-26,-119,6,-324,50,-119,29,-130,59,-49,32,-556,427,-79,56,-26,7,-99,67,-17,27,-227,155,-65,51,-260,237],[-7445,-6977,85,176,21,37,50,64,41,78,33,82,44,158,3,252,12,191,-11,61,0,52,-15,130,-2,124,-35,311,-6,145,49,320,42,115,234,423,71,101,77,77,58,41,72,40,201,71,80,35,59,41,24,31,137,220,63,106,6,19,1,48,-19,45,-93,78,-12,19,1,41,26,32,27,8,32,-5,66,-43,89,-39,234,-178,29,5,176,290,-1,13,-7,8,-93,67,-35,18,-107,26,-23,-8,-12,-11,-105,-173,-27,-39,-13,-2,-6,18,138,220,-2,35,-30,53,-37,47,-53,49,-315,225,-14,4,-21,-9,-22,2,-25,25,-4,25,7,23,29,21,24,-2,279,448,9,31,-4,55,4,6,8,5,9,-4,8,-13,-17,-82,-277,-461,7,-13,2,-29,8,-11,340,-248,51,-25,97,-23,26,-15,24,-21,62,-97,29,-31,716,-516,29,-13,61,-6,316,69,54,30,38,49,335,535,7,-4,5,-7,-352,-568,1,-20,6,-13,274,-197,8,3,32,48,15,5,39,-40,33,-24,11,-24,-17,-75,3,-23,53,-68,65,-56,12,-39,-11,-9,-18,10,-68,57],[-8404,-3598,266,-244,386,-268,55,-18,71,-46,221,-168,117,-121,59,-23,68,-3,87,14,39,17,81,103,92,154,33,44,77,77,58,41,72,40,248,89,92,58,161,251,63,106,6,19,1,48,-11,32,-19,27,-54,42,-39,20,-35,7,-40,-16,-81,-71,-19,-34,-4,-19,4,-27,56,-109,64,-68,68,-50,95,-45,418,-82,131,-42,491,-197,109,-37,40,-6,67,1,96,26,145,85,143,51,51,37,82,-14,81,-2,59,-18,62,-39,77,-78,70,-57,26,-7,56,69,-1,18,-126,113,-2,7,22,39,-19,55,-372,272,-14,7,-20,-7,-69,-94,-54,-88,-39,-37,-41,-11,-62,10,-880,641,-92,55,-107,26,-29,21,-21,19,-30,53,-37,47,-53,49,-315,225,-14,4,-34,-9,-20,9,-18,30,2,25,-326,243,104,169],[-3077,-6995,-44,70,-174,335,-510,948,-64,100,-72,87,-541,499,-124,109,-63,44,-78,37,-96,19,-72,-14,-197,-19,-33,-17,-6,-19,3,-13,17,-14,14,-1,12,7,8,16,5,56,11,28,26,24,58,26,55,43,133,142,66,79,29,58,31,104,28,227,14,29,63,92,32,31,45,19,38,3,136,-51,115,-8,41,-11,80,-46,77,-78,70,-57,26,-7,56,69,-1,18,-91,82],[-3953,-3935,-34,29,13,18,18,5,39,-44,77,-67,5,-36,-67,-79,-7,-24,3,-8,76,-66,17,-9,29,-9,50,-1,349,33,10,5,18,19,5,20,-24,98,1,77,23,63,54,73,101,98,44,29,138,67,103,62,156,120,59,62,36,66,70,74,89,110],[-2546,-3302,-319,-262,-299,-194,-61,-48,-60,-71,-73,-111,-10,-40,4,-35,52,-150,37,-44,87,-61,11,-20,0,-34,-22,-27,-22,-10,-28,8,-12,10,-13,24,-39,118,-22,29,-28,15,-19,3,-401,-38,-41,17,-94,84,0,21,56,69,-1,18,-126,113,-2,7,22,39,-19,55,-386,279,-20,-7,-33,-42,-90,-140,-20,-22,-19,-15,-31,-10,-36,0,-36,9,-880,641,-92,55,-107,26,-29,21,-21,19,-30,53,-37,47,-53,49,-315,225,-14,4,-21,-9,-22,2,-180,-288,-32,-37,-85,-132,-22,-22,-128,-216,-28,-16,-42,4,-96,50,-58,16,-278,41,-75,5,-379,-18,-125,15,-86,24,-107,48,-198,134,-160,151,-128,105],[-2546,-3302,-319,-262,-299,-194,-61,-48,-60,-71,-73,-111,-10,-40,4,-35,52,-150,37,-44,87,-61,11,-20,0,-34,-22,-27,-14,-8,-16,-1,-32,17,-13,24,-39,118,-22,29,-28,15,-19,3,-401,-38,-41,17,-94,84,0,21,56,69,-1,18,-126,113,-2,7,26,28,9,0,39,-44,77,-67,5,-36,-67,-79,-7,-15,3,-17,62,-54,8,-18,2,-20,-6,-15,-12,-10,-17,-3,-18,5,-73,49,-29,32,-54,97,-35,45,-50,42,-59,28,-64,11,-146,-18,-198,-66,-27,-20,-25,-46,-11,-130,-38,-230,-6,-90,-14,-55,-26,-47,-36,-38,-34,-24,-77,-29,-337,-44,-1158,-27,-119,7,-324,50,-119,29,-130,59,-49,32,-556,427,-79,56,-26,7,-99,67,-17,27,-227,155,-65,51,-260,237],[-8404,-3598,266,-244,603,-422,247,-199,161,-120,81,-51,74,-37,70,-25,332,-59,144,-15,1111,29,133,8,70,12,124,58,88,68,138,147,19,25,29,58,31,104,28,227,14,29,63,92,32,31,31,15,52,7,136,-51,115,-8,59,-18,62,-39,77,-78,70,-57,26,-7,56,69,2,22,-2,12,-14,16,-111,93,13,18,18,5,39,-44,77,-67,6,-28,-8,-18,-60,-69,-7,-15,3,-17,76,-66,46,-18,50,-1,349,33,10,5,18,19,5,20,-24,98,1,77,14,46,29,52,3,-3,65,79,67,60,44,29,138,67,103,62,156,120,59,62,36,66,70,74,89,110],[-2523,-3188,-62,-86,-25,-25,0,-14,6,-7,18,3,17,19,63,93],[-2546,-3302,-319,-262,-299,-194,-61,-48,-60,-71,-73,-111,-10,-40,4,-35,52,-150,37,-44,87,-61,11,-20,0,-34,-22,-27,-14,-8,-16,-1,-32,17,-13,24,-39,118,-22,29,-17,11,-30,7,-358,-34,-90,-26,-39,1,-33,13,-79,62,-62,108,-35,45,-68,53,-62,23,-43,5,-146,-18,-198,-66,-27,-20,-16,-23,-9,-23,-11,-130,-38,-230,-12,-122,-34,-70,-36,-38,-34,-24,-77,-29,-337,-44,-397,-7,-47,-437,103,5,47,11,19,-6,18,-18,25,-1,65,10,31,14,43,-97,53,-99,57,-86,-27,-50,-63,-82,-237,-293,-178,150,-117,113,-142,47,-86,56,-137,-96,-15,-29,-13,-10,-370,121,-281,100],[-3959,-3997,-58,48,-33,-50,-37,33,-53,32,-49,19,-99,5,-40,10,-104,54,-39,0,-23,-12,-110,-112,-44,-66,-41,-319,-17,-60,-12,-17,-51,-42,-140,-147,-180,-226,-38,-14,-205,37,-18,-7,-90,-180,-6,-62,-15,-7,-11,11,1,13,19,28,83,193,-1,25,-12,23,-26,18,-158,0,-27,-11,-822,-20,-413,55,-117,30,-140,64,-80,55,-555,426,-421,293,-68,55,-261,241],[-2546,-3302,-319,-262,-299,-194,-61,-48,-60,-71,-73,-111,-10,-40,4,-35,52,-150,37,-44,87,-61,11,-20,0,-34,-22,-27,-14,-8,-16,-1,-32,17,-13,24,-40,120,-22,26,-21,13,-23,4,-58,-4,-319,-35,-84,-20,-31,1,-59,28,-33,25,-49,66,-32,63,-29,39,-32,34,-25,17,-56,26,-35,8,-115,1,-34,-13,-44,-7,-181,-63,-20,-12,-22,-29,-9,-23,-11,-130,-38,-230,-12,-122,-34,-70,-36,-38,-61,-37,-50,-16,-337,-44,-1158,-26,-119,6,-324,50,-119,29,-130,59,-49,32,-556,427,-79,56,-26,7,-99,67,-17,27,-227,155,-65,51,-260,237],[-2546,-3302,-319,-262,-299,-194,-61,-48,-60,-71,-71,-111,-7,-22,-1,-39,52,-164,37,-44,87,-61,11,-20,0,-34,-22,-27,-22,-10,-28,8,-12,10,-13,24,-39,118,-22,29,-28,15,-19,3,-401,-38,-41,17,-94,84,0,21,56,69,-1,18,-127,115,21,44,-19,55,-386,279,-20,-7,-33,-42,-90,-140,-20,-22,-19,-15,-31,-10,-36,0,-36,9,-880,641,-92,55,-107,26,-29,21,-21,19,-30,53,-37,47,-53,49,-315,225,-14,4,-21,-9,-22,2,-180,-288,-32,-37,-85,-132,-22,-22,-128,-216,-28,-16,-42,4,-96,50,-58,16,-278,41,-75,5,-379,-18,-125,15,-86,24,-107,48,-198,134,-160,151,-128,105],[-3954,-3949,-35,31,-2,7,22,39,-12,41,-13,20,-380,273,-20,-7,-33,-42,-90,-140,-39,-37,-31,-10,-36,0,-36,9,-94,72,-15,37,9,37,25,25,272,60,33,15,31,25,363,574,12,-11,-494,-796,-39,-37,-27,-9,-40,-1,-36,9,-880,641,-92,55,-107,26,-23,-8,-12,-11,-127,-206,-8,-8,-12,1,-4,17,138,220,-2,35,-30,53,-37,47,-53,49,-315,225,-14,4,-21,-9,-22,2,-18,14,-11,23,2,25,12,20,22,12,24,-2,279,448,10,48,-5,38,12,11,14,-8,3,-9,-17,-82,-277,-461,10,-27,-6,-29,-20,-19,-34,-2,-180,-288,-38,-40,-83,-126,-25,-28,-12,-30,-94,-151,-25,-33,-27,-12,-29,5,-71,38,-64,22,-301,43,-75,5,-379,-18,-92,9,-119,30,-107,48,-198,134,-160,151,-128,105],[-8421,-5332,16,-13,93,-9,53,-21,95,20,88,1,41,-12,41,-28,96,-105,130,-78,141,-117,334,-140,43,-13,31,4,52,17,-15,130,-2,124,-36,318,-5,138,49,320,10,37,32,78,75,140,3,20,-3,17,-12,11,-43,0,-38,-9,-9,-12,1,-26,23,-13,113,35,34,-14,14,-28,13,-85,33,-42,120,-29,240,-39,180,-15,1075,29,133,8,70,12,93,40,64,41,55,45,149,160,32,56,36,118,28,227,14,29,63,92,43,43,3,19,-18,28,-73,29,-135,105,-468,338,-19,-12,-180,-287,-21,-4,-221,160,-4,29,127,204,49,86,-1,13,-43,38,-92,55,-107,26,-23,-8,-12,-11,-105,-173,-27,-39,-13,-2,-6,18,138,220,-2,35,-30,53,-37,47,-53,49,-315,225,-14,4,-21,-9,-22,2,-25,25,-4,25,7,23,29,21,24,-2,279,448,10,48,-5,38,12,11,14,-8,3,-9,-17,-82,-277,-461,7,-13,2,-29,8,-11,340,-248,51,-25,97,-23,26,-15,24,-21,62,-97,29,-31,716,-516,29,-13,61,-6,316,69,54,30,38,49,335,535,7,-4,5,-7,-352,-568,1,-20,6,-13,274,-197,8,3,32,48,15,5,39,-40,33,-24,11,-24,-17,-75,3,-23,53,-68,65,-56,12,-39,-11,-9,-18,10,-68,57],[-6875,-5473,-273,91,-4,14,9,7,294,-105,133,-38,12,8,201,687,-324,50,-119,29,-130,59,-49,32,-16,3,-23,-5,-14,-20,4,-35,9,-9,10,2,21,22,75,140,3,20,-3,17,-12,11,-43,0,-38,-9,-9,-12,1,-26,23,-13,113,35,34,-14,14,-28,13,-85,33,-42,120,-29,240,-39,180,-15,1075,29,133,8,70,12,93,40,64,41,84,73,128,144,29,58,31,104,28,227,14,29,63,92,32,31,45,19,38,3,136,-51,115,-8,41,-11,80,-46,77,-78,70,-57,26,-7,56,69,2,22,-2,12,-14,16,-111,93,13,18,18,5,39,-44,77,-67,5,-36,-67,-79,-7,-24,3,-8,76,-66,46,-18,26,-2,373,34,28,24,5,20,-24,98,-2,36,7,59,19,45,88,111,67,60,44,29,138,67,141,87,284,232,28,37],[-6529,-2158,99,167,127,-69,238,-171,12,1,83,138,10,48,-5,38,12,11,14,-8,3,-9,-17,-82,-277,-461,7,-13,2,-29,8,-11,340,-248,51,-25,97,-23,26,-15,24,-21,62,-97,29,-31,701,-507,44,-22,61,-6,264,56,70,20,36,23,38,49,335,535,7,-4,5,-7,-352,-568,7,-33,277,-199,25,2,82,-60,0,-17,-10,-5,-380,273,-20,-7,-33,-42,-90,-140,-20,-22,-19,-15,-31,-10,-36,0,-36,9,-880,641,-92,55,-107,26,-23,-8,-12,-11,-132,-212,-13,-2,-6,18,134,209,5,25,-3,21,-30,53,-37,47,-53,49,-315,225,-14,4,-21,-9,-22,2,-180,-288,-32,-37,-85,-132,-22,-22,-128,-216,-28,-16,-42,4,-96,50,-58,16,-278,41,-75,5,-379,-18,-125,15,-86,24,-107,48,-198,134,-160,151,-128,105],[-8421,-5332,16,-13,93,-9,53,-21,95,20,88,1,41,-12,41,-28,96,-105,130,-78,141,-117,334,-140,43,-13,54,10,17,19,8,37,-11,85,-2,124,-36,318,-5,138,49,320,10,37,32,78,75,140,3,20,-3,17,-12,11,-43,0,-38,-9,-9,-12,1,-26,23,-13,113,35,34,-14,14,-28,13,-85,33,-42,120,-29,240,-39,180,-15,1075,29,133,8,70,12,93,40,64,41,84,73,128,144,29,58,31,104,28,227,14,29,63,92,32,31,45,19,38,3,136,-51,115,-8,41,-11,80,-46,77,-78,70,-57,26,-7,56,69,2,22,-2,12,-14,16,-111,93,13,18,18,5,39,-44,77,-67,5,-36,-67,-79,-7,-24,3,-8,76,-66,46,-18,26,-2,373,34,28,24,5,20,-24,98,-2,36,7,59,19,45,88,111,67,60,44,29,138,67,141,87,284,232,28,37],[-2535,-3293,-330,-271,-299,-194,-61,-48,-60,-71,-71,-111,-7,-22,-1,-39,52,-164,37,-44,87,-61,11,-20,0,-34,-22,-27,-14,-8,-16,-1,-32,17,-13,24,-39,118,-22,29,-28,15,-19,3,-401,-38,-41,17,-94,84,0,21,57,71,1,27,-5,11,-61,51],[-8421,-5332,16,-13,93,-9,53,-21,95,20,88,1,41,-12,41,-28,96,-105,130,-78,141,-117,334,-140,43,-13,54,10,29,11,-15,130,-2,124,-36,318,-5,138,49,320,10,37,32,78,75,140,3,20,-3,17,-12,11,-43,0,-38,-9,-9,-12,1,-26,23,-13,113,35,34,-14,14,-28,13,-85,33,-42,120,-29,240,-39,180,-15,1075,29,133,8,70,12,93,40,64,41,84,73,128,144,29,58,31,104,28,227,14,29,63,92,32,31,45,19,38,3,136,-51,115,-8,41,-11,80,-46,77,-78,70,-57,26,-7,56,69,2,22,-2,12,-14,16,-111,93,13,18,18,5,39,-44,77,-67,5,-36,-67,-79,-7,-24,3,-8,76,-66,46,-18,26,-2,373,34,28,24,5,20,-24,98,-2,36,7,59,19,45,54,73,101,98,44,29,138,67,141,87,64,49,220,183,84,120]],"shs":{"0":[[-22.83956,-43.23952],[-22.84705,-43.24599],[-22.853,-43.24792],[-22.85489,-43.24796],[-22.85594,-43.24803],[-22.85647,-43.24803],[-22.86074,-43.24814],[-22.86276,-43.25348],[-22.86357,-43.25425],[-22.86492,-43.25483],[-22.86996,-43.25439],[-22.87354,-43.2582],[-22.87652,-43.25689],[-22.87862,-43.2553],[-22.8803,-43.2538],[-22.88264,-43.25405],[-22.88238,-43.25482],[-22.88047,-43.25858],[-22.87811,-43.26217],[-22.87806,-43.26402],[-22.8786,-43.26605]],"1":[[-22.83954,-43.23937],[-22.83335,-43.23877],[-22.82569,-43.23281]],"2":[[-22.8253,-43.23298],[-22.83232,-43.23825],[-22.83256,-43.24257],[-22.83937,-43.23969],[-22.84258,-43.23625],[-22.84585,-43.23779],[-22.84672,-43.23761],[-22.85033,-43.23498],[-22.85309,-43.23304],[-22.86024,-43.22779],[-22.86055,-43.22757],[-22.86102,-43.22723]],"3":[[-22.88428,-43.24878],[-22.88261,-43.2494],[-22.87976,-43.25044],[-22.8785,-43.25088],[-22.87532,-43.25213],[-22.86929,-43.25432],[-22.86683,-43.2541],[-22.86621,-43.25198],[-22.86532,-43.24895],[-22.87026,-43.24704],[-22.86454,-43.24764],[-22.86092,-43.2475],[-22.85692,-43.24747],[-22.85376,-43.24734],[-22.85167,-43.24723],[-22.84818,-43.24491],[-22.83933,-43.23955],[-22.83335,-43.23877],[-22.82569,-43.23281]],"4":[[-22.85795,-43.2338],[-22.85583,-43.233],[-22.85817,-43.23147],[-22.86024,-43.22779],[-22.86055,-43.22757],[-22.862,-43.22453],[-22.86013,-43.22147],[-22.85984,-43.22167],[-22.86157,-43.2245],[-22.86067,-43.22704],[-22.85283,-43.23272],[-22.84315,-43.23345],[-22.84155,-43.23161],[-22.84274,-43.23351],[-22.84179,-43.23662],[-22.84258,-43.23625],[-22.84585,-43.23779],[-22.84672,-43.23761],[-22.85033,-43.23498],[-22.85309,-43.23304],[-22.86533,-43.22154]],"5":[[-22.83956,-43.23952],[-22.84303,-43.25054],[-22.83988,-43.25343],[-22.83677,-43.25775],[-22.83447,-43.26202],[-22.83359,-43.2637]],"6":[[-22.8253,-43.23298],[-22.83232,-43.23825],[-22.83256,-43.24257],[-22.83937,-43.23969],[-22.84705,-43.24599],[-22.853,-43.24792],[-22.85489,-43.24796],[-22.85594,-43.24803],[-22.85647,-43.24803],[-22.86074,-43.24814],[-22.86276,-43.25348],[-22.86357,-43.25425],[-22.86492,-43.25483],[-22.86996,-43.25439],[-22.87483,-43.25259],[-22.88382,-43.24923]],"7":[[-22.84239,-43.26936],[-22.84488,-43.26798],[-22.84766,-43.26579],[-22.85032,-43.26367],[-22.85455,-43.26],[-22.85265,-43.25765],[-22.85112,-43.2558],[-22.84909,-43.25523],[-22.84812,-43.25427],[-22.84591,-43.25362],[-22.84554,-43.2524],[-22.84486,-43.25124],[-22.84783,-43.24762],[-22.84983,-43.24768],[-22.84818,-43.24491],[-22.83933,-43.23955],[-22.83335,-43.23877],[-22.82569,-43.23281]],"8":[[-22.83933,-43.23955],[-22.83335,-43.23877],[-22.82569,-43.23281]],"9":[[-22.8253,-43.23298],[-22.83232,-43.23825],[-22.83256,-43.24257],[-22.83937,-43.23969],[-22.84705,-43.24599],[-22.853,-43.24792],[-22.85489,-43.24796],[-22.85594,-43.24803],[-22.85647,-43.24803],[-22.86074,-43.24814],[-22.86471,-43.24819],[-22.87053,-43.24899],[-22.87354,-43.2582],[-22.87652,-43.25689],[-22.87862,-43.2553],[-22.8803,-43.2538],[-22.88264,-43.25405]],"10":[[-22.8253,-43.23298],[-22.83232,-43.23825],[-22.83256,-43.24257],[-22.83954,-43.23937]],"11":[[-22.88464,-43.2265]],"12":[[-22.88401,-43.23593],[-22.88067,-43.23881],[-22.87753,-43.24099],[-22.87532,-43.2426],[-22.86454,-43.24764],[-22.86092,-43.2475],[-22.85692,-43.24747],[-22.85376,-43.24734],[-22.85167,-43.24723],[-22.84818,-43.24491],[-22.83933,-43.23955],[-22.83335,-43.23877],[-22.82569,-43.23281]],"13":[[-22.83956,-43.23952],[-22.84705,-43.24599],[-22.853,-43.24792],[-22.85489,-43.24796],[-22.85594,-43.24803],[-22.85647,-43.24803],[-22.86074,-43.24814],[-22.86471,-43.24819],[-22.87053,-43.24899],[-22.87354,-43.2582],[-22.87652,-43.25689],[-22.87862,-43.2553],[-22.8803,-43.2538],[-22.88264,-43.25405]],"14":[[-22.83946,-43.23977],[-22.85488,-43.25293]],"16":[[-22.88344,-43.23682],[-22.87444,-43.2436],[-22.86513,-43.24778],[-22.85989,-43.24777],[-22.84705,-43.24373],[-22.83954,-43.23989]],"17":[[-22.8253,-43.23298],[-22.83232,-43.23825],[-22.83256,-43.24257],[-22.84705,-43.24599],[-22.853,-43.24792],[-22.85489,-43.24796],[-22.85647,-43.24803]],"19":[[-22.85692,-43.24747],[-22.85376,-43.24734],[-22.85167,-43.24723],[-22.84818,-43.24491],[-22.83933,-43.23955],[-22.83335,-43.23877],[-22.82569,-43.23281]],"20":[[-22.8253,-43.23298],[-22.83232,-43.23825],[-22.83256,-43.24257],[-22.83937,-43.23969],[-22.84705,-43.24599],[-22.853,-43.24792],[-22.85489,-43.24796],[-22.85594,-43.24803],[-22.85647,-43.24803],[-22.86074,-43.24814],[-22.86471,-43.24819],[-22.87053,-43.24899],[-22.87354,-43.2582],[-22.87652,-43.25689],[-22.87862,-43.2553],[-22.8803,-43.2538],[-22.88264,-43.25405]],"21":[[-22.8717,-43.25853],[-22.86874,-43.24191],[-22.86472,-43.23933],[-22.85795,-43.2338],[-22.85583,-43.233],[-22.85817,-43.23147],[-22.86024,-43.22779],[-22.86055,-43.22757],[-22.862,-43.22453],[-22.86013,-43.22147],[-22.85984,-43.22167],[-22.86157,-43.2245],[-22.86067,-43.22704],[-22.85283,-43.23272],[-22.84315,-43.23345],[-22.84155,-43.23161],[-22.84274,-43.23351],[-22.84179,-43.23662],[-22.83956,-43.23952]],"22":[[-22.83956,-43.23952],[-22.84258,-43.23625],[-22.84585,-43.23779],[-22.84672,-43.23761],[-22.85033,-43.23498],[-22.85535,-43.23593],[-22.86434,-43.23956],[-22.86777,-43.2413],[-22.87178,-43.24924],[-22.87099,-43.25922]],"23":[[-22.87967,-43.27037]],"24":[[-22.86876,-43.25478],[-22.86996,-43.25439],[-22.86929,-43.25432],[-22.86552,-43.25368],[-22.86318,-43.25283],[-22.86276,-43.25348],[-22.86165,-43.25384],[-22.86021,-43.2537],[-22.85765,-43.25244],[-22.85639,-43.25223],[-22.85221,-43.25031],[-22.84818,-43.24491],[-22.83933,-43.23955],[-22.83335,-43.23877]],"25":[[-22.8253,-43.23298],[-22.83232,-43.23825],[-22.83256,-43.24257],[-22.84705,-43.24599],[-22.853,-43.24792],[-22.85489,-43.24796],[-22.85594,-43.24803],[-22.85638,-43.24966],[-22.85639,-43.25223],[-22.8531,-43.25309],[-22.85233,-43.25457],[-22.85257,-43.25591],[-22.85565,-43.25911],[-22.8568,-43.25818],[-22.85934,-43.25635],[-22.86203,-43.25459],[-22.86357,-43.25425],[-22.86492,-43.25483],[-22.86876,-43.25478]],"26":[[-22.8253,-43.23298],[-22.83232,-43.23825],[-22.83256,-43.24257],[-22.83954,-43.23937]],"27":[[-22.83954,-43.23937],[-22.83335,-43.23877],[-22.82569,-43.23281]],"28":[[-22.8253,-43.23298],[-22.83232,-43.23825],[-22.83256,-43.24257],[-22.83937,-43.23969],[-22.84705,-43.24599],[-22.853,-43.24792],[-22.85489,-43.24796],[-22.85594,-43.24803],[-22.85638,-43.24966],[-22.85639,-43.25223],[-22.8531,-43.25309],[-22.85233,-43.25457],[-22.85112,-43.2558],[-22.84875,-43.25813],[-22.84617,-43.26052],[-22.84488,-43.26174],[-22.84394,-43.26208],[-22.84303,-43.26319],[-22.84187,-43.26414],[-22.83968,-43.26596],[-22.8407,-43.26735],[-22.84201,-43.26934]],"29":[[-22.83946,-43.23977],[-22.84696,-43.24373],[-22.85471,-43.25364],[-22.85739,-43.25807],[-22.8485,-43.26544]],"30":[[-22.88464,-43.2265]],"31":[[-22.88401,-43.23593],[-22.88067,-43.23881],[-22.87753,-43.24099],[-22.87532,-43.2426],[-22.86454,-43.24764],[-22.86092,-43.2475],[-22.85692,-43.24747],[-22.85376,-43.24734],[-22.85167,-43.24723],[-22.84818,-43.24491],[-22.83933,-43.23955],[-22.83335,-43.23877],[-22.82569,-43.23281]],"32":[[-22.82569,-43.23281]],"33":[[-22.84856,-43.26549],[-22.8548,-43.25366],[-22.83946,-43.23977],[-22.85749,-43.25809],[-22.84705,-43.24373]],"34":[[-22.83946,-43.23977]],"35":[[-22.83933,-43.23955],[-22.83335,-43.23877],[-22.82569,-43.23281]],"36":[[-22.85795,-43.2338],[-22.85583,-43.233],[-22.85817,-43.23147],[-22.86024,-43.22779],[-22.86055,-43.22757],[-22.86102,-43.22723],[-22.862,-43.22453],[-22.86013,-43.22147],[-22.85984,-43.22167],[-22.86157,-43.2245],[-22.86067,-43.22704],[-22.85283,-43.23272],[-22.84315,-43.23345],[-22.84155,-43.23161],[-22.84274,-43.23351],[-22.84179,-43.23662],[-22.83933,-43.23955],[-22.83335,-43.23877],[-22.82569,-43.23281]],"37":[[-22.855,-43.25287],[-22.83946,-43.23977]],"38":[[-22.8253,-43.23298],[-22.83232,-43.23825],[-22.83256,-43.24257],[-22.84705,-43.24599],[-22.853,-43.24792],[-22.85489,-43.24796],[-22.85594,-43.24803],[-22.85647,-43.24803],[-22.86074,-43.24814],[-22.86471,-43.24819],[-22.87026,-43.24704],[-22.87796,-43.24145],[-22.88461,-43.2362]],"39":[[-22.83956,-43.23952],[-22.84258,-43.23625],[-22.84585,-43.23779],[-22.84672,-43.23761],[-22.85033,-43.23498],[-22.85535,-43.23593],[-22.86434,-43.23956],[-22.86777,-43.2413],[-22.87178,-43.24924],[-22.87099,-43.25922]],"40":[[-22.8253,-43.23298],[-22.83232,-43.23825],[-22.83256,-43.24257],[-22.84705,-43.24599],[-22.853,-43.24792],[-22.85489,-43.24796],[-22.85594,-43.24803],[-22.85647,-43.24803],[-22.86074,-43.24814],[-22.86471,-43.24819],[-22.87026,-43.24704],[-22.87796,-43.24145],[-22.88461,-43.2362]],"41":[[-22.85795,-43.2338],[-22.85583,-43.233],[-22.85817,-43.23147],[-22.86024,-43.22779],[-22.86055,-43.22757],[-22.86102,-43.22723],[-22.862,-43.22453],[-22.86013,-43.22147],[-22.85984,-43.22167],[-22.86157,-43.2245],[-22.86067,-43.22704],[-22.85283,-43.23272],[-22.84315,-43.23345],[-22.84155,-43.23161],[-22.84274,-43.23351],[-22.84179,-43.23662],[-22.83956,-43.23952]],"42":[[-22.86876,-43.25478],[-22.86996,-43.25439],[-22.87251,-43.25155],[-22.86454,-43.24764],[-22.86092,-43.2475],[-22.85692,-43.24747],[-22.85376,-43.24734],[-22.85167,-43.24723],[-22.84818,-43.24491],[-22.83933,-43.23955],[-22.83335,-43.23877],[-22.82569,-43.23281]],"43":[[-22.8253,-43.23298],[-22.83232,-43.23825],[-22.83256,-43.24257],[-22.83954,-43.23937]],"44":[[-22.88401,-43.23593],[-22.88067,-43.23881],[-22.87753,-43.24099],[-22.87532,-43.2426],[-22.86454,-43.24764],[-22.86092,-43.2475],[-22.85692,-43.24747],[-22.85376,-43.24734],[-22.85167,-43.24723],[-22.84818,-43.24491],[-22.83933,-43.23955],[-22.83335,-43.23877],[-22.82569,-43.23281]],"45":[[-22.8253,-43.23298],[-22.83232,-43.23825],[-22.83256,-43.24257],[-22.83937,-43.23969],[-22.84258,-43.23625],[-22.84585,-43.23779],[-22.84315,-43.23345],[-22.84155,-43.23161],[-22.84274,-43.23351],[-22.84672,-43.23761],[-22.85033,-43.23498],[-22.85309,-43.23304],[-22.85817,-43.23147],[-22.86024,-43.22779],[-22.86055,-43.22757],[-22.86102,-43.22723],[-22.862,-43.22453],[-22.86013,-43.22147],[-22.85984,-43.22167],[-22.86157,-43.2245]],"46":[[-22.8253,-43.23298],[-22.83232,-43.23825],[-22.83256,-43.24257],[-22.83954,-43.23937]],"47":[[-22.8253,-43.23298],[-22.83232,-43.23825],[-22.83256,-43.24257],[-22.83937,-43.23969],[-22.84705,-43.24599],[-22.853,-43.24792],[-22.85489,-43.24796],[-22.85594,-43.24803],[-22.85647,-43.24803],[-22.86074,-43.24814],[-22.86276,-43.25348],[-22.86357,-43.25425],[-22.86492,-43.25483],[-22.86876,-43.25478]],"48":[[-22.87886,-43.26586],[-22.87833,-43.26397],[-22.87834,-43.26182],[-22.88019,-43.25939],[-22.88258,-43.25485],[-22.8834,-43.25341],[-22.87999,-43.25377],[-22.87843,-43.25517]],"49":[[-22.88258,-43.25485],[-22.8834,-43.25341],[-22.87999,-43.25377],[-22.87843,-43.25517],[-22.87632,-43.25678],[-22.87339,-43.25804],[-22.86929,-43.25432],[-22.86683,-43.2541],[-22.86621,-43.25198],[-22.86532,-43.24895],[-22.87026,-43.24704],[-22.86454,-43.24764],[-22.86092,-43.2475],[-22.85692,-43.24747],[-22.85376,-43.24734],[-22.85167,-43.24723],[-22.84818,-43.24491],[-22.83956,-43.23952]],"50":[[-22.8253,-43.23298],[-22.83232,-43.23825],[-22.83256,-43.24257],[-22.84705,-43.24599],[-22.853,-43.24792],[-22.85489,-43.24796],[-22.85594,-43.24803],[-22.85647,-43.24803],[-22.86074,-43.24814],[-22.86471,-43.24819],[-22.87026,-43.24704],[-22.87796,-43.24145],[-22.88461,-43.2362]],"51":[[-22.8717,-43.25853],[-22.86874,-43.24191],[-22.86472,-43.23933],[-22.85795,-43.2338],[-22.85583,-43.233],[-22.85817,-43.23147],[-22.86024,-43.22779],[-22.86055,-43.22757],[-22.862,-43.22453],[-22.86013,-43.22147],[-22.85984,-43.22167],[-22.86157,-43.2245],[-22.86067,-43.22704],[-22.85283,-43.23272],[-22.84315,-43.23345],[-22.84155,-43.23161],[-22.84274,-43.23351],[-22.84179,-43.23662],[-22.83956,-43.23952]],"52":[[-22.88401,-43.23593],[-22.88067,-43.23881],[-22.87753,-43.24099],[-22.87486,-43.24275],[-22.86874,-43.24191],[-22.86472,-43.23933],[-22.83937,-43.23969],[-22.84258,-43.23625],[-22.84585,-43.23779],[-22.84672,-43.23761],[-22.85033,-43.23498],[-22.85309,-43.23304],[-22.86024,-43.22779],[-22.86055,-43.22757],[-22.86102,-43.22723],[-22.86533,-43.22154]],"53":[[-22.83301,-43.26594],[-22.83544,-43.2614],[-22.83712,-43.25831],[-22.8406,-43.25355],[-22.84348,-43.25089],[-22.84783,-43.24762],[-22.84983,-43.24768],[-22.84818,-43.24491],[-22.83956,-43.23952]],"54":[[-22.83954,-43.23937],[-22.83335,-43.23877],[-22.82569,-43.23281]],"55":[[-22.8253,-43.23298],[-22.83232,-43.23825],[-22.83256,-43.24257],[-22.83937,-43.23969],[-22.84258,-43.23625],[-22.84585,-43.23779],[-22.84672,-43.23761],[-22.85033,-43.23498],[-22.85309,-43.23304],[-22.86024,-43.22779],[-22.86055,-43.22757]],"56":[[-22.8253,-43.23298],[-22.83232,-43.23825],[-22.83256,-43.24257],[-22.83937,-43.23969],[-22.84705,-43.24599],[-22.853,-43.24792],[-22.85489,-43.24796],[-22.85594,-43.24803],[-22.85647,-43.24803],[-22.86074,-43.24814],[-22.86471,-43.24819],[-22.87026,-43.24704],[-22.87796,-43.24145],[-22.88461,-43.2362]],"57":[[-22.88401,-43.23593],[-22.88067,-43.23881],[-22.87753,-43.24099],[-22.87532,-43.2426],[-22.86454,-43.24764],[-22.86092,-43.2475],[-22.85692,-43.24747],[-22.85376,-43.24734],[-22.85167,-43.24723],[-22.84818,-43.24491],[-22.83933,-43.23955],[-22.83335,-43.23877],[-22.82569,-43.23281]],"58":[[-22.82569,-43.23281]],"59":[[-22.8253,-43.23298],[-22.83232,-43.23825],[-22.83256,-43.24257],[-22.84705,-43.24599],[-22.853,-43.24792],[-22.85489,-43.24796],[-22.85594,-43.24803],[-22.85638,-43.24966],[-22.85639,-43.25223],[-22.8531,-43.25309],[-22.85233,-43.25457],[-22.85257,-43.25591],[-22.85565,-43.25911],[-22.8568,-43.25818],[-22.85934,-43.25635],[-22.86108,-43.25596],[-22.86286,-43.25677],[-22.86582,-43.25576],[-22.86876,-43.25478]],"60":[[-22.83954,-43.23989],[-22.84696,-43.24373],[-22.86153,-43.24787],[-22.86672,-43.24761],[-22.87581,-43.24262],[-22.88465,-43.2357]],"61":[[-22.8253,-43.23298],[-22.83232,-43.23825],[-22.83256,-43.24257],[-22.84705,-43.24599],[-22.853,-43.24792],[-22.85489,-43.24796],[-22.85594,-43.24803],[-22.85647,-43.24803],[-22.86074,-43.24814],[-22.86471,-43.24819],[-22.87026,-43.24704],[-22.87796,-43.24145],[-22.88461,-43.2362]],"62":[[-22.8253,-43.23298],[-22.83232,-43.23825],[-22.83256,-43.24257],[-22.83937,-43.23969],[-22.84258,-43.23625],[-22.84585,-43.23779],[-22.84672,-43.23761],[-22.85033,-43.23498],[-22.85309,-43.23304],[-22.86024,-43.22779],[-22.86055,-43.22757]],"63":[[-22.83956,-43.23952],[-22.84258,-43.23625],[-22.84585,-43.23779],[-22.84315,-43.23345],[-22.84155,-43.23161],[-22.84672,-43.23761],[-22.85033,-43.23498],[-22.85309,-43.23304],[-22.85817,-43.23147],[-22.86024,-43.22779],[-22.86055,-43.22757],[-22.86102,-43.22723],[-22.862,-43.22453],[-22.86013,-43.22147],[-22.85984,-43.22167],[-22.86157,-43.2245]],"64":[[-22.8834,-43.25341],[-22.87999,-43.25377],[-22.87843,-43.25517],[-22.87632,-43.25678],[-22.87339,-43.25804],[-22.86454,-43.24764],[-22.86092,-43.2475],[-22.85692,-43.24747],[-22.85376,-43.24734],[-22.85167,-43.24723],[-22.84818,-43.24491],[-22.84672,-43.23761],[-22.85033,-43.23498],[-22.85535,-43.23593],[-22.85583,-43.233],[-22.85817,-43.23147],[-22.86024,-43.22779],[-22.86055,-43.22757],[-22.862,-43.22453],[-22.86013,-43.22147],[-22.85984,-43.22167],[-22.86157,-43.2245],[-22.86067,-43.22704],[-22.85283,-43.23272],[-22.84315,-43.23345],[-22.84155,-43.23161],[-22.84274,-43.23351],[-22.84179,-43.23662],[-22.83956,-43.23952]],"65":[[-22.86876,-43.25478],[-22.86996,-43.25439],[-22.86929,-43.25432],[-22.86683,-43.2541],[-22.86621,-43.25198],[-22.86532,-43.24895],[-22.87026,-43.24704],[-22.86454,-43.24764],[-22.86092,-43.2475],[-22.85692,-43.24747],[-22.85376,-43.24734],[-22.85167,-43.24723],[-22.84818,-43.24491],[-22.83933,-43.23955],[-22.83335,-43.23877],[-22.82569,-43.23281]],"66":[[-22.86533,-43.22154],[-22.86013,-43.22147],[-22.85984,-43.22167],[-22.86157,-43.2245],[-22.86067,-43.22704],[-22.85283,-43.23272],[-22.84315,-43.23345],[-22.84155,-43.23161],[-22.84274,-43.23351],[-22.84179,-43.23662],[-22.84258,-43.23625],[-22.84585,-43.23779],[-22.84672,-43.23761],[-22.85033,-43.23498],[-22.85309,-43.23304],[-22.85817,-43.23147],[-22.86024,-43.22779],[-22.86055,-43.22757]],"67":[[-22.8834,-43.25341],[-22.87999,-43.25377],[-22.87843,-43.25517],[-22.87632,-43.25678],[-22.87339,-43.25804],[-22.86454,-43.24764],[-22.86092,-43.2475],[-22.85692,-43.24747],[-22.85376,-43.24734],[-22.85167,-43.24723],[-22.84818,-43.24491],[-22.83933,-43.23955],[-22.83335,-43.23877],[-22.82569,-43.23281]],"68":[[-22.8253,-43.23298],[-22.83232,-43.23825],[-22.83256,-43.24257],[-22.83954,-43.23937]],"69":[[-22.8834,-43.25341],[-22.87999,-43.25377],[-22.87843,-43.25517],[-22.87632,-43.25678],[-22.87339,-43.25804],[-22.86454,-43.24764],[-22.86092,-43.2475],[-22.85692,-43.24747],[-22.85376,-43.24734],[-22.85167,-43.24723],[-22.84818,-43.24491],[-22.83933,-43.23955],[-22.83335,-43.23877],[-22.82569,-43.23281]]}};
 var EXT_G=[['centro','Centro'],['sul','Zona Sul'],['tijuca','Tijuca'],['norte','Zona Norte'],['ilha','Ilha do Governador'],['oeste','Zona Oeste']];
@@ -5284,11 +5011,11 @@ function extNext(L,stop,now,n){
 function extToday(L){return (L.t[extSvc(new Date())]||[]).length}
 function extBadge(L){return '<span class="xb'+(L.brt?' brt':'')+'" style="--xc:'+(L.c||'#5B6B7A')+'">'+(L.brt?'BRT ':'')+esc(L.n)+'</span>'}
 function extWhen(L,stop,now){
-  var nx=extNext(L,stop,now,2);
-  if(!extToday(L))return '<span class="muted">não circula hoje</span>';
-  if(!nx.length)return '<span class="muted">sem mais saídas hoje</span>';
+  var nx=extNext(L,stop,now,2),vivo=liveTag(L.n);
+  if(!extToday(L))return '<span class="muted">não circula hoje</span>'+vivo;
+  if(!nx.length)return '<span class="muted">sem mais saídas hoje</span>'+vivo;
   var a=Math.round(nx[0]-now);
-  return '<b>'+(a<=1?'agora':a<60?'em '+a+' min':bt(nx[0]))+'</b>'+(nx[1]!=null?' · depois '+bt(nx[1]):'');
+  return '<b>'+(a<=1?'agora':a<60?'em '+a+' min':bt(nx[0]))+'</b>'+(nx[1]!=null?' · depois '+bt(nx[1]):'')+vivo;
 }
 function extStopsOf(L){return L.st.map(function(s){return EXTS[s[0]]?EXTS[s[0]].name:s[0]})}
 /* painel "Ônibus da cidade" em Trajetos */
@@ -5300,7 +5027,7 @@ function extPanelHTML(now){
     var k=L.n+'|'+L.d,open=EXTSEL.ln===k,first=L.st[0][0];
     return '<li><button type="button" class="xl-row" data-xln="'+esc(k)+'" aria-expanded="'+open+'">'+extBadge(L)+'<span class="grow"><b>'+esc(L.d)+'</b><small>'+extWhen(L,first,now)+' · '+esc(EXTS[first]?EXTS[first].name:'')+'</small></span></button>'+
       (open?'<div class="xl-more"><p class="small keep">'+esc(L.nm)+'. Passa por: '+extStopsOf(L).map(function(n,i){return '<button type="button" class="linkbtn" data-kind="ext" data-id="'+L.st[i][0]+'">'+esc(n)+'</button>'}).join(', ')+'.</p><p class="small keep">Hoje: '+extToday(L)+' saídas'+(extToday(L)?', da primeira às '+fmt((L.t[extSvc(new Date())]||[0])[0])+' à última às '+fmt((L.t[extSvc(new Date())]||[0]).slice(-1)[0]):'')+'.</p></div>':'')+'</li>'}).join('')+'</ul>';
-  return chips+list+(fora?'<p class="muted small keep">'+fora+' linha'+(fora>1?'s':'')+' deste destino não circula'+(fora>1?'m':'')+' hoje.</p>':'')+'<p class="muted small keep xsrc">Horários programados pela prefeitura ('+esc(EXT.fonte)+'). O trânsito pode atrasar o ônibus.</p>';
+  return liveStatusHTML()+chips+list+(fora?'<p class="muted small keep">'+fora+' linha'+(fora>1?'s':'')+' deste destino não circula'+(fora>1?'m':'')+' hoje.</p>':'')+'<p class="muted small keep xsrc">Horários programados pela prefeitura ('+esc(EXT.fonte)+'). O trânsito pode atrasar o ônibus.</p>';
 }
 function extFoldHTML(now){
   var open=(function(){try{return localStorage.getItem('cse-fold-ext')==='1'}catch(e){return false}})();
@@ -5308,9 +5035,7 @@ function extFoldHTML(now){
   var sub=nx?'Próximo: '+esc(nx.L.n)+' para '+esc(nx.L.d)+' '+(nx.t-now<=1?'agora':'em '+Math.round(nx.t-now)+' min'):'Linhas municipais e BRT que saem do Fundão';
   return '<div id="extbox">'+foldHTML('fdExt',open,'Ônibus da cidade','<small>'+sub+'</small>',open?extPanelHTML(now):'')+'</div>';
 }
-var _renderPlan27=renderPlan;
-renderPlan=function(f){_renderPlan27(f);if(plan&&!$('#extbox'))plan.insertAdjacentHTML('beforeend',extFoldHTML(nowMin()))};
-function extRepaint(){var b=$('#extbox');if(b){var t=document.createElement('div');t.innerHTML=extFoldHTML(nowMin());b.replaceWith(t.firstChild)}}
+aoFazer('trajeto montado',function(){if(plan&&!$('#extbox'))plan.insertAdjacentHTML('beforeend',extFoldHTML(nowMin()))});function extRepaint(){var b=$('#extbox');if(b){var t=document.createElement('div');t.innerHTML=extFoldHTML(nowMin());b.replaceWith(t.firstChild)}}
 document.addEventListener('toggle',function(e){if(e.target&&e.target.id==='fdExt'){try{localStorage.setItem('cse-fold-ext',e.target.open?'1':'0')}catch(x){}if(e.target.open&&!e.target.querySelector('.xl-list'))extRepaint()}},true);
 document.addEventListener('click',function(e){
   var g=e.target.closest&&e.target.closest('[data-xg]');if(g){EXTSEL.g=g.dataset.xg||null;EXTSEL.ln=null;extRepaint();return}
@@ -5322,14 +5047,10 @@ function extStopHTML(id,now){
   var S=EXTS[id];if(!S)return linesHTML();
   var ls=EXT.lines.filter(function(L){return L.st.some(function(s){return s[0]===id})});
   ls.sort(function(a,b){var x=extNext(a,id,now,1)[0],y=extNext(b,id,now,1)[0];return (x==null?1e9:x)-(y==null?1e9:y)});
-  return '<p class="eyebrow">Ônibus da cidade</p><h2>'+esc(S.name)+'</h2><p class="muted small keep">'+ls.length+' linha'+(ls.length>1?'s':'')+(ls.length>1?' saem':' sai')+' daqui. Horários programados pela prefeitura.</p>'+
+  return '<p class="eyebrow">Ônibus da cidade</p><h2>'+esc(S.name)+'</h2>'+(S.alt&&S.alt.length?'<p class="muted small keep">Parada da UFRJ e ponto da prefeitura “'+esc(S.alt.join('”, “'))+'”.</p>':'')+liveStatusHTML()+'<p class="muted small keep">'+ls.length+' linha'+(ls.length>1?'s':'')+(ls.length>1?' saem':' sai')+' daqui. Horários programados pela prefeitura.</p>'+
     (function(){var row=function(L){return '<li><div class="xl-row">'+extBadge(L)+'<span class="grow"><b>'+esc(L.d)+'</b><small>'+extWhen(L,id,now)+'</small></span></div></li>'},on=ls.filter(extToday),off=ls.filter(function(L){return !extToday(L)});return '<ul class="xl-list">'+on.map(row).join('')+'</ul>'+(off.length?'<details class="xoff"><summary>'+off.length+' linha'+(off.length>1?'s':'')+' não circula'+(off.length>1?'m':'')+' hoje</summary><ul class="xl-list">'+off.map(row).join('')+'</ul></details>':'')})()+
     '<p class="muted small keep xsrc">Fonte: '+esc(EXT.fonte)+'.</p>';
 }
-var _renderDetail27=renderDetail;
-renderDetail=function(f){if(state.sel&&state.sel.kind==='ext'){detail.innerHTML=extStopHTML(state.sel.id,nowMin());return}return _renderDetail27(f)};
-var _select27=select;
-select=function(kind,id,scroll){if(kind==='ext'&&EXTS[id]){if(!state.layers.ext){var c=$('#chExt');if(c)setLayer('ext',c)}setTab('trajeto')}return _select27(kind,id,scroll)};
 function extDraw(){
   var old=$('#gExt');if(old)old.remove();
   var s='<g id="gExt"'+(state.layers.ext?'':' class="off"')+'>';
@@ -5337,17 +5058,14 @@ function extDraw(){
     s+=mk('ext',id,S.p,'Ônibus da cidade: '+S.name,'<circle class="hit" cy="-20" r="20"/><path class="xpin" d="M0 0C-4 -7 -14 -12 -14 -23A14 14 0 1 1 14 -23C14 -12 4 -7 0 0Z"/><circle class="xin" cy="-23" r="10"/><g class="xbus" transform="translate(0 -23)"><rect x="-5.6" y="-6.4" width="11.2" height="10.6" rx="2.6"/><rect class="xw" x="-4.2" y="-4.6" width="8.4" height="4" rx="0.8"/><circle class="xw" cx="-2.9" cy="1.8" r="1"/><circle class="xw" cx="2.9" cy="1.8" r="1"/><rect x="-4.6" y="4" width="2.4" height="2.4" rx=".6"/><rect x="2.2" y="4" width="2.4" height="2.4" rx=".6"/><rect x="-6.8" y="-4.2" width="1" height="3" rx=".5"/><rect x="5.8" y="-4.2" width="1" height="3" rx=".5"/></g>')});
   s+='</g>';var lab=$('#gLab');if(lab)lab.insertAdjacentHTML('beforebegin',s);
 }
-var _buildMap27=buildMap;buildMap=function(){_buildMap27();extDraw()};
+aoFazer('mapa montado',extDraw);
 extDraw();
-var _updateMap27=updateMap;updateMap=function(){_updateMap27();var g=$('#gExt');if(g)g.classList.toggle('off',!state.layers.ext)};
-var _setLayer27=setLayer;
-setLayer=function(key,btn){if(key==='ext'){try{localStorage.setItem('cse-lay-ext',state.layers.ext?'0':'1')}catch(e){}if(state.layers.ext&&state.sel&&state.sel.kind==='ext')state.sel=null}return _setLayer27(key,btn)};
+aoFazer('mapa atualizado',function(){var g=$('#gExt');if(g)g.classList.toggle('off',!state.layers.ext)});
 (function(){var w=$('#chSvc');if(!w)return;
   w.insertAdjacentHTML('afterend','<button class="chip" id="chExt" type="button" aria-pressed="'+!!state.layers.ext+'"><span class="sw sw-ext"></span><span>Cidade<span class="xl"> (ônibus)</span></span></button>');
   $('#chExt').addEventListener('click',function(){setLayer('ext',this)});
 })();
 updateMap();
-
 /* ======================= v28: ônibus da cidade ao vivo (via Worker do Cloudflare) ======================= */
 var LIVE={url:(window.CSE_GPS_URL||'').replace(/\/$/,''),bus:[],t:0,err:false,timer:null};
 function liveWanted(){return !!LIVE.url&&!document.hidden&&(state.layers.ext||(state.sel&&state.sel.kind==='ext')||!!($('#fdExt')&&$('#fdExt').open))}
@@ -5359,42 +5077,42 @@ function liveFetch(){
     LIVE.bus=(d.onibus||[]).filter(function(o){return Date.now()-o.t<6*60e3});LIVE.t=Date.now();LIVE.err=false;liveDraw();liveRefreshText();
   },function(){LIVE.err=true;liveRefreshText()});
 }
-function liveLoop(){clearInterval(LIVE.timer);if(!LIVE.url)return;liveFetch();LIVE.timer=setInterval(liveFetch,30000)}
+function liveLoop(){clearInterval(LIVE.timer);if(!LIVE.url)return;liveFetch();LIVE.timer=setInterval(function(){liveFetch()},10000)}
 document.addEventListener('visibilitychange',function(){if(!document.hidden)liveFetch()});
 function liveCount(n){return LIVE.bus.filter(function(o){return o.l===n}).length}
 function liveColor(n){var L=EXT.lines.filter(function(x){return x.n===n})[0];return (L&&L.c)||'#5B6B7A'}
 function liveNearStop(p){var best=null,bd=1e18;Object.keys(EXTS).forEach(function(k){var q=EXTS[k].p,d=(q[0]-p[0])*(q[0]-p[0])+(q[1]-p[1])*(q[1]-p[1]);if(d<bd){bd=d;best=k}});return best}
 function liveDraw(){
-  var g=$('#gExt');if(!g)return;var old=$('#gLive');if(old)old.remove();
-  var s='<g id="gLive">';
-  LIVE.bus.forEach(function(o){var p=ll2map(o.la,o.lo),ang=o.vel>2?o.dir:null;
-    s+=mk('ext',liveNearStop(p),p,'Ônibus '+o.l+' ao vivo','<circle class="hit" r="16"/>'+(ang!=null?'<path class="lv-dir" d="M0 -17l5 6h-10z" transform="rotate('+ang+')"/>':'')+'<circle class="lv-dot" r="11" style="fill:'+liveColor(o.l)+'"/><text class="lv-t" y="3.5">'+esc(o.l.replace(/^S[A-Z]*/,'').slice(0,3))+'</text>').replace('class="mk ext"','class="mk ext xlive"');
+  var antes={};Object.keys(LV2.st).forEach(function(v){antes[v]=LV2.st[v].obs});
+  liveDrawCore();
+  var mudou=false;
+  LIVE.bus.forEach(function(o){var S=LV2.st[o.v];if(!S||!S.obs)return;var O=S.obs,P=antes[o.v];
+    if(P&&P.t===O.t){O.signOk=P.signOk;O.ve=P.ve;return}
+    O.signOk=o.vel>2||!!(P&&P.i===O.i&&Math.abs(O.s-P.s)/MPU>5)||!!(P&&P.signOk);
+    if(P){lvmMede(o,P,O);mudou=true}
+    O.ve=null;lvV(O);
   });
-  g.insertAdjacentHTML('beforeend',s+'</g>');
-  if(typeof applyView==='function')try{applyView()}catch(e){}
+  if(mudou){lvmSalva();lvmEnvia(false)}
+  if(LV2.raf)cancelAnimationFrame(LV2.raf);LV2.raf=0;lvFrame();
 }
 function liveAgo(){var s=Math.round((Date.now()-LIVE.t)/1000);return s<60?'há '+s+' s':'há '+Math.round(s/60)+' min'}
 function liveStatusHTML(){
   if(!LIVE.url)return '';
   if(LIVE.err&&!LIVE.t)return '<p class="lv-st muted small keep">Ao vivo indisponível agora; mostrando os horários programados.</p>';
   if(!LIVE.t)return '<p class="lv-st muted small keep"><span class="lv-ping"></span> Buscando ônibus ao vivo…</p>';
-  return '<p class="lv-st small keep"><span class="lv-ping on"></span> <b>Ao vivo:</b> '+LIVE.bus.length+' ônibus na região do Fundão · atualizado '+liveAgo()+(LIVE.err?' (última tentativa falhou)':'')+'</p>';
+  var extra='',d=liveDelay(),n=lvmTotal();
+  if(LIVE.bus.length&&d!=null)extra=' · posições com ~'+d+' s de atraso, ajustadas pela velocidade'+(n>=20?' e por '+n.toLocaleString('pt-BR')+' trajetos já medidos':'');
+  return '<p class="lv-st small keep"><span class="lv-ping on"></span> <b>Ao vivo:</b> '+LIVE.bus.length+' ônibus na região do Fundão · atualizado '+liveAgo()+(LIVE.err?' (última tentativa falhou)':'')+extra+'</p>';
 }
 function liveTag(n){var c=liveCount(n);return c?' <span class="lv-tag">'+c+' ao vivo</span>':''}
-var _extBadge28=extBadge;extBadge=function(L){return _extBadge28(L)};
-var _extWhen28=extWhen;extWhen=function(L,stop,now){return _extWhen28(L,stop,now)+liveTag(L.n)};
-var _extPanelHTML28=extPanelHTML;extPanelHTML=function(now){return liveStatusHTML()+_extPanelHTML28(now)};
-var _extStopHTML28=extStopHTML;extStopHTML=function(id,now){var h=_extStopHTML28(id,now),k='</h2>';return h.replace(k,k+liveStatusHTML())};
 function liveRefreshText(){
   if(state.sel&&state.sel.kind==='ext'&&!(document.activeElement&&detail.contains(document.activeElement)))renderDetail();
   var b=$('#fdExt');if(b&&b.open&&!(document.activeElement&&b.contains(document.activeElement)))extRepaint();
 }
-var _updateMap28=updateMap;updateMap=function(){_updateMap28();if(LIVE.url&&liveWanted()&&!LIVE.timer)liveLoop()};
-var _setLayer28=setLayer;setLayer=function(k,b){var r=_setLayer28(k,b);if(k==='ext')setTimeout(liveFetch,0);return r};
-var _buildMap28=buildMap;buildMap=function(){_buildMap28();liveDraw()};
+aoFazer('mapa atualizado',function(){if(LIVE.url&&liveWanted()&&!LIVE.timer)liveLoop()});
+aoFazer('mapa montado',liveDraw);
 document.addEventListener('toggle',function(e){if(e.target&&e.target.id==='fdExt'&&e.target.open)setTimeout(liveFetch,0)},true);
 if(LIVE.url)liveLoop();
-
 /* ======================= v29: paradas da prefeitura alinhadas às da UFRJ, um botão "Ônibus" e ônibus ao vivo sobre as ruas ======================= */
 var MPU=Math.hypot(GEO.a,GEO.b);/* unidades do mapa por metro */
 /* 1) ponto da prefeitura a até 100 m de uma parada interna (ou 170 m com nome parecido) vira a mesma parada */
@@ -5416,21 +5134,14 @@ var MPU=Math.hypot(GEO.a,GEO.b);/* unidades do mapa por metro */
   EXT.lines.forEach(function(L){var seen={},st=[];L.st.forEach(function(s){var g=map[s[0]];if(!(g in seen)){seen[g]=1;st.push([g,s[1]])}});L.st=st});
 })();
 extDraw();
-var _extStopHTML29=extStopHTML;
-extStopHTML=function(id,now){var h=_extStopHTML29(id,now),S=EXTS[id];if(S&&S.alt&&S.alt.length)h=h.replace('</h2>','</h2><p class="muted small keep">Parada da UFRJ e ponto da prefeitura “'+esc(S.alt.join('”, “'))+'”.</p>');return h};
 /* na parada interna, também os ônibus da cidade que param ali */
-var _renderDetail29=renderDetail;
-renderDetail=function(f){
-  var r=_renderDetail29(f),s=state.sel;
-  if(s&&s.kind==='stop'&&EXTS['a_'+s.id]){
+aoFazer('detalhe montado',function(){
+  var s=state.sel;if(s&&s.kind==='stop'&&EXTS['a_'+s.id]){
     var id='a_'+s.id,now=nowMin(),ls=EXT.lines.filter(function(L){return extToday(L)&&L.st.some(function(x){return x[0]===id})});
     ls.sort(function(a,b){var x=extNext(a,id,now,1)[0],y=extNext(b,id,now,1)[0];return (x==null?1e9:x)-(y==null?1e9:y)});
     if(ls.length)detail.insertAdjacentHTML('beforeend','<div class="xhere"><h3>Ônibus da cidade nesta parada</h3><ul class="xl-list">'+ls.slice(0,6).map(function(L){return '<li><div class="xl-row">'+extBadge(L)+'<span class="grow"><b>'+esc(L.d)+'</b><small>'+extWhen(L,id,now)+'</small></span></div></li>'}).join('')+'</ul>'+(ls.length>6?'<p class="small keep"><button type="button" class="linkbtn" data-kind="ext" data-id="'+id+'">Ver as '+ls.length+' linhas</button></p>':'')+'</div>');
   }
-  return r;
-};
-
-/* 2) um botão "Ônibus" com duas opções, como o do Wi-Fi */
+});/* 2) um botão "Ônibus" com duas opções, como o do Wi-Fi */
 function busChip(){var c=$('#chBus');if(!c)return;c.setAttribute('aria-pressed',String(!!(state.layers.bus||state.layers.ext)));c.setAttribute('aria-expanded',String(!!$('#busMenu')&&!$('#busMenu').hidden))}
 (function(){
   var old=$('#chExt');if(old)old.remove();
@@ -5454,62 +5165,21 @@ function busChip(){var c=$('#chBus');if(!c)return;c.setAttribute('aria-pressed',
   window.addEventListener('scroll',function(){if(!m.hidden)place()},{passive:true});
   busChip();
 })();
-var _setLayer29=setLayer;setLayer=function(k,b){var r=_setLayer29(k,b);busChip();return r};
-select=(function(prev){return function(kind,id,scroll){if(kind==='ext'&&EXTS[id]&&!state.layers.ext){state.layers.ext=true;try{localStorage.setItem('cse-lay-ext','1')}catch(e){}busChip();setTimeout(liveFetch,0)}return prev(kind,id,scroll)}})(select);
-
 /* 3) ônibus ao vivo presos ao traçado da linha e deslizando pela rua entre as atualizações */
 var SHP=(EXT.shp||[]).map(function(d){var a=-2280000,o=-4320000,P=[],cum=[0];for(var i=0;i<d.length;i+=2){a+=d[i];o+=d[i+1];var p=ll2map(a/1e5,o/1e5);if(P.length){var q=P[P.length-1];cum.push(cum[cum.length-1]+Math.hypot(p[0]-q[0],p[1]-q[1]))}P.push(p)}return {P:P,c:cum}});
 function snapBus(n,p){
-  var ids=(EXT.sh||{})[n]||[],best=null;
-  ids.forEach(function(i){var S=SHP[i];if(!S)return;
-    for(var j=1;j<S.P.length;j++){var a=S.P[j-1],b=S.P[j],dx=b[0]-a[0],dy=b[1]-a[1],L2=dx*dx+dy*dy||1e-9,t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L2)),x=a[0]+t*dx,y=a[1]+t*dy,d=Math.hypot(p[0]-x,p[1]-y);
-      if(!best||d<best.d)best={d:d,x:x,y:y,i:i,s:S.c[j-1]+t*Math.sqrt(L2),ang:Math.atan2(dx,-dy)*180/Math.PI}}});
-  return best&&best.d<=120*MPU?best:null;
+  var best=null;
+  /* dentro do campus: as ruas desenhadas no mapa vencem, se estiverem a até 45 m */
+  SHP_INT.forEach(function(i){var r=projOn(i,p);if(r&&(!best||r.d<best.d))best=r});
+  if(best&&best.d<=45*MPU)return best;
+  var b2=null;((EXT.sh||{})[n]||[]).forEach(function(i){var r=SHP_EXT[i]!=null?projOn(SHP_EXT[i],p):null;if(r&&(!b2||r.d<b2.d))b2=r});
+  if(b2&&b2.d<=120*MPU)return b2;
+  return best&&best.d<=80*MPU?best:null;
 }
 function shpAt(i,s){var S=SHP[i],c=S.c,P=S.P;s=Math.max(0,Math.min(c[c.length-1],s));var j=1;while(j<c.length-1&&c[j]<s)j++;var a=P[j-1],b=P[j],L=(c[j]-c[j-1])||1e-9,t=(s-c[j-1])/L;return {x:a[0]+t*(b[0]-a[0]),y:a[1]+t*(b[1]-a[1]),ang:Math.atan2(b[0]-a[0],-(b[1]-a[1]))*180/Math.PI}}
 function setMkPos(el,x,y){el.dataset.x=x.toFixed(1);el.dataset.y=y.toFixed(1);el.setAttribute('transform','translate('+el.dataset.x+','+el.dataset.y+')'+(ROT?' rotate('+(-ROT)+')':'')+' scale('+(+MS||1).toFixed(3)+')')}
-var LV={st:{},raf:0};
-function lvAngle(o,sn,mv){
-  var comp=o.vel>2?((angN()+o.dir)%360+360)%360:null;
-  if(!sn)return comp;var a=sn.ang;if(mv!=null)return mv>=0?a:a+180;
-  if(comp==null)return null;var d=Math.abs(((a-comp)%360+540)%360-180);return d>90?a+180:a;
-}
-function lvTick(){
-  LV.raf=0;var now=performance.now(),go=false;
-  Object.keys(LV.st).forEach(function(v){var S=LV.st[v];if(!S.anim||!S.el)return;
-    var k=Math.min(1,(now-S.anim.t0)/S.anim.dur),pos;
-    if(S.anim.i!=null){var s=S.anim.s0+(S.anim.s1-S.anim.s0)*k;pos=shpAt(S.anim.i,s);S.s=s}else pos={x:S.anim.x0+(S.anim.x1-S.anim.x0)*k,y:S.anim.y0+(S.anim.y1-S.anim.y0)*k};
-    setMkPos(S.el,pos.x,pos.y);S.x=pos.x;S.y=pos.y;
-    if(k<1)go=true;else S.anim=null;});
-  if(go)LV.raf=requestAnimationFrame(lvTick);
-}
-liveDraw=function(){
-  var g=$('#gExt');if(!g)return;var G=$('#gLive');if(!G){g.insertAdjacentHTML('beforeend','<g id="gLive"></g>');G=$('#gLive')}
-  var seen={},red=matchMedia('(prefers-reduced-motion:reduce)').matches||perfEff()==='leve',t0=performance.now();
-  LIVE.bus.forEach(function(o){
-    var raw=ll2map(o.la,o.lo),sn=snapBus(o.l,raw),tx=sn?sn.x:raw[0],ty=sn?sn.y:raw[1],S=LV.st[o.v];seen[o.v]=1;
-    if(!S||!S.el||!S.el.isConnected){
-      G.insertAdjacentHTML('beforeend',mk('ext',liveNearStop([tx,ty]),[tx,ty],'Ônibus '+o.l+' ao vivo','<circle class="hit" r="16"/><path class="lv-dir" d="M0 -18l5.5 6.5h-11z"/><circle class="lv-dot" r="11" style="fill:'+liveColor(o.l)+'"/><text class="lv-t" y="3.5">'+esc(o.l.replace(/^S[A-Z]*/,'').slice(0,3))+'</text>').replace('class="mk ext"','class="mk ext xlive" data-v="'+esc(o.v)+'"'));
-      S=LV.st[o.v]={el:G.lastElementChild,x:tx,y:ty,i:sn?sn.i:null,s:sn?sn.s:null};setMkPos(S.el,tx,ty);
-    }else{
-      var ds=(sn&&S.i===sn.i&&S.s!=null)?sn.s-S.s:null,far=Math.hypot(tx-S.x,ty-S.y)/MPU;
-      if(red||far>1500||far<2){S.anim=null;setMkPos(S.el,tx,ty);S.x=tx;S.y=ty}
-      else if(ds!=null&&Math.abs(ds)/MPU<1500)S.anim={i:sn.i,s0:S.s,s1:sn.s,t0:t0,dur:Math.min(20000,Math.max(1500,o.vel>2?20000:2500))};
-      else S.anim={i:null,x0:S.x,y0:S.y,x1:tx,y1:ty,t0:t0,dur:2500};
-      S.mv=ds;S.i=sn?sn.i:null;if(!S.anim){S.s=sn?sn.s:null}
-      S.el.dataset.id=liveNearStop([tx,ty]);
-    }
-    var ang=lvAngle(o,sn,S.mv),ar=S.el.querySelector('.lv-dir');
-    if(ar){ar.style.display=ang==null?'none':'';if(ang!=null)ar.setAttribute('transform','rotate('+(ang+(ROT||0)).toFixed(0)+')')}
-  });
-  Object.keys(LV.st).forEach(function(v){if(!seen[v]){var S=LV.st[v];if(S.el)S.el.remove();delete LV.st[v]}});
-  if(!LV.raf)LV.raf=requestAnimationFrame(lvTick);
-};
-var _buildMap29=buildMap;buildMap=function(){LV.st={};_buildMap29()};
 /* atualização mais rápida: a cada 20 s (a prefeitura recebe uma posição a cada ~25 s) */
-liveLoop=function(){clearInterval(LIVE.timer);if(!LIVE.url)return;liveFetch();LIVE.timer=setInterval(liveFetch,20000)};
 if(LIVE.url)liveLoop();
-
 /* ======================= v30: planta real do CT (EPLAN CT / UFRJ, 2018) em "Prédios por dentro" ======================= */
 var CTP={d:null,loading:false,err:false,pav:'pav1',bl:'',f:'',q:'',sel:null,vb:null,lastPl:'b_ct'};
 var CTP_G={aula:['Salas de aula','#F2C94C'],lab:['Laboratórios','#56CCF2'],info:['Lab. de informática','#2DD4BF'],estudo:['Biblioteca e estudo','#A3E635'],wc:['Sanitários e vestiários','#F2994A'],vert:['Escadas e elevadores','#EB5757'],comer:['Copas e refeitório','#F472B6'],evento:['Auditórios e cultura','#C084FC'],gab:['Gabinetes','#7C8CE0'],adm:['Administração','#B794F4'],circ:['Corredores','#94A3B8'],apoio:['Apoio e depósitos','#64748B'],ext:['Pátios','#475569']};
@@ -5569,16 +5239,6 @@ function ctpInner(){
 }
 function ctpHTML(){return '<div class="ctp" id="ctp"><div class="ctp-h"><b>Planta real do CT</b><small>Todos os blocos e andares, sala por sala</small></div><div id="ctpb">'+ctpInner()+'</div></div>'}
 function ctpPaint(foc){var b=$('#ctpb');if(!b)return;b.innerHTML=ctpInner();if(foc){var e=$(foc);if(e){e.focus({preventScroll:true});if(e.id==='ctpq'){var v=e.value;e.setSelectionRange(v.length,v.length)}}}}
-var _bldInner30=bldInner;
-bldInner=function(now){
-  if(pstate.bld!=='ct')return _bldInner30(now);
-  /* no CT, a planta real substitui o esquema de exemplo; uma sala escolhida em outro lugar (glossário, grade) abre no bloco e andar dela */
-  var P=PL[pstate.pl];if(pstate.pl!==CTP.lastPl){CTP.lastPl=pstate.pl;if(P&&P.bld==='ct'){if(P.b)CTP.bl=P.b;if(P.f!=null)CTP.pav=P.f<=0?'subsolo':'pav'+P.f;CTP.f={biblio:'estudo',aula:'aula',wc:'wc',lab:'lab'}[P.cat]||'';CTP.vb=null;CTP.sel=null}}
-  if(CTP.d&&CTP.bl&&!CTP.d.salas.some(function(s){return s[0]===CTP.bl})){var alt=CTP.d.salas.filter(function(s){return s[0].indexOf(CTP.bl)>=0})[0];CTP.bl=alt?alt[0]:''}
-  var full=_bldInner30(now),i=full.indexOf('<p class="small"><b>');
-  var head=i>0?full.slice(0,i):'',B=BLD.ct;
-  return head+'<p class="small"><b>'+B.name+'</b> · <span class="muted">'+B.addr+'</span></p>'+plantasHTML('ct')+ctpHTML();
-};
 document.addEventListener('input',function(e){if(e.target.id==='ctpq'){CTP.q=e.target.value;ctpPaint('#ctpq')}});
 document.addEventListener('click',function(e){
   var t=e.target.closest&&e.target.closest('[data-ctbl],[data-ctpav],[data-ctf],[data-cts],[data-ctz],[data-ctr]');if(!t||!CTP.d)return;
@@ -5596,44 +5256,13 @@ document.addEventListener('click',function(e){
   document.addEventListener('pointermove',function(e){if(!drag)return;var dx=(e.clientX-drag.x)*drag.k,dy=(e.clientY-drag.y)*drag.k;if(Math.abs(e.clientX-drag.x)+Math.abs(e.clientY-drag.y)>6)drag.moved=true;if(!drag.moved)return;CTP.vb=[drag.vb[0]-dx,drag.vb[1]-dy,drag.vb[2]-dx,drag.vb[3]-dy];var s=$('#ctsvg');if(s)s.setAttribute('viewBox',ctpVB(CTP.vb))});
   document.addEventListener('pointerup',function(e){if(drag&&drag.moved){var stop=function(ev){ev.stopPropagation();ev.preventDefault();document.removeEventListener('click',stop,true)};document.addEventListener('click',stop,true);setTimeout(function(){document.removeEventListener('click',stop,true)},50)}drag=null});
 })();
-
 /* ======================= v31: ônibus da cidade sobre as ruas do mapa ======================= */
-/* 1) recalibra posição -> mapa usando as 11 paradas que são iguais nas duas redes (prefeitura × UFRJ) */
-var LLX=(function(){
-  var pr=[];Object.keys(EXT.stops).forEach(function(k){var s=EXT.stops[k];Object.keys(EXTS).forEach(function(g){var G=EXTS[g];if(G.stop&&G.alt&&G.alt.indexOf(s[0])>=0)pr.push([s[2],s[1],STOPS[G.stop].p])})});
-  if(pr.length<4)return null;
-  /* mínimos quadrados: x = a·lon + b·lat + c ; y = d·lon + e·lat + f (lon/lat centrados) */
-  var mlo=0,mla=0;pr.forEach(function(q){mlo+=q[0];mla+=q[1]});mlo/=pr.length;mla/=pr.length;
-  function solve(col){var S=[[0,0,0],[0,0,0],[0,0,0]],v=[0,0,0];pr.forEach(function(q){var r=[(q[0]-mlo)*1e4,(q[1]-mla)*1e4,1],t=q[2][col];for(var i=0;i<3;i++){v[i]+=r[i]*t;for(var j=0;j<3;j++)S[i][j]+=r[i]*r[j]}});
-    for(var i=0;i<3;i++){var m=i;for(var k=i+1;k<3;k++)if(Math.abs(S[k][i])>Math.abs(S[m][i]))m=k;var tmp=S[i];S[i]=S[m];S[m]=tmp;var tv=v[i];v[i]=v[m];v[m]=tv;for(var k2=i+1;k2<3;k2++){var f=S[k2][i]/S[i][i];for(var j2=i;j2<3;j2++)S[k2][j2]-=f*S[i][j2];v[k2]-=f*v[i]}}
-    var x=[0,0,0];for(var i2=2;i2>=0;i2--){var s=v[i2];for(var j3=i2+1;j3<3;j3++)s-=S[i2][j3]*x[j3];x[i2]=s/S[i2][i2]}return x}
-  var X=solve(0),Y=solve(1),f=function(lat,lon){var a=(lon-mlo)*1e4,b=(lat-mla)*1e4;return [X[0]*a+X[1]*b+X[2],Y[0]*a+Y[1]*b+Y[2]]};
-  var err=0;pr.forEach(function(q){var p=f(q[1],q[0]);err+=Math.hypot(p[0]-q[2][0],p[1]-q[2][1])});f.err=err/pr.length/MPU;f.n=pr.length;return f;
-})();
-function llx(lat,lon){return LLX?LLX(lat,lon):ll2map(lat,lon)}
-/* paradas da prefeitura sem parada da UFRJ ao lado: reposiciona com a calibração nova */
-Object.keys(EXTS).forEach(function(g){var G=EXTS[g];if(G.stop)return;var k=Object.keys(EXT.stops).filter(function(k){return EXT.stops[k][0]===G.name})[0];if(k){var s=EXT.stops[k];G.p=llx(s[1],s[2])}});
-extDraw();
-/* 2) ruas: os traçados das linhas internas (desenhados sobre a planta) + os da prefeitura recalibrados */
+/* ruas:  os traçados das linhas internas (desenhados sobre a planta) + os da prefeitura recalibrados */
 SHP=[];var SHP_INT=[];
 function shpAdd(P){var cum=[0];for(var j=1;j<P.length;j++)cum.push(cum[j-1]+Math.hypot(P[j][0]-P[j-1][0],P[j][1]-P[j-1][1]));SHP.push({P:P,c:cum});return SHP.length-1}
 Object.keys(LINES).forEach(function(l){(LINES[l].trips||[]).forEach(function(t){if(t.pts&&t.pts.length>1)SHP_INT.push(shpAdd(t.pts.map(function(p){return [p[0],p[1]]})))})});
-var SHP_EXT={};(EXT.shp||[]).forEach(function(d,i){var a=-2280000,o=-4320000,P=[];for(var k=0;k<d.length;k+=2){a+=d[k];o+=d[k+1];P.push(llx(a/1e5,o/1e5))}SHP_EXT[i]=shpAdd(P)});
+var SHP_EXT={};(EXT.shp||[]).forEach(function(d,i){var a=-2280000,o=-4320000,P=[];for(var k=0;k<d.length;k+=2){a+=d[k];o+=d[k+1];P.push(ll2map(a/1e5,o/1e5))}SHP_EXT[i]=shpAdd(P)});
 function projOn(i,p){var S=SHP[i],best=null;for(var j=1;j<S.P.length;j++){var a=S.P[j-1],b=S.P[j],dx=b[0]-a[0],dy=b[1]-a[1],L2=dx*dx+dy*dy||1e-9,t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L2)),x=a[0]+t*dx,y=a[1]+t*dy,d=Math.hypot(p[0]-x,p[1]-y);if(!best||d<best.d)best={d:d,x:x,y:y,i:i,s:S.c[j-1]+t*Math.sqrt(L2),ang:Math.atan2(dx,-dy)*180/Math.PI}}return best}
-snapBus=function(n,p){
-  var best=null;
-  /* dentro do campus: as ruas desenhadas no mapa vencem, se estiverem a até 45 m */
-  SHP_INT.forEach(function(i){var r=projOn(i,p);if(r&&(!best||r.d<best.d))best=r});
-  if(best&&best.d<=45*MPU)return best;
-  var b2=null;((EXT.sh||{})[n]||[]).forEach(function(i){var r=SHP_EXT[i]!=null?projOn(SHP_EXT[i],p):null;if(r&&(!b2||r.d<b2.d))b2=r});
-  if(b2&&b2.d<=120*MPU)return b2;
-  return best&&best.d<=80*MPU?best:null;
-};
-/* posição ao vivo também passa pela calibração nova */
-var _ll2mapLive=ll2map;
-liveDraw=(function(prev){return function(){var keep=ll2map;ll2map=function(a,b,G){return G?keep(a,b,G):llx(a,b)};try{prev()}finally{ll2map=keep}}})(liveDraw);
-LV.st={};(function(){var g=$('#gLive');if(g)g.remove()})();if(LIVE.bus.length)liveDraw();/* v36: antes usava "var gl", que apagava o estado do glossário (mesmo nome) e impedia o glossário de abrir */
-
 /* ======================= v32: ônibus ao vivo com posição prevista (velocidade + traçado), atraso visível e busca a cada 15 s ======================= */
 var LV2={st:{},raf:0,last:0};
 function lvLen(i){var c=SHP[i].c;return c[c.length-1]}
@@ -5642,83 +5271,37 @@ function lvSign(o,sn,prev){
   if(o.vel>2){var comp=((angN()+o.dir)%360+360)%360,d=Math.abs(((sn.ang-comp)%360+540)%360-180);return d>90?-1:1}
   return prev&&prev.sign||1;
 }
-function lvPred(S,now){/* posição prevista ao longo do traçado */
+function lvPred(S,now){
   var O=S.obs;if(!O||O.i==null)return null;
-  var dt=Math.max(0,Math.min(60,(now-O.t)/1000)),s=O.s+O.sign*O.v*MPU*dt;
+  var dt=Math.max(0,Math.min(60,(now-O.t)/1000)),s=O.s+O.sign*lvDist(O,dt)*MPU;
   return Math.max(0,Math.min(lvLen(O.i),s));
 }
 function lvFrame(){
   LV2.raf=0;var now=Date.now(),red=matchMedia('(prefers-reduced-motion:reduce)').matches||perfEff()==='leve',any=false;
   Object.keys(LV2.st).forEach(function(v){var S=LV2.st[v];if(!S.el||!S.el.isConnected)return;
-    var x,y,ang=null,ps=lvPred(S,now);
-    if(ps!=null){var p=shpAt(S.obs.i,ps);x=p.x;y=p.y;ang=S.obs.v>0.5?(S.obs.sign>0?p.ang:p.ang+180):null;if(S.obs.v>0.5)any=true}
-    else{x=S.obs.x;y=S.obs.y;ang=S.obs.ang}
-    if(S.blend){var k=Math.min(1,(now-S.blend.t0)/1500);if(k<1){any=true;x=S.blend.x+(x-S.blend.x)*k;y=S.blend.y+(y-S.blend.y)*k}else S.blend=null}
-    setMkPos(S.el,x,y);S.x=x;S.y=y;
+    var O=S.obs,x=null,y=null,ang=null,ps=lvPred(S,now),si=null,ss=null,mv=O&&O.i!=null&&lvV(O)>0.3;
+    var k=S.blend?Math.min(1,(now-S.blend.t0)/1500):1;if(S.blend&&k>=1)S.blend=null;
+    if(ps!=null){si=O.i;ss=ps;
+      if(S.blend){any=true;var e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+        /* mesmo traçado e perto: desliza pela rota; senão, em linha reta */
+        if(S.blend.i===si&&S.blend.s!=null&&Math.abs(S.blend.s-ps)<700*MPU)ss=S.blend.s+(ps-S.blend.s)*e;
+        else{var q=shpAt(si,ps);x=S.blend.x+(q.x-S.blend.x)*e;y=S.blend.y+(q.y-S.blend.y)*e}}
+      var p=shpAt(si,ss);if(x==null){x=p.x;y=p.y}
+      ang=mv||O.v>0.5?(O.sign>0?p.ang:p.ang+180):null;if(mv)any=true;
+    }else{x=O.x;y=O.y;ang=O.ang;if(S.blend){any=true;x=S.blend.x+(x-S.blend.x)*k;y=S.blend.y+(y-S.blend.y)*k}}
+    setMkPos(S.el,x,y);S.x=x;S.y=y;S.i=si;S.s=ss;
     var ar=S.el.querySelector('.lv-dir');if(ar){ar.style.display=ang==null?'none':'';if(ang!=null)ar.setAttribute('transform','rotate('+(ang+(ROT||0)).toFixed(0)+')')}
   });
-  if(any&&!red&&!document.hidden)LV2.raf=requestAnimationFrame(function(){/* ~10 quadros por segundo bastam */setTimeout(lvFrame,90)});
+  if(any&&!red&&!document.hidden)LV2.raf=requestAnimationFrame(function(){setTimeout(lvFrame,90)});
 }
-liveDraw=function(){
-  var g=$('#gExt');if(!g)return;var G=$('#gLive');if(!G){g.insertAdjacentHTML('beforeend','<g id="gLive"></g>');G=$('#gLive')}
-  var seen={},now=Date.now();
-  LIVE.bus.forEach(function(o){
-    var raw=ll2map(o.la,o.lo),sn=snapBus(o.l,raw),S=LV2.st[o.v];seen[o.v]=1;
-    var prev=S&&S.obs,obs={t:o.t,v:Math.min(70,Math.max(0,o.vel||0))/3.6,x:sn?sn.x:raw[0],y:sn?sn.y:raw[1],ang:o.vel>2?((angN()+o.dir)%360+360)%360:null};
-    if(sn){obs.i=sn.i;obs.s=sn.s;obs.sign=lvSign(o,sn,prev)}else obs.i=null;
-    if(obs.v<0.6)obs.v=0;
-    var idade=Math.round((now-o.t)/1000),tit='Ônibus '+o.l+' · posição de '+idade+' s atrás'+(obs.v>0?', '+Math.round(o.vel)+' km/h':', parado');
-    if(!S||!S.el||!S.el.isConnected){
-      G.insertAdjacentHTML('beforeend',mk('ext',liveNearStop([obs.x,obs.y]),[obs.x,obs.y],tit,'<title>'+esc(tit)+'</title><circle class="hit" r="16"/><path class="lv-dir" d="M0 -18l5.5 6.5h-11z"/><circle class="lv-dot" r="11" style="fill:'+liveColor(o.l)+'"/><text class="lv-t" y="3.5">'+esc(o.l.replace(/^S[A-Z]*/,'').slice(0,3))+'</text>').replace('class="mk ext"','class="mk ext xlive" data-v="'+esc(o.v)+'"'));
-      S=LV2.st[o.v]={el:G.lastElementChild};
-    }else{
-      S.blend={x:S.x,y:S.y,t0:Date.now()};
-      var t=S.el.querySelector('title');if(t)t.textContent=tit;S.el.setAttribute('aria-label',tit);
-    }
-    S.obs=obs;S.age=idade;S.el.dataset.id=liveNearStop([obs.x,obs.y]);
-  });
-  Object.keys(LV2.st).forEach(function(v){if(!seen[v]){if(LV2.st[v].el)LV2.st[v].el.remove();delete LV2.st[v]}});
-  if(LV2.raf)cancelAnimationFrame(LV2.raf);LV2.raf=0;lvFrame();
-};
-var _buildMap32=buildMap;buildMap=function(){LV2.st={};_buildMap32()};
+aoFazer('mapa vai montar',function(){LV2.st={}});/* os marcadores ao vivo são recriados */
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&!LV2.raf)lvFrame()});
 /* atraso das posições no aviso "ao vivo" */
 function liveDelay(){var a=LIVE.bus.map(function(o){return (LIVE.t-o.t)/1000}).sort(function(x,y){return x-y});return a.length?Math.round(a[Math.floor(a.length/2)]):null}
-liveStatusHTML=(function(prev){return function(){var h=prev();var d=liveDelay();if(LIVE.t&&LIVE.bus.length&&d!=null)h=h.replace('</p>',' · posições com ~'+d+' s de atraso, ajustadas pela velocidade</p>');return h}})(liveStatusHTML);
 /* busca a cada 15 s (o Worker guarda por 15 s) */
-liveLoop=function(){clearInterval(LIVE.timer);if(!LIVE.url)return;liveFetch();LIVE.timer=setInterval(liveFetch,15000)};
 if(LIVE.url)liveLoop();
-
 /* ======================= v33: mapa da cidade (Esri Canvas, dados OpenStreetMap) ao redor da planta, com a camada "Ônibus da cidade" ======================= */
 function map2ll(X,Y){var G=GEO,kx=111320*Math.cos(G.lat0*Math.PI/180),x=X-G.tx,y=Y-G.ty,D=-(G.a*G.a+G.b*G.b),e=(-G.a*x+G.b*y)/D,n=(G.b*x+G.a*y)/D;return [G.lat0+n/110574,G.lng0+e/kx]}
-function tileLL(x,y,z){var n=Math.pow(2,z);return [Math.atan(Math.sinh(Math.PI*(1-2*y/n)))*180/Math.PI,x/n*360-180]}
-var TILES={z:15,on:false};
-function tilesWanted(){return false}/* v38: mapa da cidade retirado a pedido */
-function tilesDraw(){
-  var base=$('#baseimg'),old=$('#gTiles');
-  if(!tilesWanted()){if(old)old.remove();var a=$('#tileAttr');if(a)a.hidden=true;return}
-  var a=$('#tileAttr');if(!a){var mw=document.querySelector('.mapwrap');if(mw){mw.insertAdjacentHTML('beforeend','<div class="tileattr" id="tileAttr">Esri, HERE, Garmin, © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></div>');a=$('#tileAttr')}}if(a)a.hidden=false;
-  if(old||!base)return;
-  var claro=document.documentElement.classList.contains('mapclaro'),z=TILES.z,n=Math.pow(2,z);
-  /* só a região por onde passam os ônibus que atendem o Fundão (a mesma do Worker) */
-  var la=[-22.885,-22.825],lo=[-43.27,-43.195];
-  var lon2x=function(l){return Math.floor((l+180)/360*n)},lat2y=function(l){var r=l*Math.PI/180;return Math.floor((1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n)};
-  var x0=lon2x(Math.min.apply(0,lo)),x1=lon2x(Math.max.apply(0,lo)),y0=lat2y(Math.max.apply(0,la)),y1=lat2y(Math.min.apply(0,la));
-  var sty=claro?'World_Light_Gray_Base':'World_Dark_Gray_Base',s='<g id="gTiles" class="'+(claro?'tl-claro':'tl-escuro')+'">';
-  for(var x=x0;x<=x1;x++)for(var y=y0;y<=y1;y++){
-    var p0=tileLL(x,y,z),px=tileLL(x+1,y,z),py=tileLL(x,y+1,z),P0=ll2map(p0[0],p0[1]),PX=ll2map(px[0],px[1]),PY=ll2map(py[0],py[1]);
-        s+='<image href="https://services.arcgisonline.com/arcgis/rest/services/Canvas/'+sty+'/MapServer/tile/'+z+'/'+y+'/'+x+'" width="1.002" height="1.002" preserveAspectRatio="none" decoding="async" onerror="this.remove()" transform="matrix('+[PX[0]-P0[0],PX[1]-P0[1],PY[0]-P0[0],PY[1]-P0[1],P0[0],P0[1]].map(function(v){return v.toFixed(3)}).join(',')+')"/>';
-  }
-  s+='</g>';
-  var hd=$('#imgHD');if(hd)hd.insertAdjacentHTML('afterend',s);else base.insertAdjacentHTML('beforeend',s);
-}
-var _buildMap33=buildMap;buildMap=function(){_buildMap33();tilesDraw()};
-var _updateMap33=updateMap;updateMap=function(){_updateMap33();tilesDraw()};
-var _mapThemeSync33=typeof mapThemeSync==='function'?mapThemeSync:null;
-if(_mapThemeSync33)mapThemeSync=function(l){var r=_mapThemeSync33.apply(this,arguments);var t=$('#gTiles');if(t)t.remove();tilesDraw();return r};
-tilesDraw();
-
-
 /* ======================= v35: aprendizado da previsão dos ônibus ao vivo =======================
    A cada posição nova de um ônibus, compara onde o app previu que ele estaria com onde ele realmente estava.
    O desvio é guardado (no aparelho e, em lotes, no Firestore: coleção "desvios") e vira um modelo por trecho de rua,
@@ -5728,79 +5311,41 @@ var LVM={loc:{},pub:{},pubN:0,fila:[],hist:[],up:0,K:6};
 var LVM_CEL=150;/* metros por célula de rua */
 (function(){try{LVM.loc=JSON.parse(localStorage.getItem('cse-lv-modelo')||'{}')||{};LVM.fila=JSON.parse(localStorage.getItem('cse-lv-fila')||'[]')||[];LVM.hist=JSON.parse(localStorage.getItem('cse-lv-hist')||'[]')||[]}catch(e){}})();
 function lvmSalva(){try{
-  var ks=Object.keys(LVM.loc);if(ks.length>4000){ks.sort(function(a,b){return LVM.loc[a][0]-LVM.loc[b][0]});ks.slice(0,ks.length-3000).forEach(function(k){delete LVM.loc[k]})}
-  localStorage.setItem('cse-lv-modelo',JSON.stringify(LVM.loc));localStorage.setItem('cse-lv-fila',JSON.stringify(LVM.fila.slice(-600)));localStorage.setItem('cse-lv-hist',JSON.stringify(LVM.hist.slice(-600)));
+  var ks=Object.keys(LVM.loc);if(ks.length>3000){ks.sort(function(a,b){return LVM.loc[a][0]-LVM.loc[b][0]});ks.slice(0,ks.length-2500).forEach(function(k){delete LVM.loc[k]})}
+  localStorage.setItem('cse-lv-m2',JSON.stringify(LVM.loc));localStorage.setItem('cse-lv-fila',JSON.stringify(LVM.fila.slice(-600)));localStorage.setItem('cse-lv-hist',JSON.stringify(LVM.hist.slice(-600)));
 }catch(e){}}
 function lvmVb(v){var k=v*3.6;return k<2?0:k<15?1:k<35?2:3}/* faixa de velocidade informada */
 function lvmPer(t){var d=new Date(t),h=d.getHours()+d.getMinutes()/60,w=d.getDay();return (w>0&&w<6&&((h>=6&&h<9.5)||(h>=16&&h<20)))?'p':'f'}
 function lvmDir(O){if(O.i==null)return 0;var a=shpAt(O.i,O.s).ang+(O.sign<0?180:0);return Math.round((((a%360)+360)%360)/45)%8}
 function lvmCel(O){var c=LVM_CEL*MPU;return Math.floor(O.x/c)+','+Math.floor(O.y/c)}
-function lvmChaves(O){var b=lvmCel(O)+'|'+lvmDir(O)+'|'+lvmVb(O.v);return ['g|'+lvmVb(O.v),b,b+'|'+lvmPer(O.t)]}
-function lvmSt(k){var a=LVM.pub[k],b=LVM.loc[k];if(!a&&!b)return null;a=a||[0,0,0];b=b||[0,0,0];return [a[0]+b[0],a[1]+b[1],a[2]+b[2]]}
 /* velocidade efetiva (m/s) ao longo do traçado: a informada, corrigida pelo que se aprendeu naquele trecho */
 function lvmVel(O){
-  var ks=lvmChaves(O),K=LVM.K;
-  if(lvmVb(O.v)===0){/* parado: alguns andam um pouco antes da próxima posição (sai do ponto, anda no engarrafamento) */
-    if(!O.signOk)return 0;var m=0;
-    ks.forEach(function(k){var s=lvmSt(k);if(s&&s[0]){var med=s[1]/s[0];m=(s[0]*med+K*m)/(s[0]+K)}});
-    return Math.max(0,Math.min(6,m))>0.4?Math.min(6,m):0;
-  }
-  var r=1;
-  ks.forEach(function(k){var s=lvmSt(k);if(s&&s[0]&&s[2]>0){var rr=s[1]/s[2];r=(s[0]*rr+K*r)/(s[0]+K)}});
-  return O.v*Math.max(0.3,Math.min(1.6,r));
+  if(lvmVb(O.v)===0)return 0;/* parado fica parado: nas medições, 3 de cada 4 continuavam no mesmo lugar */
+  /* histórico de GPS da prefeitura, quando existe para o trecho; senão, o que os aparelhos mediram */
+  var H=LV_HIST;if(H&&H.f){var k=lvHistKey(O);if(k&&H.f[k]!=null)return O.v*H.f[k]}
+  return O.v*lvfEscolhe(lvmSt2,lvfChaves(lvmCel(O),lvmDir(O),lvmVb(O.v),lvmPer(O.t)));
 }
 function lvV(O){if(O.ve==null)O.ve=lvmVel(O);return O.ve}
-function lvmTotal(){var n=0;Object.keys(LVM.pub).forEach(function(k){if(k.indexOf('g|')===0)n+=LVM.pub[k][0]});Object.keys(LVM.loc).forEach(function(k){if(k.indexOf('g|')===0)n+=LVM.loc[k][0]});return n}
+function lvmTotal(){var n=0;[LVM.pub,LVM.loc].forEach(function(M){Object.keys(M).forEach(function(k){if(k.indexOf('g|')===0)n+=M[k][0]})});return n}
 /* previsão usa a velocidade aprendida */
-lvPred=function(S,now){
-  var O=S.obs;if(!O||O.i==null)return null;
-  var dt=Math.max(0,Math.min(60,(now-O.t)/1000)),s=O.s+O.sign*lvV(O)*MPU*dt;
-  return Math.max(0,Math.min(lvLen(O.i),s));
-};
-lvFrame=function(){
-  LV2.raf=0;var now=Date.now(),red=matchMedia('(prefers-reduced-motion:reduce)').matches||perfEff()==='leve',any=false;
-  Object.keys(LV2.st).forEach(function(v){var S=LV2.st[v];if(!S.el||!S.el.isConnected)return;
-    var x,y,ang=null,ps=lvPred(S,now),mv=S.obs&&S.obs.i!=null&&lvV(S.obs)>0.3;
-    if(ps!=null){var p=shpAt(S.obs.i,ps);x=p.x;y=p.y;ang=mv||S.obs.v>0.5?(S.obs.sign>0?p.ang:p.ang+180):null;if(mv)any=true}
-    else{x=S.obs.x;y=S.obs.y;ang=S.obs.ang}
-    if(S.blend){var k=Math.min(1,(now-S.blend.t0)/1500);if(k<1){any=true;x=S.blend.x+(x-S.blend.x)*k;y=S.blend.y+(y-S.blend.y)*k}else S.blend=null}
-    setMkPos(S.el,x,y);S.x=x;S.y=y;
-    var ar=S.el.querySelector('.lv-dir');if(ar){ar.style.display=ang==null?'none':'';if(ang!=null)ar.setAttribute('transform','rotate('+(ang+(ROT||0)).toFixed(0)+')')}
-  });
-  if(any&&!red&&!document.hidden)LV2.raf=requestAnimationFrame(function(){setTimeout(lvFrame,90)});
-};
 /* mede o desvio quando chega uma posição nova */
 function lvmMede(o,P,O){
   if(!P||!O||P.i==null||O.i==null||P.i!==O.i||!(O.t>P.t))return;
   var dt=(O.t-P.t)/1000;if(dt<5||dt>120)return;
-  var real=(O.s-P.s)*P.sign/MPU;/* metros andados no sentido previsto */
-  if(Math.abs(real)>25*dt+60)return;/* salto (troca de traçado, GPS ruim) */
-  var h=Math.min(dt,60),dRaw=P.v*h,dMod=lvV(P)*h,dReal=real*(h/dt);
-  var vReal=Math.max(-5,Math.min(25,real/dt));
+  var real=(O.s-P.s)*P.sign/MPU;
+  if(Math.abs(real)>25*dt+60)return;
+  var h=Math.min(dt,60),dRaw=P.v*h,dMod=(typeof lvDist==='function'?lvDist(P,h):lvV(P)*h),dReal=real*(h/dt);
   var amostra=[Math.round(P.t/1000),o.l,lvmCel(P),lvmDir(P),lvmVb(P.v),lvmPer(P.t),Math.round(dt),Math.round(P.v*36),Math.round(real),Math.round(dRaw),Math.round(dMod)].join('|');
   LVM.fila.push(amostra);LVM.hist.push(amostra);
-  if(dt<=75)lvmChaves(P).forEach(function(k){var s=LVM.loc[k]||(LVM.loc[k]=[0,0,0]);s[0]++;s[1]=Math.round((s[1]+vReal)*100)/100;s[2]=Math.round((s[2]+P.v)*100)/100});
+  /* aprende só com ônibus em movimento, intervalos normais e sem salto para trás (erro de encaixe, não movimento) */
+  if(dt<=75&&real>=-50&&lvmVb(P.v)>0)lvfSoma(LVM.loc,lvfChaves(lvmCel(P),lvmDir(P),lvmVb(P.v),lvmPer(P.t)),dReal,dRaw);
   LVM.ult={erroRaw:Math.abs(dReal-dRaw),erroMod:Math.abs(dReal-dMod)};
 }
-liveDraw=(function(prev){return function(){
-  var antes={};Object.keys(LV2.st).forEach(function(v){antes[v]=LV2.st[v].obs});
-  prev();
-  var mudou=false;
-  LIVE.bus.forEach(function(o){var S=LV2.st[o.v];if(!S||!S.obs)return;var O=S.obs,P=antes[o.v];
-    if(P&&P.t===O.t){/* mesma posição de antes: mantém o que já se sabia */if(P.signOk)O.signOk=true;O.ve=P.ve;return}
-    O.signOk=o.vel>2||!!(P&&P.i===O.i&&Math.abs(O.s-P.s)/MPU>5)||!!(P&&P.signOk);
-    if(P){lvmMede(o,P,O);mudou=true}
-    O.ve=null;lvV(O);
-  });
-  if(mudou){lvmSalva();lvmEnvia(false)}
-  if(LV2.raf)cancelAnimationFrame(LV2.raf);LV2.raf=0;lvFrame();
-}})(liveDraw);
 /* correção: com o painel "Ônibus da cidade" aberto, cada resposta redesenhava o painel, o painel reaberto disparava outra busca
    e o app ficava buscando sem parar (dezenas de vezes por minuto). Agora há no máximo uma busca a cada 5 s. */
-liveFetch=(function(prev){var ult=0;return function(){var n=Date.now();if(n-ult<5000)return;ult=n;prev()}})(liveFetch);
 /* envio em lotes (anônimo: só linha, trecho, horário e desvio; nada de quem usa o app) */
 function lvmEnvia(forca){
-  if(!FB_ON||!LVM.fila.length||LVM.envB)return;
+  if(!FB_ON||LV_HIST||!LVM.fila.length||LVM.envB)return;/* com o histórico da prefeitura, os aparelhos não precisam medir */
   var agora=Date.now();if(!forca&&(LVM.fila.length<40||agora-LVM.up<180000))return;if(forca&&LVM.fila.length<5)return;
   var lote=LVM.fila.slice(0,150);LVM.envB=true;
   fbInit().then(function(fb){return fb.db.collection('desvios').add({a:lote,n:lote.length,ts:agora,ver:String(APP_VERSION).slice(0,20)})}).then(function(){
@@ -5813,18 +5358,15 @@ document.addEventListener('visibilitychange',function(){if(document.hidden)lvmEn
 function lvmCarrega(){
   if(!FB_ON)return;
   fbInit().then(function(fb){return fb.db.collection('gestao').doc('previsao').get()}).then(function(d){
-    var o=d&&d.exists?d.data():null;if(!o||!o.b)return;
-    LVM.pub={};Object.keys(o.b).forEach(function(k){var v=o.b[k];if(Array.isArray(v)&&v.length===3)LVM.pub[k]=v});LVM.pubN=o.n||0;LVM.pubAt=o.at||0;
-    /* modelo novo já inclui o que este aparelho enviou: o local fica só com o que ainda não foi enviado */
-    var vis=0;try{vis=+localStorage.getItem('cse-lv-pubat')||0}catch(e){}
-    if(LVM.pubAt>vis){LVM.loc=lvgModelo(LVM.fila.map(lvmParse).filter(Boolean));try{localStorage.setItem('cse-lv-pubat',String(LVM.pubAt))}catch(e){}lvmSalva()}
+    var o=d&&d.exists?d.data():null;if(!o||!o.b2)return;
+    LVM.pub={};Object.keys(o.b2).forEach(function(k){var v=o.b2[k];if(Array.isArray(v)&&v.length===LVF.length+1)LVM.pub[k]=v});LVM.pubN=o.n||0;LVM.pubAt=o.at||0;
+    var vis=0;try{vis=+localStorage.getItem('cse-lv-pubat2')||0}catch(e){}
+    if(LVM.pubAt>vis){LVM.loc=lvgModelo2(LVM.fila.map(lvmParse).filter(Boolean));try{localStorage.setItem('cse-lv-pubat2',String(LVM.pubAt))}catch(e){}lvmSalva()}
     Object.keys(LV2.st).forEach(function(v){var O=LV2.st[v].obs;if(O)O.ve=null});
   },function(){});
 }
 if(LIVE.url)setTimeout(function(){lvmCarrega()},2500);
 /* aviso "ao vivo" conta quanto a previsão já aprendeu */
-liveStatusHTML=(function(prev){return function(){var h=prev(),n=lvmTotal();if(n>=20&&LIVE.t&&LIVE.bus.length)h=h.replace('ajustadas pela velocidade','ajustadas pela velocidade e por '+n.toLocaleString('pt-BR')+' trajetos já medidos');return h}})(liveStatusHTML);
-
 /* ---------- Gestão › Previsão dos ônibus ---------- */
 GTABS.push(['previsao','Previsão dos ônibus']);TAB_PERM.previsao='linhas';
 var LVG={am:null,busy:false,err:false,docs:0};
@@ -5835,13 +5377,6 @@ function lvgCarrega(){
     :Promise.resolve(LVM.hist.slice());
   p.then(function(l){LVG.am=l.map(lvmParse).filter(Boolean);LVG.busy=false;if(gTab==='previsao')renderGest()},function(){LVG.am=LVM.hist.map(lvmParse).filter(Boolean);LVG.err=true;LVG.busy=false;if(gTab==='previsao')renderGest()});
 }
-function lvgModelo(A){
-  var b={};
-  A.forEach(function(a){if(a.dt>75)return;var vr=Math.max(-5,Math.min(25,a.real/a.dt)),base=a.cel+'|'+a.d+'|'+a.vb;
-    ['g|'+a.vb,base,base+'|'+a.per].forEach(function(k){var s=b[k]||(b[k]=[0,0,0]);s[0]++;s[1]+=vr;s[2]+=a.v})});
-  Object.keys(b).forEach(function(k){b[k]=[b[k][0],Math.round(b[k][1]*100)/100,Math.round(b[k][2]*100)/100]});
-  return b;
-}
 function lvgMae(A,f){if(!A.length)return null;return A.reduce(function(s,a){return s+Math.abs(f(a))},0)/A.length}
 function lvgCSV(){
   var A=LVG.am||[],l=['hora,linha,celula,direcao_0a7,faixa_vel,periodo,intervalo_s,vel_informada_kmh,andou_real_m,previsto_simples_m,previsto_aprendido_m'];
@@ -5850,45 +5385,39 @@ function lvgCSV(){
 }
 function gPrevisao(){
   if(!LVG.am){lvgCarrega();return '<h3 class="gh">Previsão dos ônibus</h3><p class="muted small keep">Carregando as medições…</p>'}
-  var A=LVG.am,f=function(x){return x==null?'—':Math.round(x)+' m'};
-  var cur=A.filter(function(a){return a.dt<=75}),h=function(a){return Math.min(a.dt,60)/a.dt};
-  var maeParado=lvgMae(cur,function(a){return a.real*h(a)}),maeRaw=lvgMae(cur,function(a){return a.real*h(a)-a.raw}),maeMod=lvgMae(cur,function(a){return a.real*h(a)-a.mod});
+  var A=LVG.am,f=function(x){return x==null?'—':Math.round(x)+' m'},h=function(a){return Math.min(a.dt,60)/a.dt};
+  var saltos=A.filter(function(a){return a.real<-50}).length,cur=A.filter(function(a){return a.dt<=75&&a.real>=-50});
+  var maeRaw=lvgMae(cur,function(a){return a.real*h(a)-a.raw}),maeMod=lvgMae(cur,function(a){return a.real*h(a)-a.mod}),sim=lvgSimula(A);
   var faixas=['parado','até 15 km/h','15 a 35 km/h','acima de 35 km/h'],linhas={};A.forEach(function(a){linhas[a.l]=1});
   var porVb=faixas.map(function(nm,i){var B=cur.filter(function(a){return a.vb===i});return '<tr><td>'+nm+'</td><td>'+B.length+'</td><td>'+f(lvgMae(B,function(a){return a.real*h(a)-a.raw}))+'</td><td>'+f(lvgMae(B,function(a){return a.real*h(a)-a.mod}))+'</td></tr>'}).join('');
+  var hist=LV_HIST?'<p class="small keep"><b>Previsão ajustada pelo histórico de GPS da prefeitura</b> ('+esc(LV_HIST.de||'')+' a '+esc(LV_HIST.ate||'')+', '+(LV_HIST.pares||0).toLocaleString('pt-BR')+' pares de posições): erro médio nos dias de teste de '+f(LV_HIST.aval.so_velocidade)+' para '+f(Math.min.apply(null,Object.keys(LV_HIST.aval).map(function(k){return LV_HIST.aval[k]})))+'. Com isso, os aparelhos param de enviar medições.</p>':'';
   var pub=LVM.pubAt?'Modelo publicado em '+new Date(LVM.pubAt).toLocaleString('pt-BR')+' com '+(LVM.pubN||0).toLocaleString('pt-BR')+' medições.':'Nenhum modelo publicado ainda: cada aparelho usa só o que aprendeu sozinho.';
+  var simTxt=sim?'Se publicar agora, o erro médio estimado passa de '+f(sim.raw)+' (só a velocidade) para '+f(sim.mod)+(sim.mod<sim.raw*0.98?'. Vale publicar.':sim.mod>sim.raw*1.02?'. Ainda não vale publicar.':': quase igual. Os dados ainda não mostram ganho; o app continua usando a velocidade informada onde não há ganho comprovado.'):'';
   return '<h3 class="gh">Previsão dos ônibus</h3>'+
-    '<p class="small keep">Cada vez que chega a posição nova de um ônibus, o app compara onde ele previu que o ônibus estaria com onde ele estava de fato. Esses desvios ficam guardados e corrigem a velocidade usada na previsão, por trecho de rua, sentido, faixa de velocidade e horário de pico.</p>'+
+    '<p class="small keep">Cada vez que chega a posição nova de um ônibus, o app compara onde previu que ele estaria com onde ele estava de fato. O ajuste de velocidade só é usado num trecho depois de '+LVF_MIN+' medições ali e se reduzir o erro em pelo menos '+Math.round((1-LVF_GANHO)*100)+'%; fora isso, vale a velocidade informada pelo ônibus.</p>'+
     (LVG.err?'<p class="small keep">Sem acesso às medições do Firestore. Publique as regras novas (firestore.rules) no console do Firebase. Mostrando só as deste aparelho.</p>':'')+
     (!FB_ON?'<p class="muted small keep">Sem Firebase aqui: mostrando só as medições deste aparelho.</p>':'')+
-    '<div class="la-nums fbk-sum"><span><b>'+A.length.toLocaleString('pt-BR')+'</b>medições</span><span><b>'+Object.keys(linhas).length+'</b>linhas</span><span><b>'+f(maeRaw)+'</b>erro médio só com a velocidade</span><span><b>'+f(maeMod)+'</b>erro médio com o aprendizado</span></div>'+
-    '<p class="muted small keep">Para comparar: se o app deixasse o ônibus parado na última posição, o erro médio seria '+f(maeParado)+'. Erro medido na hora em que chega a posição nova (até 60 s de previsão).</p>'+
-    '<table class="lvg-t"><thead><tr><th>Velocidade informada</th><th>Medições</th><th>Erro só com a velocidade</th><th>Erro com o aprendizado</th></tr></thead><tbody>'+porVb+'</tbody></table>'+
-    '<p class="small keep">'+pub+'</p>'+
-    '<div class="row gbtns">'+(FB_ON?'<button type="button" class="copy primary" id="lvgPub"'+(A.length?'':' disabled')+'>Recalcular e publicar o modelo</button>':'')+
+    '<div class="la-nums fbk-sum"><span><b>'+A.length.toLocaleString('pt-BR')+'</b>medições</span><span><b>'+Object.keys(linhas).length+'</b>linhas</span><span><b>'+f(maeRaw)+'</b>erro médio só com a velocidade</span><span><b>'+f(maeMod)+'</b>erro médio do que o app mostrou</span></div>'+
+    '<p class="small keep"><b>'+simTxt+'</b></p>'+
+    (saltos?'<p class="muted small keep">'+saltos+' medições ('+Math.round(saltos/A.length*100)+'%) foram descartadas: o ônibus pareceu voltar mais de 50 m, sinal de que foi encaixado no trecho errado do traçado.</p>':'')+
+    '<table class="lvg-t"><thead><tr><th>Velocidade informada</th><th>Medições</th><th>Erro só com a velocidade</th><th>Erro do que o app mostrou</th></tr></thead><tbody>'+porVb+'</tbody></table>'+
+    '<p class="muted small keep">Erro medido quando chega a posição nova (até 60 s de previsão). Medições feitas antes desta versão usaram o ajuste antigo.</p>'+
+    hist+'<p class="small keep">'+pub+'</p>'+
+    '<div class="row gbtns">'+(FB_ON?'<button type="button" class="copy primary" id="lvgPub2"'+(A.length?'':' disabled')+'>Recalcular e publicar o modelo</button>':'')+
     '<button type="button" class="copy" id="lvgCsv"'+(A.length?'':' disabled')+'>Baixar medições (CSV)</button><button type="button" class="copy" id="lvgRe">Atualizar</button>'+
     (FB_ON&&LVG.docs?'<button type="button" class="linkbtn" id="lvgOld">Apagar medições com mais de 90 dias</button>':'')+'</div>';
 }
-var _renderGest35=renderGest;
-renderGest=function(){_renderGest35();if(gTab==='previsao'&&$('#gBody')&&gcan('linhas'))$('#gBody').innerHTML=gPrevisao()};
+aoFazer('gestão montada',function(){if(gTab==='previsao'&&$('#gBody')&&gcan('linhas'))$('#gBody').innerHTML=gPrevisao()});
 document.addEventListener('click',function(e){
-  var t=e.target.closest&&e.target.closest('#lvgPub,#lvgCsv,#lvgRe,#lvgOld');if(!t)return;
+  var t=e.target.closest&&e.target.closest('#lvgCsv,#lvgRe,#lvgOld');if(!t)return;
   if(t.id==='lvgRe'){LVG.am=null;renderGest();return}
   if(t.id==='lvgCsv'){lvgCSV();return}
-  if(t.id==='lvgPub'){
-    var A=LVG.am||[],b=lvgModelo(A),n=A.filter(function(a){return a.dt<=75}).length,o={b:b,n:n,at:Date.now()};
-    if(JSON.stringify(o).length>900000){gToast('Modelo grande demais para um documento. Apague medições antigas.',1);return}
-    t.disabled=true;
-    fbInit().then(function(fb){return fb.db.collection('gestao').doc('previsao').set(o)}).then(function(){LVM.pub=b;LVM.pubN=n;LVM.pubAt=o.at;LVM.loc={};try{localStorage.setItem('cse-lv-pubat',String(o.at))}catch(x){}lvmSalva();Object.keys(LV2.st).forEach(function(v){var O=LV2.st[v].obs;if(O)O.ve=null});gToast('Modelo publicado: todos os aparelhos passam a usar.');renderGest()},function(){t.disabled=false;gToast('Não deu para publicar. Confira as regras do Firestore.',1)});
-    return;
-  }
   if(t.id==='lvgOld'){
     var lim=Date.now()-90*864e5,ids=(LVG.ids||[]).filter(function(x){return x[1]<lim}).map(function(x){return x[0]});
     if(!ids.length){gToast('Nenhuma medição com mais de 90 dias.');return}
     fbInit().then(function(fb){return Promise.all(ids.map(function(id){return fb.db.collection('desvios').doc(id).delete()}))}).then(function(){gToast(ids.length+' lotes antigos apagados.');LVG.am=null;renderGest()},function(){gToast('Não deu para apagar.',1)});
   }
 });
-
-
 /* ======================= v36: previsão dos ônibus mais honesta =======================
    As medições reais (07/11) mostraram que o aprendizado da v35 piorava a previsão: média de velocidade puxada por poucos
    casos extremos, ônibus parados "andando" sozinhos e saltos para trás (o ônibus encaixado no trecho errado do traçado).
@@ -5898,10 +5427,6 @@ document.addEventListener('click',function(e){
 var LVF=[0.5,0.6,0.7,0.8,0.9,1,1.1,1.25],LVF1=5,LVF_MIN=100,LVF_GANHO=0.9;
 LVM.loc=(function(){try{return JSON.parse(localStorage.getItem('cse-lv-m2')||'{}')||{}}catch(e){return {}}})();LVM.pub={};
 try{localStorage.removeItem('cse-lv-modelo')}catch(e){}
-lvmSalva=function(){try{
-  var ks=Object.keys(LVM.loc);if(ks.length>3000){ks.sort(function(a,b){return LVM.loc[a][0]-LVM.loc[b][0]});ks.slice(0,ks.length-2500).forEach(function(k){delete LVM.loc[k]})}
-  localStorage.setItem('cse-lv-m2',JSON.stringify(LVM.loc));localStorage.setItem('cse-lv-fila',JSON.stringify(LVM.fila.slice(-600)));localStorage.setItem('cse-lv-hist',JSON.stringify(LVM.hist.slice(-600)));
-}catch(e){}};
 function lvfChaves(cel,dir,vb,per){return ['c|'+cel+'|'+dir+'|'+vb,'g|'+vb+'|'+per]}
 function lvfSoma(M,ks,real,raw){ks.forEach(function(k){var s=M[k]||(M[k]=[0].concat(LVF.map(function(){return 0})));s[0]++;for(var i=0;i<LVF.length;i++)s[i+1]=Math.round((s[i+1]+Math.abs(real-LVF[i]*raw))*10)/10})}
 function lvfEscolhe(get,ks){/* do mais específico ao geral; só usa um fator que já se provou melhor que 1,0 */
@@ -5911,16 +5436,7 @@ function lvfEscolhe(get,ks){/* do mais específico ao geral; só usa um fator qu
   return 1;
 }
 function lvmSt2(k){var a=LVM.pub[k],b=LVM.loc[k];if(!a&&!b)return null;if(!a)return b;if(!b)return a;return a.map(function(x,i){return x+b[i]})}
-lvmVel=function(O){
-  if(lvmVb(O.v)===0)return 0;/* parado fica parado: nas medições, 3 de cada 4 continuavam no mesmo lugar */
-  return O.v*lvfEscolhe(lvmSt2,lvfChaves(lvmCel(O),lvmDir(O),lvmVb(O.v),lvmPer(O.t)));
-};
-lvmTotal=function(){var n=0;[LVM.pub,LVM.loc].forEach(function(M){Object.keys(M).forEach(function(k){if(k.indexOf('g|')===0)n+=M[k][0]})});return n};
-/* a v31 recalibrava traçados e paradas da prefeitura com 11 paradas (erro de ~50 m). Depois da v34 o mapa já está
-   calibrado pelas ruas (~16 m) e as posições ao vivo usam ll2map: traçados e paradas voltam para a mesma conta,
-   senão o ônibus fica ~50 m fora do traçado e cai no trecho errado. */
-LLX=null;
-Object.keys(SHP_EXT).forEach(function(i){var d=EXT.shp[i],a=-2280000,o=-4320000,P=[];for(var k=0;k<d.length;k+=2){a+=d[k];o+=d[k+1];P.push(ll2map(a/1e5,o/1e5))}var cum=[0];for(var j=1;j<P.length;j++)cum.push(cum[j-1]+Math.hypot(P[j][0]-P[j-1][0],P[j][1]-P[j-1][1]));SHP[SHP_EXT[i]]={P:P,c:cum}});
+/* paradas da prefeitura sem parada da UFRJ ao lado ficam na posição oficial do GTFS */
 Object.keys(EXTS).forEach(function(g){var G=EXTS[g];if(G.stop)return;var k=Object.keys(EXT.stops).filter(function(k){return EXT.stops[k][0]===G.name})[0];if(k){var s=EXT.stops[k];G.p=ll2map(s[1],s[2])}});
 extDraw();
 /* encaixe no traçado da própria linha, considerando o sentido em que o ônibus anda e onde ele estava antes */
@@ -5957,41 +5473,6 @@ function liveDrawCore(){
   });
   Object.keys(LV2.st).forEach(function(v){if(!seen[v]){if(LV2.st[v].el)LV2.st[v].el.remove();delete LV2.st[v]}});
 }
-lvmMede=function(o,P,O){
-  if(!P||!O||P.i==null||O.i==null||P.i!==O.i||!(O.t>P.t))return;
-  var dt=(O.t-P.t)/1000;if(dt<5||dt>120)return;
-  var real=(O.s-P.s)*P.sign/MPU;
-  if(Math.abs(real)>25*dt+60)return;
-  var h=Math.min(dt,60),dRaw=P.v*h,dMod=(typeof lvDist==='function'?lvDist(P,h):lvV(P)*h),dReal=real*(h/dt);
-  var amostra=[Math.round(P.t/1000),o.l,lvmCel(P),lvmDir(P),lvmVb(P.v),lvmPer(P.t),Math.round(dt),Math.round(P.v*36),Math.round(real),Math.round(dRaw),Math.round(dMod)].join('|');
-  LVM.fila.push(amostra);LVM.hist.push(amostra);
-  /* aprende só com ônibus em movimento, intervalos normais e sem salto para trás (erro de encaixe, não movimento) */
-  if(dt<=75&&real>=-50&&lvmVb(P.v)>0)lvfSoma(LVM.loc,lvfChaves(lvmCel(P),lvmDir(P),lvmVb(P.v),lvmPer(P.t)),dReal,dRaw);
-  LVM.ult={erroRaw:Math.abs(dReal-dRaw),erroMod:Math.abs(dReal-dMod)};
-};
-liveDraw=function(){
-  var antes={};Object.keys(LV2.st).forEach(function(v){antes[v]=LV2.st[v].obs});
-  liveDrawCore();
-  var mudou=false;
-  LIVE.bus.forEach(function(o){var S=LV2.st[o.v];if(!S||!S.obs)return;var O=S.obs,P=antes[o.v];
-    if(P&&P.t===O.t){O.signOk=P.signOk;O.ve=P.ve;return}
-    O.signOk=o.vel>2||!!(P&&P.i===O.i&&Math.abs(O.s-P.s)/MPU>5)||!!(P&&P.signOk);
-    if(P){lvmMede(o,P,O);mudou=true}
-    O.ve=null;lvV(O);
-  });
-  if(mudou){lvmSalva();lvmEnvia(false)}
-  if(LV2.raf)cancelAnimationFrame(LV2.raf);LV2.raf=0;lvFrame();
-};
-lvmCarrega=function(){
-  if(!FB_ON)return;
-  fbInit().then(function(fb){return fb.db.collection('gestao').doc('previsao').get()}).then(function(d){
-    var o=d&&d.exists?d.data():null;if(!o||!o.b2)return;
-    LVM.pub={};Object.keys(o.b2).forEach(function(k){var v=o.b2[k];if(Array.isArray(v)&&v.length===LVF.length+1)LVM.pub[k]=v});LVM.pubN=o.n||0;LVM.pubAt=o.at||0;
-    var vis=0;try{vis=+localStorage.getItem('cse-lv-pubat2')||0}catch(e){}
-    if(LVM.pubAt>vis){LVM.loc=lvgModelo2(LVM.fila.map(lvmParse).filter(Boolean));try{localStorage.setItem('cse-lv-pubat2',String(LVM.pubAt))}catch(e){}lvmSalva()}
-    Object.keys(LV2.st).forEach(function(v){var O=LV2.st[v].obs;if(O)O.ve=null});
-  },function(){});
-};
 function lvgModelo2(A){var M={};A.forEach(function(a){if(a.dt>75||a.real<-50||a.vb===0)return;var h=Math.min(a.dt,60);lvfSoma(M,lvfChaves(a.cel,a.d,a.vb,a.per),a.real*h/a.dt,a.v*h)});return M}
 /* simulação honesta: refaz as medições em ordem, aprendendo só com o passado, e mede o erro que o modelo novo teria */
 function lvgSimula(A){
@@ -6002,30 +5483,6 @@ function lvgSimula(A){
     if(a.vb>0)lvfSoma(M,lvfChaves(a.cel,a.d,a.vb,a.per),real,raw)});
   return n?{n:n,raw:e0/n,mod:e1/n}:null;
 }
-gPrevisao=function(){
-  if(!LVG.am){lvgCarrega();return '<h3 class="gh">Previsão dos ônibus</h3><p class="muted small keep">Carregando as medições…</p>'}
-  var A=LVG.am,f=function(x){return x==null?'—':Math.round(x)+' m'},h=function(a){return Math.min(a.dt,60)/a.dt};
-  var saltos=A.filter(function(a){return a.real<-50}).length,cur=A.filter(function(a){return a.dt<=75&&a.real>=-50});
-  var maeRaw=lvgMae(cur,function(a){return a.real*h(a)-a.raw}),maeMod=lvgMae(cur,function(a){return a.real*h(a)-a.mod}),sim=lvgSimula(A);
-  var faixas=['parado','até 15 km/h','15 a 35 km/h','acima de 35 km/h'],linhas={};A.forEach(function(a){linhas[a.l]=1});
-  var porVb=faixas.map(function(nm,i){var B=cur.filter(function(a){return a.vb===i});return '<tr><td>'+nm+'</td><td>'+B.length+'</td><td>'+f(lvgMae(B,function(a){return a.real*h(a)-a.raw}))+'</td><td>'+f(lvgMae(B,function(a){return a.real*h(a)-a.mod}))+'</td></tr>'}).join('');
-  var hist=LV_HIST?'<p class="small keep"><b>Previsão ajustada pelo histórico de GPS da prefeitura</b> ('+esc(LV_HIST.de||'')+' a '+esc(LV_HIST.ate||'')+', '+(LV_HIST.pares||0).toLocaleString('pt-BR')+' pares de posições): erro médio nos dias de teste de '+f(LV_HIST.aval.so_velocidade)+' para '+f(Math.min.apply(null,Object.keys(LV_HIST.aval).map(function(k){return LV_HIST.aval[k]})))+'. Com isso, os aparelhos param de enviar medições.</p>':'';
-  var pub=LVM.pubAt?'Modelo publicado em '+new Date(LVM.pubAt).toLocaleString('pt-BR')+' com '+(LVM.pubN||0).toLocaleString('pt-BR')+' medições.':'Nenhum modelo publicado ainda: cada aparelho usa só o que aprendeu sozinho.';
-  var simTxt=sim?'Se publicar agora, o erro médio estimado passa de '+f(sim.raw)+' (só a velocidade) para '+f(sim.mod)+(sim.mod<sim.raw*0.98?'. Vale publicar.':sim.mod>sim.raw*1.02?'. Ainda não vale publicar.':': quase igual. Os dados ainda não mostram ganho; o app continua usando a velocidade informada onde não há ganho comprovado.'):'';
-  return '<h3 class="gh">Previsão dos ônibus</h3>'+
-    '<p class="small keep">Cada vez que chega a posição nova de um ônibus, o app compara onde previu que ele estaria com onde ele estava de fato. O ajuste de velocidade só é usado num trecho depois de '+LVF_MIN+' medições ali e se reduzir o erro em pelo menos '+Math.round((1-LVF_GANHO)*100)+'%; fora isso, vale a velocidade informada pelo ônibus.</p>'+
-    (LVG.err?'<p class="small keep">Sem acesso às medições do Firestore. Publique as regras novas (firestore.rules) no console do Firebase. Mostrando só as deste aparelho.</p>':'')+
-    (!FB_ON?'<p class="muted small keep">Sem Firebase aqui: mostrando só as medições deste aparelho.</p>':'')+
-    '<div class="la-nums fbk-sum"><span><b>'+A.length.toLocaleString('pt-BR')+'</b>medições</span><span><b>'+Object.keys(linhas).length+'</b>linhas</span><span><b>'+f(maeRaw)+'</b>erro médio só com a velocidade</span><span><b>'+f(maeMod)+'</b>erro médio do que o app mostrou</span></div>'+
-    '<p class="small keep"><b>'+simTxt+'</b></p>'+
-    (saltos?'<p class="muted small keep">'+saltos+' medições ('+Math.round(saltos/A.length*100)+'%) foram descartadas: o ônibus pareceu voltar mais de 50 m, sinal de que foi encaixado no trecho errado do traçado.</p>':'')+
-    '<table class="lvg-t"><thead><tr><th>Velocidade informada</th><th>Medições</th><th>Erro só com a velocidade</th><th>Erro do que o app mostrou</th></tr></thead><tbody>'+porVb+'</tbody></table>'+
-    '<p class="muted small keep">Erro medido quando chega a posição nova (até 60 s de previsão). Medições feitas antes desta versão usaram o ajuste antigo.</p>'+
-    hist+'<p class="small keep">'+pub+'</p>'+
-    '<div class="row gbtns">'+(FB_ON?'<button type="button" class="copy primary" id="lvgPub2"'+(A.length?'':' disabled')+'>Recalcular e publicar o modelo</button>':'')+
-    '<button type="button" class="copy" id="lvgCsv"'+(A.length?'':' disabled')+'>Baixar medições (CSV)</button><button type="button" class="copy" id="lvgRe">Atualizar</button>'+
-    (FB_ON&&LVG.docs?'<button type="button" class="linkbtn" id="lvgOld">Apagar medições com mais de 90 dias</button>':'')+'</div>';
-};
 document.addEventListener('click',function(e){
   var t=e.target.closest&&e.target.closest('#lvgPub2');if(!t)return;
   var A=LVG.am||[],b=lvgModelo2(A),n=A.filter(function(a){return a.dt<=75&&a.real>=-50&&a.vb>0}).length,o={b2:b,n:n,at:Date.now()};
@@ -6033,8 +5490,6 @@ document.addEventListener('click',function(e){
   t.disabled=true;
   fbInit().then(function(fb){return fb.db.collection('gestao').doc('previsao').set(o)}).then(function(){LVM.pub=b;LVM.pubN=n;LVM.pubAt=o.at;LVM.loc={};try{localStorage.setItem('cse-lv-pubat2',String(o.at))}catch(x){}lvmSalva();Object.keys(LV2.st).forEach(function(v){var O=LV2.st[v].obs;if(O)O.ve=null});gToast('Modelo publicado: todos os aparelhos passam a usar.');renderGest()},function(){t.disabled=false;gToast('Não deu para publicar. Confira as regras do Firestore.',1)});
 });
-
-
 /* ======================= v37: ônibus da cidade param nos pontos e deslizam pela rota =======================
    Testado com 70 min de GPS real da cidade inteira (18 mil pares de posições, todas as linhas) contra os traçados e
    pontos oficiais do GTFS:
@@ -6050,10 +5505,6 @@ function lvHistKey(O){if(O.la==null)return null;var d=new Date(O.t),h=d.getHours
 if(LIVE.url&&window.fetch)fetch('historico-previsao.json',{cache:'no-cache'}).then(function(r){return r.ok?r.json():null}).then(function(o){
   if(!o||!o.aval)return;LV_HIST=o;Object.keys(LV2.st).forEach(function(v){var O=LV2.st[v].obs;if(O)O.ve=null});
 },function(){});
-lvmVel=(function(prev){return function(O){
-  var H=LV_HIST;if(H&&H.f&&lvmVb(O.v)>0){var k=lvHistKey(O);if(k&&H.f[k]!=null)return O.v*H.f[k]}
-  return prev(O)}})(lvmVel);
-lvmEnvia=(function(prev){return function(f){if(LV_HIST)return;prev(f)}})(lvmEnvia);
 (function(){/* posição de cada ponto de parada ao longo do traçado */
   var shs=EXT.shs||{};
   Object.keys(SHP_EXT).forEach(function(k){var i=SHP_EXT[k],S=SHP[i],L=shs[k];if(!S||!L)return;var out=[];
@@ -6073,38 +5524,9 @@ function lvDist(O,dt){
   var H=LV_HIST,dw=LV_PONTO_S;if(H){if(H.D!=null)dw=H.D;var pk=S.stK&&S.stK[j];if(H.pd&&pk&&H.pd[pk]!=null)dw=H.pd[pk]}
   return n+Math.max(0,dt-n/v-dw)*v;
 }
-lvPred=function(S,now){
-  var O=S.obs;if(!O||O.i==null)return null;
-  var dt=Math.max(0,Math.min(60,(now-O.t)/1000)),s=O.s+O.sign*lvDist(O,dt)*MPU;
-  return Math.max(0,Math.min(lvLen(O.i),s));
-};
-lvFrame=function(){
-  LV2.raf=0;var now=Date.now(),red=matchMedia('(prefers-reduced-motion:reduce)').matches||perfEff()==='leve',any=false;
-  Object.keys(LV2.st).forEach(function(v){var S=LV2.st[v];if(!S.el||!S.el.isConnected)return;
-    var O=S.obs,x=null,y=null,ang=null,ps=lvPred(S,now),si=null,ss=null,mv=O&&O.i!=null&&lvV(O)>0.3;
-    var k=S.blend?Math.min(1,(now-S.blend.t0)/1500):1;if(S.blend&&k>=1)S.blend=null;
-    if(ps!=null){si=O.i;ss=ps;
-      if(S.blend){any=true;var e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
-        /* mesmo traçado e perto: desliza pela rota; senão, em linha reta */
-        if(S.blend.i===si&&S.blend.s!=null&&Math.abs(S.blend.s-ps)<700*MPU)ss=S.blend.s+(ps-S.blend.s)*e;
-        else{var q=shpAt(si,ps);x=S.blend.x+(q.x-S.blend.x)*e;y=S.blend.y+(q.y-S.blend.y)*e}}
-      var p=shpAt(si,ss);if(x==null){x=p.x;y=p.y}
-      ang=mv||O.v>0.5?(O.sign>0?p.ang:p.ang+180):null;if(mv)any=true;
-    }else{x=O.x;y=O.y;ang=O.ang;if(S.blend){any=true;x=S.blend.x+(x-S.blend.x)*k;y=S.blend.y+(y-S.blend.y)*k}}
-    setMkPos(S.el,x,y);S.x=x;S.y=y;S.i=si;S.s=ss;
-    var ar=S.el.querySelector('.lv-dir');if(ar){ar.style.display=ang==null?'none':'';if(ang!=null)ar.setAttribute('transform','rotate('+(ang+(ROT||0)).toFixed(0)+')')}
-  });
-  if(any&&!red&&!document.hidden)LV2.raf=requestAnimationFrame(function(){setTimeout(lvFrame,90)});
-};
-
-
 /* ======================= v38: ônibus mais frescos e sem o mapa da cidade por baixo =======================
    Cada segundo de atraso da posição soma ~2,5 a 3 m de erro na previsão. O Worker passou a guardar a resposta por 5 s
    (antes 15 s) e o app pergunta a cada 10 s (antes 15 s): a posição chega, em média, uns 10 s mais nova.
    O mapa de ruas da cidade (Esri/OpenStreetMap) por baixo da planta foi retirado a pedido. */
-liveLoop=function(){clearInterval(LIVE.timer);if(!LIVE.url)return;liveFetch();LIVE.timer=setInterval(function(){liveFetch()},10000)};
 if(LIVE.timer)liveLoop();
-tilesWanted=function(){return false};
-(function(){var t=$('#gTiles');if(t)t.remove();var a=$('#tileAttr');if(a)a.remove()})();
-
 })();

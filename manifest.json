@@ -1,6 +1,6 @@
 {
-  "name": "Chegar e se conectar · UFRJ",
-  "short_name": "Chegar UFRJ",
+  "name": "Chega aí UFRJ",
+  "short_name": "Chega aí",
   "description": "Ônibus internos, mapa, prédios, RU e Wi-Fi da Cidade Universitária da UFRJ.",
   "lang": "pt-BR",
   "start_url": "./?origem=app",
