@@ -1,6 +1,6 @@
-/* Chegar e se conectar · service worker (gerado no empacotamento, versão 20261106-2209) */
-var CACHE='cse-20261106-2209';
-var PRE=["./", "index.html", "style.css?v=20261106-2209", "app.js?v=20261106-2209", "config.js?v=20261106-2209", "manifest.json", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "favicon-32.png", "mapa-blur-claro.jpg", "mapa-blur.jpg", "mapa-bordas-claro.jpg", "mapa-bordas.jpg", "mapa-campus-claro.jpg", "mapa-campus-claro.svg", "mapa-campus.jpg", "mapa-campus.svg", "mapa-mini-claro.jpg", "mapa-mini.jpg"];
+/* Chegar e se conectar · service worker (gerado no empacotamento, versão 20261107-1338) */
+var CACHE='cse-20261107-1338';
+var PRE=["./", "index.html", "style.css?v=20261107-1338", "app.js?v=20261107-1338", "config.js?v=20261107-1338", "manifest.json", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "favicon-32.png", "mapa-blur-claro.jpg", "mapa-blur.jpg", "mapa-bordas-claro.jpg", "mapa-bordas.jpg", "mapa-campus-claro.jpg", "mapa-campus-claro.svg", "mapa-campus.jpg", "mapa-campus.svg", "mapa-mini-claro.jpg", "mapa-mini.jpg"];
 self.addEventListener('install',function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){return Promise.all(PRE.map(function(u){return c.add(u).catch(function(){})}))}).then(function(){return self.skipWaiting()}));
 });
