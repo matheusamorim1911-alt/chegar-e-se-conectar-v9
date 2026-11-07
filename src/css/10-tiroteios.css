@@ -1,0 +1,6 @@
+/* tiroteios perto das saídas (Fogo Cruzado, opcional) */
+.tiro-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.tiro-list li{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:var(--card2,rgba(127,127,127,.08))}
+.tiro-list small{display:block}
+.tiro-ha{flex:0 0 auto;min-width:72px;font-weight:600;font-size:13px;color:var(--warn,#E0A040)}
+.tiro-src{margin-top:4px}
