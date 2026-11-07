@@ -10,3 +10,5 @@ window.CSE_FIREBASE = {
   messagingSenderId: "104927857185",
   appId: "1:104927857185:web:be1fac1e86619ca32bf160"
 };
+window.CSE_GPS_URL = "https://shrill-pond-6c06.matheusamorim1911.workers.dev/";
+
