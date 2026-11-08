@@ -44,3 +44,15 @@ python3 tools/historico_gps.py historico.csv <pasta do GTFS> historico-previsao.
 
 O script separa os últimos 30% dos dados para teste e só grava um ajuste se ele reduzir o erro nesses dias.
 O resultado mostra o erro médio antes e depois. Copie `historico-previsao.json` para a raiz do site.
+
+## 4. Semáforos e lombadas
+
+O mesmo CSV serve para testar se considerar os semáforos e as lombadas melhora a previsão:
+
+```
+python3 tools/redutores.py historico.csv
+```
+
+O script só grava o ajuste em `src/redutores.json` se ele reduzir o erro nos dias de teste. Ele também gera
+`tools/dados/paradas-fora-dos-pontos.csv`, com os lugares onde vários ônibus param longe de um ponto (semáforo ou
+lombada que ainda não estão mapeados, ou retenção). Depois rode `python3 tools/build_site.py`.

@@ -8,6 +8,7 @@ App web (sem framework) da Cidade Universitária da UFRJ, publicado pelo GitHub 
   - `src/css/NN-*.css` e `src/js/NN-*.js`: estilos e código, juntados na ordem dos números;
   - `src/ext_onibus.json`: dados dos ônibus da cidade (gerado por `tools/gtfs_fundao.py`).
   - `src/edificacoes.json`: prédios que faltavam na planta do mapa (gerado por `tools/edificacoes_ufrj.py` a partir do cadastro da UFRJ no ArcGIS, copiado em `tools/dados/`).
+  - `src/redutores.json`: semáforos e lombadas (UFRJ e OpenStreetMap) para a previsão dos ônibus, gerado por `tools/redutores.py` (fontes em `tools/dados/redutores-fontes.json`).
   - `mapa-*.jpg` (capa, fundos e visão geral do mapa): refeitas por `tools/planta_imagens.py` a partir das originais em `tools/dados/planta/` e de `src/edificacoes.json`. Rode depois de mudar os prédios. Os `mapa-campus*.svg` (zoom) ficam como estão; os prédios entram por cima pelo app.
 - `tools/montar.py` junta as partes num arquivo único (`app-completo.html`, o que vai para o claude.ai).
 - `python3 tools/build_site.py` gera o site: `app.js`, `style.css`, o corpo do `index.html`, `version.json` e `sw.js`. **Nunca edite esses arquivos à mão.** O cabeçalho do `index.html` (até `<body>`) é mantido.
@@ -26,6 +27,7 @@ App web (sem framework) da Cidade Universitária da UFRJ, publicado pelo GitHub 
 ## Ônibus da cidade
 - Posições ao vivo: Worker da Cloudflare (`worker/gps-fundao.js`) busca a API de GPS da prefeitura, guarda 5 s e, se ela falhar, devolve a última resposta boa (até 2 min). O app pede a cada 10 s.
 - Previsão: velocidade informada, parada de ~12 s no próximo ponto (pontos do GTFS em `EXT.shs`), encaixe no traçado da linha pelo sentido do movimento. Ajustes só entram com ganho comprovado: medições dos aparelhos (coleção `desvios`, modelo em `gestao/previsao`, campo `b2`) ou `historico-previsao.json` (gerado por `tools/historico_gps.py`, ver `tools/HISTORICO.md`), que desliga a coleta pelos aparelhos.
+- Semáforos e lombadas: `tools/redutores.py <gps.csv>` testa a previsão com o GPS da prefeitura (70% treino, 30% teste) e só grava em `src/redutores.json` o tempo perdido em cada um se reduzir o erro em pelo menos 2% e 1 m; sem `ajuste`, a previsão não muda. Também lista em `tools/dados/paradas-fora-dos-pontos.csv` onde vários ônibus param longe de um ponto. As medições dos aparelhos guardam o traçado e a posição ao longo dele (de 5 em 5 m).
 
 ## Tiroteios (Fogo Cruzado)
 - Opcional, desligado por padrão (`CFG.tiroteios`). O Worker atende `/tiroteios` com a conta do projeto (segredos `FC_EMAIL` e `FC_SENHA` na Cloudflare; nunca no código). Só registros das últimas 6 h perto das saídas da ilha, com fonte e horário; sem dados, o app diz que não há dados.

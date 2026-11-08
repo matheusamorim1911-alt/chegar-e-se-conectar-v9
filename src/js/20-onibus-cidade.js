@@ -31,7 +31,8 @@ function extPanelHTML(now){
     var k=L.n+'|'+L.d,open=EXTSEL.ln===k,first=L.st[0][0];
     return '<li><button type="button" class="xl-row" data-xln="'+esc(k)+'" aria-expanded="'+open+'">'+extBadge(L)+'<span class="grow"><b>'+esc(L.d)+'</b><small>'+extWhen(L,first,now)+' · '+esc(EXTS[first]?EXTS[first].name:'')+'</small></span></button>'+
       (open?'<div class="xl-more"><p class="small keep">'+esc(L.nm)+'. Passa por: '+extStopsOf(L).map(function(n,i){return '<button type="button" class="linkbtn" data-kind="ext" data-id="'+L.st[i][0]+'">'+esc(n)+'</button>'}).join(', ')+'.</p><p class="small keep">Hoje: '+extToday(L)+' saídas'+(extToday(L)?', da primeira às '+fmt((L.t[extSvc(new Date())]||[0])[0])+' à última às '+fmt((L.t[extSvc(new Date())]||[0]).slice(-1)[0]):'')+'.</p></div>':'')+'</li>'}).join('')+'</ul>';
-  return liveStatusHTML()+chips+list+(fora?'<p class="muted small keep">'+fora+' linha'+(fora>1?'s':'')+' deste destino não circula'+(fora>1?'m':'')+' hoje.</p>':'')+'<p class="muted small keep xsrc">Horários programados pela prefeitura ('+esc(EXT.fonte)+'). O trânsito pode atrasar o ônibus.</p>';
+  return liveStatusHTML()+chips+list+(fora?'<p class="muted small keep">'+fora+' linha'+(fora>1?'s':'')+' deste destino não circula'+(fora>1?'m':'')+' hoje.</p>':'')+'<p class="muted small keep xsrc">Horários programados pela prefeitura ('+esc(EXT.fonte)+'). O trânsito pode atrasar o ônibus.'+
+    (REDUT&&REDUT.ajuste?' A posição ao vivo considera os semáforos mapeados pela UFRJ e pelo OpenStreetMap (© colaboradores do OpenStreetMap).':'')+'</p>';
 }
 function extFoldHTML(now){
   var open=(function(){try{return localStorage.getItem('cse-fold-ext')==='1'}catch(e){return false}})();
