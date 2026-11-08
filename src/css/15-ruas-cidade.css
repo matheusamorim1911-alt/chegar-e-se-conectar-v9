@@ -1,0 +1,12 @@
+/* esboço das ruas ao redor da ilha (com "Ônibus da cidade" ligado) */
+#gRuas.off{display:none}
+.rua{fill:none;stroke:var(--mc-ink);stroke-linecap:round;stroke-linejoin:round}
+.rua.a{stroke-width:3.2;stroke-opacity:.34}
+.rua.b{stroke-width:2;stroke-opacity:.24}
+.rua.c{stroke-width:1;stroke-opacity:.13}
+.rua.m{stroke:#5B8DB8;stroke-width:1.4;stroke-opacity:.45}
+.rua-n{fill:var(--mc-ink2);font-family:var(--f-body);font-weight:600;font-size:calc(var(--fw,4) * 2.1px);text-anchor:middle;dominant-baseline:middle;paint-order:stroke;stroke:var(--mc-bg);stroke-width:calc(var(--fw,4) * .7px);stroke-linejoin:round;opacity:.85}
+.ruas-fonte{position:absolute;left:14px;top:52px;z-index:2;margin:0;padding:1px 6px;border-radius:6px;font-size:10.5px;color:var(--mc-ink2);background:var(--mc-glass)}
+.ruas-fonte a{color:inherit}
+.ruas-fonte[hidden]{display:none}
+@media (max-width:680px){.ruas-fonte{top:50px;left:12px}.ruas-fonte .rf-l{display:none}}

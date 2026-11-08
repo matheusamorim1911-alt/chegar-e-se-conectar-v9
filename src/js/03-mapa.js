@@ -42,6 +42,9 @@ var svg=$('#map'),gLines,gStops,gWifi,gGuard,gLab;
 var ROT=0;
 function U(p){return ROT?[-p[1],p[0]]:p}
 function bounds(){return ROT?{x:-(BASE.y+BASE.h),y:BASE.x,w:BASE.h,h:BASE.w}:BASE}
+/* área onde dá para arrastar o mapa: a planta e o que as partes acrescentarem (as ruas ao redor, com os ônibus da cidade) */
+var LIMITES_EXTRA=[];
+function limitesMapa(){var B=bounds();LIMITES_EXTRA.forEach(function(f){var E=f();if(!E)return;var x0=Math.min(B.x,E.x),y0=Math.min(B.y,E.y);B={x:x0,y:y0,w:Math.max(B.x+B.w,E.x+E.w)-x0,h:Math.max(B.y+B.h,E.y+E.h)-y0}});return B}
 function wantRot(){return 0}
 function orient(){
   var r=wantRot();if(r===ROT)return false;
@@ -128,7 +131,7 @@ function clampView(){
   var b=box(),minW=b.w/7;
   view.w=Math.max(minW,Math.min(fitW,view.w));view.h=view.w*b.h/b.w;
   var cx=view.x+view.w/2,cy=view.y+view.h/2;
-  var B=bounds();cx=Math.max(B.x,Math.min(B.x+B.w,cx));cy=Math.max(B.y,Math.min(B.y+B.h,cy));
+  var B=limitesMapa();cx=Math.max(B.x,Math.min(B.x+B.w,cx));cy=Math.max(B.y,Math.min(B.y+B.h,cy));
   view.x=cx-view.w/2;view.y=cy-view.h/2;
 }
 var raf=0;

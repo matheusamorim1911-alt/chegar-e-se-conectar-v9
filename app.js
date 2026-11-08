@@ -315,6 +315,9 @@ var svg=$('#map'),gLines,gStops,gWifi,gGuard,gLab;
 var ROT=0;
 function U(p){return ROT?[-p[1],p[0]]:p}
 function bounds(){return ROT?{x:-(BASE.y+BASE.h),y:BASE.x,w:BASE.h,h:BASE.w}:BASE}
+/* área onde dá para arrastar o mapa: a planta e o que as partes acrescentarem (as ruas ao redor, com os ônibus da cidade) */
+var LIMITES_EXTRA=[];
+function limitesMapa(){var B=bounds();LIMITES_EXTRA.forEach(function(f){var E=f();if(!E)return;var x0=Math.min(B.x,E.x),y0=Math.min(B.y,E.y);B={x:x0,y:y0,w:Math.max(B.x+B.w,E.x+E.w)-x0,h:Math.max(B.y+B.h,E.y+E.h)-y0}});return B}
 function wantRot(){return 0}
 function orient(){
   var r=wantRot();if(r===ROT)return false;
@@ -401,7 +404,7 @@ function clampView(){
   var b=box(),minW=b.w/7;
   view.w=Math.max(minW,Math.min(fitW,view.w));view.h=view.w*b.h/b.w;
   var cx=view.x+view.w/2,cy=view.y+view.h/2;
-  var B=bounds();cx=Math.max(B.x,Math.min(B.x+B.w,cx));cy=Math.max(B.y,Math.min(B.y+B.h,cy));
+  var B=limitesMapa();cx=Math.max(B.x,Math.min(B.x+B.w,cx));cy=Math.max(B.y,Math.min(B.y+B.h,cy));
   view.x=cx-view.w/2;view.y=cy-view.h/2;
 }
 var raf=0;
@@ -3308,7 +3311,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261108-1617';
+var APP_VERSION='20261108-1633';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -5201,17 +5204,23 @@ function ctpLoad(){
 }
 function ctpRooms(){return CTP.d.salas.filter(function(s){return s[1]===CTP.pav&&(!CTP.bl||s[0]===CTP.bl)})}
 function ctpPavs(){var o={};CTP.d.salas.forEach(function(s){if(!CTP.bl||s[0]===CTP.bl)o[s[1]]=(o[s[1]]||0)+1});return Object.keys(CTP_PAV).filter(function(k){return o[k]})}
-function ctpFit(rs){if(!rs.length)return CTP.d.bbox.slice();var a=[1e9,1e9,-1e9,-1e9];rs.forEach(function(s){a[0]=Math.min(a[0],s.bb[0]);a[1]=Math.min(a[1],s.bb[1]);a[2]=Math.max(a[2],s.bb[2]);a[3]=Math.max(a[3],s.bb[3])});var m=Math.max(6,(a[2]-a[0])*.04);return [a[0]-m,a[1]-m,a[2]+m,a[3]+m]}
+/* celular em pé: quando o que aparece é mais largo que alto (o CT inteiro, um bloco deitado), a planta gira 90° para
+   ocupar a tela; com o CT inteiro, o Bloco A fica em cima. O giro é decidido a cada enquadramento (CTP.rot). */
+function ctpPortrait(){return !!window.matchMedia&&matchMedia('(max-width:680px) and (orientation:portrait)').matches}
+function ctpRot(){return !!CTP.rot}
+function ctpFit(rs){var a=[1e9,1e9,-1e9,-1e9];if(!rs.length)a=CTP.d.bbox.slice();else rs.forEach(function(s){a[0]=Math.min(a[0],s.bb[0]);a[1]=Math.min(a[1],s.bb[1]);a[2]=Math.max(a[2],s.bb[2]);a[3]=Math.max(a[3],s.bb[3])});
+  CTP.rot=ctpPortrait()&&(a[2]-a[0])>(a[3]-a[1])*1.1;if(CTP.rot)a=[-a[3],a[0],-a[1],a[2]];
+  var m=Math.max(6,(a[2]-a[0])*.04);return [a[0]-m,a[1]-m,a[2]+m,a[3]+m]}
 function ctpVB(v){return [v[0],v[1],v[2]-v[0],v[3]-v[1]].map(function(x){return x.toFixed(1)}).join(' ')}
 function ctpLabel(s){return s[4]||s[3]}
 function ctpWhere(s){return 'Bloco '+s[0]+' · '+(s[1]==='subsolo'?'subsolo':CTP_PAV[s[1]]+' andar')}
 function ctpSVG(){
-  var rs=ctpRooms(),vb=CTP.vb||ctpFit(rs),w=vb[2]-vb[0],h=vb[3]-vb[1],sw=(w/700).toFixed(2);
+  var rs=ctpRooms(),vb=CTP.vb||ctpFit(rs),w=vb[2]-vb[0],h=vb[3]-vb[1],sw=(w/700).toFixed(2),rot=ctpRot(),fw=Math.max(w,rot?h:0);
   var p='';rs.forEach(function(s){var g=CTP_G[s[2]]||CTP_G.apoio,dim=CTP.f&&s[2]!==CTP.f,sel=CTP.sel===s.i;
     p+='<path data-ctr="'+s.i+'" class="ctr'+(sel?' sel':'')+(dim?' dim':'')+'" d="'+s.P.map(function(r){return 'M'+r.map(function(q){return q[0].toFixed(1)+' '+q[1].toFixed(1)}).join('L')+'Z'}).join('')+'" style="fill:'+g[1]+'"><title>'+esc(ctpLabel(s)+' · '+ctpWhere(s))+'</title></path>'});
-  var lb='';if(!CTP.bl){var seen={};rs.forEach(function(s){(seen[s[0]]=seen[s[0]]||[]).push(s.c)});Object.keys(seen).forEach(function(b){var c=seen[b],x=0,y=0;c.forEach(function(q){x+=q[0];y+=q[1]});lb+='<text class="ctb" x="'+(x/c.length).toFixed(1)+'" y="'+(y/c.length).toFixed(1)+'" style="font-size:'+(w/38).toFixed(1)+'px">'+esc(b.length>2?b.slice(0,3):b)+'</text>'})}
-  var pin='';if(CTP.sel!=null){var S=CTP.d.salas[CTP.sel];if(S[1]===CTP.pav)pin='<circle class="ctpin" cx="'+S.c[0].toFixed(1)+'" cy="'+S.c[1].toFixed(1)+'" r="'+(w/60).toFixed(1)+'"/>'}
-  return '<svg class="ctsvg" id="ctsvg" viewBox="'+ctpVB(vb)+'" style="--ctsw:'+sw+';aspect-ratio:'+w.toFixed(0)+' / '+Math.max(h,w*.45).toFixed(0)+'" role="img" aria-label="Planta do CT, '+esc(CTP_PAV[CTP.pav]||'')+' andar">'+p+lb+pin+'</svg>';
+  var lb='';if(!CTP.bl){var seen={};rs.forEach(function(s){(seen[s[0]]=seen[s[0]]||[]).push(s.c)});Object.keys(seen).forEach(function(b){var c=seen[b],x=0,y=0;c.forEach(function(q){x+=q[0];y+=q[1]});var tx=(x/c.length).toFixed(1),ty=(y/c.length).toFixed(1);lb+='<text class="ctb" x="'+tx+'" y="'+ty+'"'+(rot?' transform="rotate(-90 '+tx+' '+ty+')"':'')+' style="font-size:'+(fw/38).toFixed(1)+'px">'+esc(b.length>2?b.slice(0,3):b)+'</text>'})}
+  var pin='';if(CTP.sel!=null){var S=CTP.d.salas[CTP.sel];if(S[1]===CTP.pav)pin='<circle class="ctpin" cx="'+S.c[0].toFixed(1)+'" cy="'+S.c[1].toFixed(1)+'" r="'+(fw/60).toFixed(1)+'"/>'}
+  return '<svg class="ctsvg'+(rot?' rot':'')+'" id="ctsvg" viewBox="'+ctpVB(vb)+'" style="--ctsw:'+sw+';aspect-ratio:'+w.toFixed(0)+' / '+Math.max(h,w*.45).toFixed(0)+'" role="img" aria-label="Planta do CT, '+esc(CTP_PAV[CTP.pav]||'')+' andar'+(rot?', girada: o Bloco A fica em cima':'')+'">'+(rot?'<g transform="rotate(90)">':'')+p+lb+pin+(rot?'</g>':'')+'</svg>';
 }
 function ctpSearch(q){
   q=q.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();if(q.length<2)return [];
@@ -5239,7 +5248,7 @@ function ctpInner(){
   h+='<div class="ctwrap">'+ctpSVG()+'<div class="ctz"><button type="button" data-ctz="1" aria-label="Aproximar">+</button><button type="button" data-ctz="-1" aria-label="Afastar">−</button><button type="button" data-ctz="0" aria-label="Ver tudo">⤢</button></div></div>';
   if(CTP.sel!=null){var S=CTP.d.salas[CTP.sel],B=CTP.d.blocos.filter(function(b){return b[0]===S[0]})[0];h+='<p class="ctinfo keep"><b>'+esc(ctpLabel(S))+'</b> · '+esc((S[4]?S[3]+' · ':'')+ctpWhere(S))+(B&&B[3]?'<small>Bloco '+esc(S[0])+': '+esc(B[3])+'</small>':'')+'</p>'}
   else if(CTP.f)h+='<p class="ctinfo keep">'+cnt+' '+CTP_G[CTP.f][0].toLowerCase()+' neste andar'+(CTP.bl?' do bloco '+esc(CTP.bl):'')+'.</p>';
-  else h+='<p class="muted small keep">Toque numa sala para ver o que é. Use os filtros para achar sanitários, escadas e salas de aula.</p>';
+  else h+='<p class="muted small keep">Toque numa sala para ver o que é. Use os filtros para achar sanitários, escadas e salas de aula.'+(ctpRot()&&!CTP.bl?' Com o celular em pé, a planta fica de lado: o Bloco A fica em cima.':'')+'</p>';
   h+='<p class="muted small keep">Fonte: '+esc(CTP.d.fonte)+'. Os espaços não têm número de sala, e alguns usos podem ter mudado desde 2018.</p>';
   return h;
 }
@@ -5251,11 +5260,13 @@ document.addEventListener('click',function(e){
   if(t.dataset.ctbl!=null){CTP.bl=t.dataset.ctbl;CTP.vb=null;if(t.closest('.ctres'))CTP.q='';}
   else if(t.dataset.ctpav){CTP.pav=t.dataset.ctpav;CTP.vb=null}
   else if(t.dataset.ctf){CTP.f=CTP.f===t.dataset.ctf?'':t.dataset.ctf;CTP.sel=null}
-  else if(t.dataset.cts){var S=CTP.d.salas[+t.dataset.cts];CTP.sel=S.i;CTP.pav=S[1];CTP.bl=S[0];CTP.q='';CTP.f='';var r=ctpRooms();CTP.vb=ctpFit(r);setTimeout(function(){var w=$('#ctsvg');if(w)w.scrollIntoView({block:'center',behavior:'smooth'})},50)}
+  else if(t.dataset.cts){var S=CTP.d.salas[+t.dataset.cts];CTP.sel=S.i;CTP.pav=S[1];CTP.bl=S[0];CTP.q='';CTP.f='';var r=ctpRooms();CTP.vb=null;CTP.vb=ctpFit(r);setTimeout(function(){var w=$('#ctsvg');if(w)w.scrollIntoView({block:'center',behavior:'smooth'})},50)}
   else if(t.dataset.ctz!=null){var z=+t.dataset.ctz,vb=CTP.vb||ctpFit(ctpRooms());if(!z)CTP.vb=null;else{var cx=(vb[0]+vb[2])/2,cy=(vb[1]+vb[3])/2,k=z>0?.6:1/.6,hw=(vb[2]-vb[0])*k/2,hh=(vb[3]-vb[1])*k/2;CTP.vb=[cx-hw,cy-hh,cx+hw,cy+hh]}}
   else if(t.dataset.ctr){CTP.sel=CTP.sel===+t.dataset.ctr?null:+t.dataset.ctr}
   ctpPaint();
 });
+/* girou o celular: refaz a planta no novo sentido */
+if(window.matchMedia){var ctpMQ=matchMedia('(max-width:680px) and (orientation:portrait)'),ctpMQf=function(){CTP.vb=null;if(CTP.d)ctpPaint()};if(ctpMQ.addEventListener)ctpMQ.addEventListener('change',ctpMQf);else if(ctpMQ.addListener)ctpMQ.addListener(ctpMQf)}
 /* arrastar a planta */
 (function(){var drag=null;
   document.addEventListener('pointerdown',function(e){var s=e.target.closest&&e.target.closest('#ctsvg');if(!s||!CTP.d)return;var vb=CTP.vb||ctpFit(ctpRooms()),r=s.getBoundingClientRect();drag={x:e.clientX,y:e.clientY,vb:vb,k:Math.max((vb[2]-vb[0])/r.width,(vb[3]-vb[1])/r.height),moved:false}});
@@ -5826,8 +5837,8 @@ function segOnibus(v){return LIVE.bus.filter(function(o){return o.v===v})[0]||nu
 function segIdade(s){return s<60?s+' s':Math.round(s/60)+' min'}
 function segM(m){return m<1000?Math.max(10,Math.round(m/10)*10)+' m':(m/1000).toFixed(1).replace('.',',')+' km'}
 function segQuando(t,m){return (t<20||m<120)?'chegando':t<60?'menos de 1 min':'~'+Math.round(t/60)+' min'}
-/* a planta só cobre a Cidade Universitária e arredores; a área do ao vivo vai até a Maré, a Penha e o Galeão */
-function segNoMapa(S){if(!S||S.x==null)return false;var q=U([S.x,S.y]),B=bounds(),m=40;return q[0]>=B.x-m&&q[0]<=B.x+B.w+m&&q[1]>=B.y-m&&q[1]<=B.y+B.h+m}
+/* a planta só cobre a Cidade Universitária; com as ruas ao redor (29-ruas-cidade.js), o mapa vai até onde há ônibus ao vivo */
+function segNoMapa(S){if(!S||S.x==null)return false;var q=U([S.x,S.y]),B=limitesMapa(),m=40;return q[0]>=B.x-m&&q[0]<=B.x+B.w+m&&q[1]>=B.y-m&&q[1]<=B.y+B.h+m}
 function segLonge(S){var c=U([724,405]),q=U([S.x,S.y]);return Math.hypot(q[0]-c[0],q[1]-c[1])/MPU}
 function segSalva(){try{if(SEG.v)localStorage.setItem('cse-seguir',JSON.stringify({v:SEG.v,l:SEG.l,t:Date.now()}));else localStorage.removeItem('cse-seguir')}catch(e){}SEG.salvo=Date.now()}
 
@@ -6002,6 +6013,50 @@ function segCard(){
 /* continua seguindo depois de recarregar (até 30 min) */
 (function(){try{var s=JSON.parse(localStorage.getItem('cse-seguir')||'null');
   if(s&&s.v&&Date.now()-s.t<30*60e3&&LIVE.url){SEG.l=s.l;setTimeout(function(){segSeguir(s.v)},0)}else if(s)localStorage.removeItem('cse-seguir')}catch(e){}})();
+/* ======================= Esboço das ruas ao redor da ilha, só com "Ônibus da cidade" ligado =======================
+   Os ônibus da cidade fora da ilha (Maré, Bonsucesso, Penha, Ilha do Governador…) apareciam soltos no escuro, porque
+   a planta só cobre a Cidade Universitária. Com a camada ligada, o mapa desenha por baixo deles um esboço das vias
+   (OpenStreetMap, gerado por tools/ruas_cidade.py em ruas-cidade.json) e deixa arrastar até a área do ao vivo.
+   Dentro da ilha nada muda: lá vale a planta. Sem a camada, o arquivo nem é baixado. */
+var RUAS={d:null,carregando:false,svg:'',box:null};
+/* área do ao vivo (a mesma do Worker em worker/gps-fundao.js) */
+var RUAS_AREA=[-22.885,-43.27,-22.825,-43.195];
+function ruasCarrega(){
+  if(RUAS.d||RUAS.carregando||!window.fetch)return;RUAS.carregando=true;
+  fetch('ruas-cidade.json',{cache:'no-cache'}).then(function(r){return r.ok?r.json():null}).then(function(o){
+    RUAS.carregando=false;if(o&&o.c){RUAS.d=o;RUAS.svg='';ruasDesenha()}
+  },function(){RUAS.carregando=false});
+}
+function ruasMonta(){
+  var C=RUAS.d.c,h='',f=function(v){return v.toFixed(1)};
+  ['m','c','b','a'].forEach(function(k){var d='';(C[k]||[]).forEach(function(L){var la=0,lo=0;
+      for(var i=0;i<L.length;i+=2){la+=L[i];lo+=L[i+1];var p=ll2map(la/1e5,lo/1e5);d+=(i?'L':'M')+f(p[0])+' '+f(p[1])}});
+    if(d)h+='<path class="rua '+k+'" vector-effect="non-scaling-stroke" d="'+d+'"/>'});
+  (RUAS.d.n||[]).forEach(function(n){var a=ll2map(n[1]/1e5,n[2]/1e5),b=ll2map(n[3]/1e5,n[4]/1e5),ang=Math.atan2(b[1]-a[1],b[0]-a[0])*180/Math.PI+(ROT||0);
+    ang=((ang%360)+540)%360-180;if(ang>90)ang-=180;if(ang<-90)ang+=180;ang-=(ROT||0);
+    h+='<text class="rua-n" x="'+f(a[0])+'" y="'+f(a[1])+'" transform="rotate('+ang.toFixed(0)+' '+f(a[0])+' '+f(a[1])+')">'+esc(n[0])+'</text>'});
+  return h;
+}
+function ruasCaixa(){
+  var A=RUAS_AREA,P=[[A[0],A[1]],[A[0],A[3]],[A[2],A[1]],[A[2],A[3]]].map(function(q){return U(ll2map(q[0],q[1]))}),
+      xs=P.map(function(p){return p[0]}),ys=P.map(function(p){return p[1]}),x0=Math.min.apply(0,xs),y0=Math.min.apply(0,ys);
+  return {x:x0,y:y0,w:Math.max.apply(0,xs)-x0,h:Math.max.apply(0,ys)-y0};
+}
+function ruasDesenha(){
+  var W=$('#world'),g=$('#gRuas'),on=!!state.layers.ext,at=$('#ruasFonte');
+  if(at)at.hidden=!(on&&RUAS.d);
+  if(!on){if(g)g.classList.add('off');return}
+  ruasCarrega();if(!RUAS.d||!W)return;
+  if(!g){if(!RUAS.svg)RUAS.svg=ruasMonta();W.insertAdjacentHTML('afterbegin','<g id="gRuas" pointer-events="none" aria-hidden="true">'+RUAS.svg+'</g>');g=$('#gRuas')}
+  g.classList.remove('off');
+}
+/* com a camada ligada, dá para arrastar o mapa até a área do ao vivo */
+LIMITES_EXTRA.push(function(){if(!state.layers.ext||!RUAS.d)return null;if(!RUAS.box)RUAS.box=ruasCaixa();return RUAS.box});
+aoFazer('mapa vai montar',function(){RUAS.svg='';RUAS.box=null});/* a calibração do mapa pode ter mudado */
+aoFazer('mapa montado',ruasDesenha);
+aoFazer('mapa atualizado',ruasDesenha);
+(function(){var mw=document.querySelector('.mapwrap');if(mw)mw.insertAdjacentHTML('beforeend','<p class="ruas-fonte" id="ruasFonte" hidden><span class="rf-l">Ruas ao redor: </span>© <span class="rf-l">colaboradores do </span><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></p>')})();
+ruasDesenha();
 /* ======================= Início: a aba pedida no endereço =======================
    Fica por último, depois que todas as partes carregaram: abrir uma aba desenha a tela inteira dela
    (Lugares, por exemplo, usa o Wi-Fi e o eduroam, definidos em partes posteriores). Abrir antes disso

@@ -17,6 +17,7 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `12-predios-ufrj.css`: cor dos prédios que faltavam na planta e do chão onde a planta é redesenhada
 - `13-jae.css`: atalho para o Jaé e ícone dos atalhos para apps de fora (Jaé, BandejApp, WhatsApp)
 - `14-seguir-onibus.css`: botão "Buscar ônibus", busca, card do ônibus seguido e caminho feito
+- `15-ruas-cidade.css`: esboço das ruas ao redor da ilha e crédito do OpenStreetMap
 
 ## Código (js/)
 - `01-nucleo.js`: pontos de extensão (etapas), modo do site, ajustes salvos e utilidades básicas
@@ -47,4 +48,5 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `26-predios-ufrj.js`: prédios que faltavam na planta (CENPES II, IEN, bloco central do CT…), CENPES e CEPEL redesenhados e nomes no zoom, do cadastro da UFRJ
 - `27-jae.js`: aviso de que a passagem da prefeitura é paga com o Jaé e atalho para o app oficial (Trajetos e pontos da prefeitura)
 - `28-seguir-onibus.js`: buscar um ônibus da cidade ao vivo (linha, destino ou carro) e segui-lo no mapa, com o caminho feito e o próximo ponto
+- `29-ruas-cidade.js`: esboço das ruas ao redor da ilha (OpenStreetMap, `ruas-cidade.json`) só com "Ônibus da cidade" ligado, e o mapa arrastável até a área do ao vivo
 - `99-inicio.js`: abre a aba pedida no endereço (#predios, #grade…) depois que tudo carregou; fica sempre por último

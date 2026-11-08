@@ -13,8 +13,8 @@ function segOnibus(v){return LIVE.bus.filter(function(o){return o.v===v})[0]||nu
 function segIdade(s){return s<60?s+' s':Math.round(s/60)+' min'}
 function segM(m){return m<1000?Math.max(10,Math.round(m/10)*10)+' m':(m/1000).toFixed(1).replace('.',',')+' km'}
 function segQuando(t,m){return (t<20||m<120)?'chegando':t<60?'menos de 1 min':'~'+Math.round(t/60)+' min'}
-/* a planta só cobre a Cidade Universitária e arredores; a área do ao vivo vai até a Maré, a Penha e o Galeão */
-function segNoMapa(S){if(!S||S.x==null)return false;var q=U([S.x,S.y]),B=bounds(),m=40;return q[0]>=B.x-m&&q[0]<=B.x+B.w+m&&q[1]>=B.y-m&&q[1]<=B.y+B.h+m}
+/* a planta só cobre a Cidade Universitária; com as ruas ao redor (29-ruas-cidade.js), o mapa vai até onde há ônibus ao vivo */
+function segNoMapa(S){if(!S||S.x==null)return false;var q=U([S.x,S.y]),B=limitesMapa(),m=40;return q[0]>=B.x-m&&q[0]<=B.x+B.w+m&&q[1]>=B.y-m&&q[1]<=B.y+B.h+m}
 function segLonge(S){var c=U([724,405]),q=U([S.x,S.y]);return Math.hypot(q[0]-c[0],q[1]-c[1])/MPU}
 function segSalva(){try{if(SEG.v)localStorage.setItem('cse-seguir',JSON.stringify({v:SEG.v,l:SEG.l,t:Date.now()}));else localStorage.removeItem('cse-seguir')}catch(e){}SEG.salvo=Date.now()}
 

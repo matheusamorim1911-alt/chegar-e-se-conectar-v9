@@ -37,6 +37,7 @@ const { chromium } = require('playwright');const servir=require('./servidor');co
  ok(new RegExp('Carro '+alvo).test(card)&&/posição de .* atrás/.test(card),'o card mostra o carro e a idade da posição');
  ok(await p.evaluate(v=>{const el=document.querySelector('#gLive .xlive[data-v="'+v+'"]');return !!el&&el.classList.contains('seg-on')&&el===el.parentNode.lastElementChild},alvo),'o ônibus seguido fica em destaque e por cima');
  ok(parseInt(await p.textContent('#zoomlvl'))>z0,'o mapa aproxima ao começar a seguir');
+ const centro2=v0=>p.evaluate(v=>{const a=document.querySelector('#gLive .xlive[data-v="'+v+'"] .lv-dot').getBoundingClientRect(),m=document.getElementById('map').getBoundingClientRect();return Math.hypot(a.left+a.width/2-(m.left+m.width/2),a.top+a.height/2-(m.top+m.height/2))/Math.min(m.width,m.height)},v0);
  const centro=()=>p.evaluate(v=>{const a=document.querySelector('#gLive .xlive[data-v="'+v+'"] .lv-dot').getBoundingClientRect(),m=document.getElementById('map').getBoundingClientRect();return Math.hypot(a.left+a.width/2-(m.left+m.width/2),a.top+a.height/2-(m.top+m.height/2))/Math.min(m.width,m.height)},alvo);
  ok(await centro()<0.2,'o ônibus fica perto do centro do mapa');
  const txt=await p.textContent('#segCard');
@@ -58,17 +59,24 @@ const { chromium } = require('playwright');const servir=require('./servidor');co
  if(v2){await p.click('#gLive .xlive[data-v="'+v2+'"] .lv-dot',{force:true});await p.waitForTimeout(900);
    ok(new RegExp('Carro '+v2).test(await p.textContent('#segCard'))&&await p.isVisible('#segCard'),'tocar num ônibus do mapa passa a segui-lo')}
  else ok(false,'nenhum ônibus visível no mapa para tocar');
- // ônibus fora da planta: o card avisa e a seta na borda leva até ele
- await p.click('#segBtn');await p.waitForTimeout(300);await p.fill('#segQ','B28597');await p.waitForTimeout(200);
- ok(/fora do mapa/.test(await p.textContent('#segLista')),'a lista avisa quando o ônibus está fora do mapa');
- await p.press('#segQ','Enter');await p.waitForTimeout(1500);
- ok(/Fora da área do mapa/.test(await p.textContent('#segCard'))&&await p.isVisible('#segSeta'),'seguindo um ônibus fora do mapa: o card avisa e aparece a seta na borda');
+ // ônibus fora da planta (Maré): as ruas ao redor aparecem, o mapa vai até ele; afastando o mapa, a seta na borda leva de volta
+ await p.click('#segBtn');await p.waitForTimeout(300);await p.fill('#segQ','B28597');await p.press('#segQ','Enter');await p.waitForTimeout(2000);
+ ok(await p.evaluate(()=>{const g=document.getElementById('gRuas');return !!g&&!g.classList.contains('off')&&g.querySelectorAll('path.rua').length>=3})&&await p.isVisible('#ruasFonte'),'com os ônibus da cidade, aparecem as ruas ao redor e o crédito do OpenStreetMap');
+ ok(!/Fora da área do mapa/.test(await p.textContent('#segCard'))&&await centro2('B28597')<0.2,'o mapa vai até o ônibus fora da planta');
+ for(let k=0;k<3;k++){await p.click('#zin');await p.waitForTimeout(250)}
+ const mb2=await p.$eval('#map',x=>{const r=x.getBoundingClientRect();return [r.left+r.width*0.85,r.top+r.height*0.5,r.width]});
+ await p.mouse.move(mb2[0],mb2[1]);await p.mouse.down();await p.mouse.move(mb2[0]-mb2[2]*0.8,mb2[1],{steps:10});await p.mouse.up();await p.waitForTimeout(900);
+ ok(await p.isVisible('#segSeta'),'com o ônibus fora da tela, aparece a seta na borda');
+ await p.click('#segSeta');await p.waitForTimeout(1500);
+ ok(await p.isHidden('#segSeta')&&await centro2('B28597')<0.2,'tocar na seta volta ao ônibus');
  await p.click('#segX');await p.waitForTimeout(400);
  ok(await p.isHidden('#segSeta'),'parar de seguir tira a seta');
  await p.click('#segBtn');await p.waitForTimeout(300);await p.fill('#segQ',v2);await p.press('#segQ','Enter');await p.waitForTimeout(900);
  // recarregar continua seguindo
  await p.reload();await p.waitForTimeout(2500);
  ok(await p.evaluate(v=>{const el=document.querySelector('#gLive .xlive[data-v="'+v+'"]');return !document.getElementById('segCard').hidden&&document.getElementById('segCard').textContent.indexOf('Carro '+v)>=0&&!!el&&el.classList.contains('seg-on')},v2),'depois de recarregar, continua seguindo o mesmo ônibus');
+ await p.click('#chBus');await p.waitForTimeout(300);await p.click('label:has(#bmExt)');await p.waitForTimeout(800);
+ ok(await p.evaluate(()=>{const g=document.getElementById('gRuas');return (!g||g.classList.contains('off'))&&document.getElementById('ruasFonte').hidden&&document.getElementById('segCard').hidden}),'desligando os ônibus da cidade, somem as ruas ao redor e o ônibus seguido');
  ok(e.length===0,'sem erros de JavaScript '+JSON.stringify(e));
  await c.close();
  // celular: o card e o botão não cobrem os botões de zoom
@@ -79,5 +87,11 @@ const { chromium } = require('playwright');const servir=require('./servidor');co
    const cruza=(x,y)=>!(x.right<=y.left||y.right<=x.left||x.bottom<=y.top||y.bottom<=x.top);return {card:cruza(a,z),btn:cruza(bt,z)||cruza(bt,ro),dentro:a.left>=m.left&&a.right<=m.right&&a.bottom<=m.bottom&&a.top>=m.top}});
  ok(!sob.card&&!sob.btn&&sob.dentro,'no celular, o card e o botão ficam no mapa sem cobrir o zoom nem a bússola '+JSON.stringify(sob));
  await p.screenshot({path:path.join(require('os').tmpdir(),'seguir-celular.png')});
+ // planta do CT maior no celular em pé: o CT inteiro gira para ocupar a tela; um bloco em pé fica como está
+ await p.goto('http://localhost:8813/#predios');await p.waitForTimeout(1200);await p.click('#fdBld summary');await p.waitForTimeout(2500);
+ const ct=await p.evaluate(()=>{const s=document.getElementById('ctsvg');if(!s)return null;const r=s.getBoundingClientRect();return {rot:s.classList.contains('rot'),w:r.width,h:r.height}});
+ ok(ct&&ct.rot&&ct.h>ct.w*1.3,'planta do CT no celular: gira e fica alta '+JSON.stringify(ct));
+ await p.click('[data-ctbl="F"]');await p.waitForTimeout(400);
+ ok(await p.evaluate(()=>{const s=document.getElementById('ctsvg'),r=s.getBoundingClientRect();return !s.classList.contains('rot')&&r.height>r.width}),'um bloco comprido em pé (F) não gira e ocupa a altura');
  ok(e.length===0,'sem erros de JavaScript no celular '+JSON.stringify(e));
  await c.close();await b.close();srv.close();process.exit(falhou?1:0)})();

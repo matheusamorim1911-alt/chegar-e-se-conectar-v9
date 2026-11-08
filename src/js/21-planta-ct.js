@@ -13,17 +13,23 @@ function ctpLoad(){
 }
 function ctpRooms(){return CTP.d.salas.filter(function(s){return s[1]===CTP.pav&&(!CTP.bl||s[0]===CTP.bl)})}
 function ctpPavs(){var o={};CTP.d.salas.forEach(function(s){if(!CTP.bl||s[0]===CTP.bl)o[s[1]]=(o[s[1]]||0)+1});return Object.keys(CTP_PAV).filter(function(k){return o[k]})}
-function ctpFit(rs){if(!rs.length)return CTP.d.bbox.slice();var a=[1e9,1e9,-1e9,-1e9];rs.forEach(function(s){a[0]=Math.min(a[0],s.bb[0]);a[1]=Math.min(a[1],s.bb[1]);a[2]=Math.max(a[2],s.bb[2]);a[3]=Math.max(a[3],s.bb[3])});var m=Math.max(6,(a[2]-a[0])*.04);return [a[0]-m,a[1]-m,a[2]+m,a[3]+m]}
+/* celular em pé: quando o que aparece é mais largo que alto (o CT inteiro, um bloco deitado), a planta gira 90° para
+   ocupar a tela; com o CT inteiro, o Bloco A fica em cima. O giro é decidido a cada enquadramento (CTP.rot). */
+function ctpPortrait(){return !!window.matchMedia&&matchMedia('(max-width:680px) and (orientation:portrait)').matches}
+function ctpRot(){return !!CTP.rot}
+function ctpFit(rs){var a=[1e9,1e9,-1e9,-1e9];if(!rs.length)a=CTP.d.bbox.slice();else rs.forEach(function(s){a[0]=Math.min(a[0],s.bb[0]);a[1]=Math.min(a[1],s.bb[1]);a[2]=Math.max(a[2],s.bb[2]);a[3]=Math.max(a[3],s.bb[3])});
+  CTP.rot=ctpPortrait()&&(a[2]-a[0])>(a[3]-a[1])*1.1;if(CTP.rot)a=[-a[3],a[0],-a[1],a[2]];
+  var m=Math.max(6,(a[2]-a[0])*.04);return [a[0]-m,a[1]-m,a[2]+m,a[3]+m]}
 function ctpVB(v){return [v[0],v[1],v[2]-v[0],v[3]-v[1]].map(function(x){return x.toFixed(1)}).join(' ')}
 function ctpLabel(s){return s[4]||s[3]}
 function ctpWhere(s){return 'Bloco '+s[0]+' · '+(s[1]==='subsolo'?'subsolo':CTP_PAV[s[1]]+' andar')}
 function ctpSVG(){
-  var rs=ctpRooms(),vb=CTP.vb||ctpFit(rs),w=vb[2]-vb[0],h=vb[3]-vb[1],sw=(w/700).toFixed(2);
+  var rs=ctpRooms(),vb=CTP.vb||ctpFit(rs),w=vb[2]-vb[0],h=vb[3]-vb[1],sw=(w/700).toFixed(2),rot=ctpRot(),fw=Math.max(w,rot?h:0);
   var p='';rs.forEach(function(s){var g=CTP_G[s[2]]||CTP_G.apoio,dim=CTP.f&&s[2]!==CTP.f,sel=CTP.sel===s.i;
     p+='<path data-ctr="'+s.i+'" class="ctr'+(sel?' sel':'')+(dim?' dim':'')+'" d="'+s.P.map(function(r){return 'M'+r.map(function(q){return q[0].toFixed(1)+' '+q[1].toFixed(1)}).join('L')+'Z'}).join('')+'" style="fill:'+g[1]+'"><title>'+esc(ctpLabel(s)+' · '+ctpWhere(s))+'</title></path>'});
-  var lb='';if(!CTP.bl){var seen={};rs.forEach(function(s){(seen[s[0]]=seen[s[0]]||[]).push(s.c)});Object.keys(seen).forEach(function(b){var c=seen[b],x=0,y=0;c.forEach(function(q){x+=q[0];y+=q[1]});lb+='<text class="ctb" x="'+(x/c.length).toFixed(1)+'" y="'+(y/c.length).toFixed(1)+'" style="font-size:'+(w/38).toFixed(1)+'px">'+esc(b.length>2?b.slice(0,3):b)+'</text>'})}
-  var pin='';if(CTP.sel!=null){var S=CTP.d.salas[CTP.sel];if(S[1]===CTP.pav)pin='<circle class="ctpin" cx="'+S.c[0].toFixed(1)+'" cy="'+S.c[1].toFixed(1)+'" r="'+(w/60).toFixed(1)+'"/>'}
-  return '<svg class="ctsvg" id="ctsvg" viewBox="'+ctpVB(vb)+'" style="--ctsw:'+sw+';aspect-ratio:'+w.toFixed(0)+' / '+Math.max(h,w*.45).toFixed(0)+'" role="img" aria-label="Planta do CT, '+esc(CTP_PAV[CTP.pav]||'')+' andar">'+p+lb+pin+'</svg>';
+  var lb='';if(!CTP.bl){var seen={};rs.forEach(function(s){(seen[s[0]]=seen[s[0]]||[]).push(s.c)});Object.keys(seen).forEach(function(b){var c=seen[b],x=0,y=0;c.forEach(function(q){x+=q[0];y+=q[1]});var tx=(x/c.length).toFixed(1),ty=(y/c.length).toFixed(1);lb+='<text class="ctb" x="'+tx+'" y="'+ty+'"'+(rot?' transform="rotate(-90 '+tx+' '+ty+')"':'')+' style="font-size:'+(fw/38).toFixed(1)+'px">'+esc(b.length>2?b.slice(0,3):b)+'</text>'})}
+  var pin='';if(CTP.sel!=null){var S=CTP.d.salas[CTP.sel];if(S[1]===CTP.pav)pin='<circle class="ctpin" cx="'+S.c[0].toFixed(1)+'" cy="'+S.c[1].toFixed(1)+'" r="'+(fw/60).toFixed(1)+'"/>'}
+  return '<svg class="ctsvg'+(rot?' rot':'')+'" id="ctsvg" viewBox="'+ctpVB(vb)+'" style="--ctsw:'+sw+';aspect-ratio:'+w.toFixed(0)+' / '+Math.max(h,w*.45).toFixed(0)+'" role="img" aria-label="Planta do CT, '+esc(CTP_PAV[CTP.pav]||'')+' andar'+(rot?', girada: o Bloco A fica em cima':'')+'">'+(rot?'<g transform="rotate(90)">':'')+p+lb+pin+(rot?'</g>':'')+'</svg>';
 }
 function ctpSearch(q){
   q=q.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();if(q.length<2)return [];
@@ -51,7 +57,7 @@ function ctpInner(){
   h+='<div class="ctwrap">'+ctpSVG()+'<div class="ctz"><button type="button" data-ctz="1" aria-label="Aproximar">+</button><button type="button" data-ctz="-1" aria-label="Afastar">−</button><button type="button" data-ctz="0" aria-label="Ver tudo">⤢</button></div></div>';
   if(CTP.sel!=null){var S=CTP.d.salas[CTP.sel],B=CTP.d.blocos.filter(function(b){return b[0]===S[0]})[0];h+='<p class="ctinfo keep"><b>'+esc(ctpLabel(S))+'</b> · '+esc((S[4]?S[3]+' · ':'')+ctpWhere(S))+(B&&B[3]?'<small>Bloco '+esc(S[0])+': '+esc(B[3])+'</small>':'')+'</p>'}
   else if(CTP.f)h+='<p class="ctinfo keep">'+cnt+' '+CTP_G[CTP.f][0].toLowerCase()+' neste andar'+(CTP.bl?' do bloco '+esc(CTP.bl):'')+'.</p>';
-  else h+='<p class="muted small keep">Toque numa sala para ver o que é. Use os filtros para achar sanitários, escadas e salas de aula.</p>';
+  else h+='<p class="muted small keep">Toque numa sala para ver o que é. Use os filtros para achar sanitários, escadas e salas de aula.'+(ctpRot()&&!CTP.bl?' Com o celular em pé, a planta fica de lado: o Bloco A fica em cima.':'')+'</p>';
   h+='<p class="muted small keep">Fonte: '+esc(CTP.d.fonte)+'. Os espaços não têm número de sala, e alguns usos podem ter mudado desde 2018.</p>';
   return h;
 }
@@ -63,11 +69,13 @@ document.addEventListener('click',function(e){
   if(t.dataset.ctbl!=null){CTP.bl=t.dataset.ctbl;CTP.vb=null;if(t.closest('.ctres'))CTP.q='';}
   else if(t.dataset.ctpav){CTP.pav=t.dataset.ctpav;CTP.vb=null}
   else if(t.dataset.ctf){CTP.f=CTP.f===t.dataset.ctf?'':t.dataset.ctf;CTP.sel=null}
-  else if(t.dataset.cts){var S=CTP.d.salas[+t.dataset.cts];CTP.sel=S.i;CTP.pav=S[1];CTP.bl=S[0];CTP.q='';CTP.f='';var r=ctpRooms();CTP.vb=ctpFit(r);setTimeout(function(){var w=$('#ctsvg');if(w)w.scrollIntoView({block:'center',behavior:'smooth'})},50)}
+  else if(t.dataset.cts){var S=CTP.d.salas[+t.dataset.cts];CTP.sel=S.i;CTP.pav=S[1];CTP.bl=S[0];CTP.q='';CTP.f='';var r=ctpRooms();CTP.vb=null;CTP.vb=ctpFit(r);setTimeout(function(){var w=$('#ctsvg');if(w)w.scrollIntoView({block:'center',behavior:'smooth'})},50)}
   else if(t.dataset.ctz!=null){var z=+t.dataset.ctz,vb=CTP.vb||ctpFit(ctpRooms());if(!z)CTP.vb=null;else{var cx=(vb[0]+vb[2])/2,cy=(vb[1]+vb[3])/2,k=z>0?.6:1/.6,hw=(vb[2]-vb[0])*k/2,hh=(vb[3]-vb[1])*k/2;CTP.vb=[cx-hw,cy-hh,cx+hw,cy+hh]}}
   else if(t.dataset.ctr){CTP.sel=CTP.sel===+t.dataset.ctr?null:+t.dataset.ctr}
   ctpPaint();
 });
+/* girou o celular: refaz a planta no novo sentido */
+if(window.matchMedia){var ctpMQ=matchMedia('(max-width:680px) and (orientation:portrait)'),ctpMQf=function(){CTP.vb=null;if(CTP.d)ctpPaint()};if(ctpMQ.addEventListener)ctpMQ.addEventListener('change',ctpMQf);else if(ctpMQ.addListener)ctpMQ.addListener(ctpMQf)}
 /* arrastar a planta */
 (function(){var drag=null;
   document.addEventListener('pointerdown',function(e){var s=e.target.closest&&e.target.closest('#ctsvg');if(!s||!CTP.d)return;var vb=CTP.vb||ctpFit(ctpRooms()),r=s.getBoundingClientRect();drag={x:e.clientX,y:e.clientY,vb:vb,k:Math.max((vb[2]-vb[0])/r.width,(vb[3]-vb[1])/r.height),moved:false}});
