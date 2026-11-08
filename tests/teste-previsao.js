@@ -30,7 +30,7 @@ if (fs.existsSync(arqPerfil)) {
   const FER = [['2026-11-02', 'Finados']];
   const lvPerfil = new Function('LV_PERF', 'FERIADOS', 'MPU', 'lvmTracado', corpo + '\nreturn lvPerfil;')(PF, FER, 1, i => i);
   const [k, L] = Object.entries(PF.p).find(([k, L]) => L[1][0] >= 0); const [tr, sg, per] = k.split('|');
-  const hora = { manha: 9, tarde: 15, noite: 20 }[per], t = new Date(2026, 10, 5, hora).getTime(), s0 = L[0] * PF.trecho_m + 1;
+  const hora = PF.faixas ? PF.faixas.find(f => f[2] === per)[0] : { manha: 9, tarde: 15, noite: 20 }[per], t = new Date(2026, 10, 5, hora).getTime(), s0 = L[0] * PF.trecho_m + 1;
   const r = lvPerfil({ i: +tr, sign: +sg, s: s0, t });
   ok(r && r.v === L[1][0] / 10 && r.w === PF.periodos[per].w, 'perfil: acha o trecho ' + k + ' numa quinta-feira');
   ok(lvPerfil({ i: +tr, sign: +sg, s: s0, t: new Date(2026, 10, 8, hora).getTime() }) === null, 'perfil: domingo fica de fora');

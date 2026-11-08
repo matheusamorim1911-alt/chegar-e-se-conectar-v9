@@ -3308,7 +3308,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261108-1311';
+var APP_VERSION='20261108-1412';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -5403,7 +5403,7 @@ function gPrevisao(){
   var hist=LV_HIST?'<p class="small keep"><b>Previsão ajustada pelo histórico de GPS da prefeitura</b> ('+esc(LV_HIST.de||'')+' a '+esc(LV_HIST.ate||'')+', '+(LV_HIST.pares||0).toLocaleString('pt-BR')+' pares de posições): erro médio nos dias de teste de '+f(LV_HIST.aval.so_velocidade)+' para '+f(Math.min.apply(null,Object.keys(LV_HIST.aval).map(function(k){return LV_HIST.aval[k]})))+'. Com isso, os aparelhos param de enviar medições.</p>':'';
   var RA=REDUT&&REDUT.ajuste,red='<p class="small keep"><b>Semáforos e lombadas</b>: '+(REDUT.s||[]).length+' semáforos e '+(REDUT.l||[]).length+' lombadas mapeados (UFRJ e OpenStreetMap). '+
     (RA?'Com o GPS da prefeitura ('+(RA.pares||0).toLocaleString('pt-BR')+' pares de posições), perder '+RA.semaforo_s+' s em cada semáforo'+(RA.lombada_s?' e '+RA.lombada_s+' s em cada lombada':'')+' baixou o erro médio nos dias de teste de '+f(RA.erro_antes_m)+' para '+f(RA.erro_depois_m)+'.':'Ainda sem ganho comprovado com o GPS da prefeitura: a previsão não os considera.')+'</p>';
-  var PF=LV_PERF,perf='<p class="small keep"><b>Perfil dos trechos</b> (dias úteis): '+(PF?Object.keys(PF.periodos).map(function(k){var R=PF.periodos[k];return {manha:'manhã',tarde:'tarde',noite:'noite'}[k]+' '+f(R.erro_antes_m)+' → '+f(R.erro_depois_m)}).join(', ')+' nos dias de teste. '+(Object.keys(PF.periodos).length<3?'Outros períodos, fins de semana':'Fins de semana')+' e feriados usam a previsão de sempre.':'ainda sem ganho comprovado (gere com tools/perfil_trechos.py).')+'</p>';
+  var PF=LV_PERF,perf='<p class="small keep"><b>Perfil dos trechos</b> (dias úteis): '+(PF?Object.keys(PF.periodos).map(function(k){var R=PF.periodos[k];return ({manha:'manhã',tarde:'tarde',noite:'noite'}[k]||k.replace(/^0?(\d+)-0?(\d+)$/,'$1h–$2h'))+' '+f(R.erro_antes_m)+' → '+f(R.erro_depois_m)}).join(', ')+' nos dias de teste. Os outros horários, os fins de semana e os feriados usam a previsão de sempre.':'ainda sem ganho comprovado (gere com tools/perfil_trechos.py).')+'</p>';
   var pub=LVM.pubAt?'Modelo publicado em '+new Date(LVM.pubAt).toLocaleString('pt-BR')+' com '+(LVM.pubN||0).toLocaleString('pt-BR')+' medições.':'Nenhum modelo publicado ainda: cada aparelho usa só o que aprendeu sozinho.';
   var simTxt=sim?'Se publicar agora, o erro médio estimado passa de '+f(sim.raw)+' (só a velocidade) para '+f(sim.mod)+(sim.mod<sim.raw*0.98?'. Vale publicar.':sim.mod>sim.raw*1.02?'. Ainda não vale publicar.':': quase igual. Os dados ainda não mostram ganho; o app continua usando a velocidade informada onde não há ganho comprovado.'):'';
   return '<h3 class="gh">Previsão dos ônibus</h3>'+
@@ -5547,10 +5547,13 @@ var LV_PERF=null;
 if(LIVE.url&&window.fetch)fetch('perfil-onibus.json',{cache:'no-cache'}).then(function(r){return r.ok?r.json():null}).then(function(o){if(o&&o.p&&o.periodos)LV_PERF=o},function(){});
 function lvDiaUtil(t){var d=new Date(t),w=d.getDay(),k=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
   return w>0&&w<6&&!FERIADOS.some(function(f){return f[0]===k})}
-function lvPeriodo(t){var h=new Date(t).getHours();return h>=5&&h<12?'manha':h>=12&&h<18?'tarde':'noite'}
+/* faixa de horário do perfil: as do arquivo (ex.: [[7,9,"07-09"],…]); sem elas, manhã, tarde e noite */
+function lvPeriodo(t){var h=new Date(t).getHours(),F=LV_PERF&&LV_PERF.faixas;
+  if(F){for(var i=0;i<F.length;i++){var a=F[i][0],b=F[i][1];if(a<b?(h>=a&&h<b):(h>=a||h<b))return F[i][2]}return null}
+  return h>=5&&h<12?'manha':h>=12&&h<18?'tarde':'noite'}
 function lvPerfil(O){
   var P=LV_PERF;if(!P||O.i==null||!lvDiaUtil(O.t))return null;
-  var per=lvPeriodo(O.t),R=P.periodos[per],tr=lvmTracado(O.i);if(!R||tr==null)return null;
+  var per=lvPeriodo(O.t),R=per&&P.periodos[per],tr=lvmTracado(O.i);if(!R||tr==null)return null;
   var L=P.p[tr+'|'+(O.sign>0?1:-1)+'|'+per];if(!L)return null;
   var v=L[1][Math.floor(O.s/MPU/(P.trecho_m||60))-L[0]];
   return v!=null&&v>=0?{v:v/10,w:R.w}:null;
