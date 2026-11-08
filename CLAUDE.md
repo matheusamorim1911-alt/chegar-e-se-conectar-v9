@@ -7,6 +7,7 @@ App web (sem framework) da Cidade Universitária da UFRJ, publicado pelo GitHub 
   - `src/pagina/`: cabeçalho, estrutura (HTML) e fim da página;
   - `src/css/NN-*.css` e `src/js/NN-*.js`: estilos e código, juntados na ordem dos números;
   - `src/ext_onibus.json`: dados dos ônibus da cidade (gerado por `tools/gtfs_fundao.py`).
+  - `src/edificacoes.json`: prédios que faltavam na planta do mapa (gerado por `tools/edificacoes_ufrj.py` a partir do cadastro da UFRJ no ArcGIS, copiado em `tools/dados/`).
 - `tools/montar.py` junta as partes num arquivo único (`app-completo.html`, o que vai para o claude.ai).
 - `python3 tools/build_site.py` gera o site: `app.js`, `style.css`, o corpo do `index.html`, `version.json` e `sw.js`. **Nunca edite esses arquivos à mão.** O cabeçalho do `index.html` (até `<body>`) é mantido.
 

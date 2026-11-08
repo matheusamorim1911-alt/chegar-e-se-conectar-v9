@@ -10,6 +10,7 @@ const { chromium } = require('playwright');const servir=require('./servidor');
  await p.goto('http://localhost:8799/');await p.waitForTimeout(2500);
  ok(await p.evaluate(()=>!!document.querySelector('#map .mk')),'mapa com pontos');
  ok((await p.$$('.tabs [data-tab]')).length>=4,'abas presentes');
+ ok(await p.evaluate(()=>{const g=document.querySelector('#baseimg #gEdif');return !!g&&g.getAttribute('d').split('M').length>100}),'prédios que faltavam na planta desenhados (CENPES II, IEN…)');
  ok(await p.evaluate(async()=>{const m=await (await fetch('manifest.json')).json();return m.icons.length>=3}),'manifesto com ícones');
  await p.reload();await p.waitForTimeout(1500);
  ok(await p.evaluate(()=>!!navigator.serviceWorker.controller),'service worker ativo');
