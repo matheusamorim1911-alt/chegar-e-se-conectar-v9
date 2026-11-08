@@ -1,7 +1,7 @@
 # Gera o site (raiz do repositório, servida pelo GitHub Pages) a partir das partes em src/ (ver src/PARTES.md).
 # Uso, na raiz do repositório:  python3 tools/build_site.py
 # (opcional: python3 tools/build_site.py <fonte.html ou -> <pasta de saída> [versão])
-import sys,re,os,json,datetime,shutil
+import sys,re,os,json,datetime,shutil,hashlib
 ROOT=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 src=sys.argv[1] if len(sys.argv)>1 and sys.argv[1]!='-' else None
 out=sys.argv[2] if len(sys.argv)>2 else ROOT
@@ -11,7 +11,13 @@ import montar
 s=open(src,encoding='utf-8').read() if src else montar.montar()
 css=s[s.index('<style>')+7:s.index('</style>')]
 m=max(re.finditer(r'<script>(.*?)</script>',s,re.S),key=lambda m:len(m.group(1)))
-js=m.group(1).replace("'img/mapa-","'mapa-")
+js=m.group(1)
+# imagens da planta: no site ficam na raiz, e cada uma ganha uma marca do seu conteúdo no endereço (?v=...),
+# para o navegador e o service worker baixarem de novo só a que mudou
+imgs=sorted(f for f in os.listdir(out) if f.startswith('mapa-') and f.endswith(('.jpg','.svg')))
+marca={f:hashlib.sha1(open(os.path.join(out,f),'rb').read()).hexdigest()[:10] for f in imgs}
+assert js.count("var MAPA_DIR='img/',MAPA_V={};")==1
+js=js.replace("var MAPA_DIR='img/',MAPA_V={};","var MAPA_DIR='',MAPA_V=%s;"%json.dumps(marca,separators=(',',':')))
 assert js.count("var APP_VERSION='dev';")==1
 js=js.replace("var APP_VERSION='dev';","var APP_VERSION='%s';"%ver)
 body=s[s.index('</style>')+8:m.start()].strip('\n')
@@ -25,8 +31,7 @@ open(os.path.join(out,'app.js'),'w',encoding='utf-8').write(js.strip('\n')+'\n')
 open(os.path.join(out,'style.css'),'w',encoding='utf-8').write(css.strip('\n')+'\n')
 open(os.path.join(out,'version.json'),'w',encoding='utf-8').write(json.dumps({'v':ver})+'\n')
 # service worker: guarda o app para abrir sem internet; o nome do cache muda a cada versão
-imgs=sorted(f for f in os.listdir(out) if f.startswith('mapa-'))
-pre=['./','index.html','style.css?v='+ver,'app.js?v='+ver,'config.js?v='+ver,'manifest.json','icon-192.png','icon-512.png','apple-touch-icon.png','favicon-32.png']+imgs
+pre=['./','index.html','style.css?v='+ver,'app.js?v='+ver,'config.js?v='+ver,'manifest.json','icon-192.png','icon-512.png','apple-touch-icon.png','favicon-32.png']+[f+'?v='+marca[f] for f in imgs]
 sw=open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'sw_template.js'),encoding='utf-8').read().replace('__VER__',ver).replace('__PRE__',json.dumps(pre))
 open(os.path.join(out,'sw.js'),'w',encoding='utf-8').write(sw)
 print('versão',ver)

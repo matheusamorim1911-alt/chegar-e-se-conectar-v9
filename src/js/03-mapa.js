@@ -23,9 +23,13 @@ function rose(cx,cy,r,deg){
 /* ---------- mapa vetorial (traçado a partir do mapa da Prefeitura Universitária) ---------- */
 /* tema claro usa as versões claras do mapa; decide já na carga, para não baixar as duas */
 var MAPSUF=(function(){try{var t=CFG.tema||'escuro';if(t==='claro')return '-claro';if(t==='escuro'||t==='horario')return '';return window.matchMedia('(prefers-color-scheme: light)').matches?'-claro':''}catch(e){return ''}})();
-var MAPIMG='img/mapa-bordas'+MAPSUF+'.jpg';
+/* endereço de cada imagem da planta. No site, tools/build_site.py troca a pasta e põe em MAPA_V uma marca do conteúdo
+   de cada imagem: quando a imagem muda, o endereço muda e o aparelho baixa de novo (em vez de mostrar a cópia guardada) */
+var MAPA_DIR='img/',MAPA_V={};
+function mapaUrl(nome){return MAPA_DIR+nome+(MAPA_V[nome]?'?v='+MAPA_V[nome]:'')}
+var MAPIMG=mapaUrl('mapa-bordas'+MAPSUF+'.jpg');
 /* mapa base: planta cadastral da Cidade Universitária (ETU/UFRJ), vetorizada; JPG para a visão geral, SVG nítido no zoom */
-var MAPHD=window.MAPHD_URL='img/mapa-campus'+MAPSUF+'.jpg',MAPVEC='img/mapa-campus'+MAPSUF+'.svg',MAPMINI='img/mapa-mini'+MAPSUF+'.jpg',MAPBLUR='img/mapa-blur'+MAPSUF+'.jpg',MAPVEC0='img/mapa-campus.svg';
+var MAPHD=window.MAPHD_URL=mapaUrl('mapa-campus'+MAPSUF+'.jpg'),MAPVEC=mapaUrl('mapa-campus'+MAPSUF+'.svg'),MAPMINI=mapaUrl('mapa-mini'+MAPSUF+'.jpg'),MAPBLUR=mapaUrl('mapa-blur'+MAPSUF+'.jpg'),MAPVEC0=mapaUrl('mapa-campus.svg');
 /* nomes recriados como texto: [texto, x, y, classe, nível de zoom, rotação] */
 /* guaritas (posições do mapa da Prefeitura; o nº 33 da legenda é "Guaritas / DISEG") */
 var GUARDS={

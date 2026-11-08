@@ -63,7 +63,7 @@ gateUpdate();
 function mapThemeSync(light){
   var suf=light?'-claro':'';if(suf===MAPSUF)return;MAPSUF=suf;
   var oldVec=MAPVEC;
-  MAPIMG='img/mapa-bordas'+suf+'.jpg';MAPHD=window.MAPHD_URL='img/mapa-campus'+suf+'.jpg';MAPVEC='img/mapa-campus'+suf+'.svg';MAPMINI='img/mapa-mini'+suf+'.jpg';MAPBLUR='img/mapa-blur'+suf+'.jpg';
+  MAPIMG=mapaUrl('mapa-bordas'+suf+'.jpg');MAPHD=window.MAPHD_URL=mapaUrl('mapa-campus'+suf+'.jpg');MAPVEC=mapaUrl('mapa-campus'+suf+'.svg');MAPMINI=mapaUrl('mapa-mini'+suf+'.jpg');MAPBLUR=mapaUrl('mapa-blur'+suf+'.jpg');
   var im=document.querySelector('#baseimg image');if(im)im.setAttribute('href',MAPIMG);
   var hd=$('#imgHD');if(hd)hd.setAttribute('href',MAPHD);
   var vc=$('#imgVec');if(vc&&vc.getAttribute('href')===oldVec)vc.setAttribute('href',MAPVEC);

@@ -39,7 +39,10 @@ function extFoldHTML(now){
   var sub=nx?'Próximo: '+esc(nx.L.n)+' para '+esc(nx.L.d)+' '+(nx.t-now<=1?'agora':'em '+Math.round(nx.t-now)+' min'):'Linhas municipais e BRT que saem do Fundão';
   return '<div id="extbox">'+foldHTML('fdExt',open,'Ônibus da cidade','<small>'+sub+'</small>',open?extPanelHTML(now):'')+'</div>';
 }
-aoFazer('trajeto montado',function(){if(plan&&!$('#extbox'))plan.insertAdjacentHTML('beforeend',extFoldHTML(nowMin()))});function extRepaint(){var b=$('#extbox');if(b){var t=document.createElement('div');t.innerHTML=extFoldHTML(nowMin());b.replaceWith(t.firstChild)}}
+function extNoTrajeto(){if(plan&&!$('#extbox'))plan.insertAdjacentHTML('beforeend',extFoldHTML(nowMin()))}
+aoFazer('trajeto montado',extNoTrajeto);
+extNoTrajeto();/* Trajetos já foi montado uma vez antes desta parte carregar: sem isto, o bloco só aparecia na remontagem seguinte */
+function extRepaint(){var b=$('#extbox');if(b){var t=document.createElement('div');t.innerHTML=extFoldHTML(nowMin());b.replaceWith(t.firstChild)}}
 document.addEventListener('toggle',function(e){if(e.target&&e.target.id==='fdExt'){try{localStorage.setItem('cse-fold-ext',e.target.open?'1':'0')}catch(x){}if(e.target.open&&!e.target.querySelector('.xl-list'))extRepaint()}},true);
 document.addEventListener('click',function(e){
   var g=e.target.closest&&e.target.closest('[data-xg]');if(g){EXTSEL.g=g.dataset.xg||null;EXTSEL.ln=null;extRepaint();return}

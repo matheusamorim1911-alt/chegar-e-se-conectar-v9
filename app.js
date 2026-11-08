@@ -296,9 +296,13 @@ function rose(cx,cy,r,deg){
 /* ---------- mapa vetorial (traçado a partir do mapa da Prefeitura Universitária) ---------- */
 /* tema claro usa as versões claras do mapa; decide já na carga, para não baixar as duas */
 var MAPSUF=(function(){try{var t=CFG.tema||'escuro';if(t==='claro')return '-claro';if(t==='escuro'||t==='horario')return '';return window.matchMedia('(prefers-color-scheme: light)').matches?'-claro':''}catch(e){return ''}})();
-var MAPIMG='mapa-bordas'+MAPSUF+'.jpg';
+/* endereço de cada imagem da planta. No site, tools/build_site.py troca a pasta e põe em MAPA_V uma marca do conteúdo
+   de cada imagem: quando a imagem muda, o endereço muda e o aparelho baixa de novo (em vez de mostrar a cópia guardada) */
+var MAPA_DIR='',MAPA_V={"mapa-blur-claro.jpg":"a623be208f","mapa-blur.jpg":"eeab4c20a0","mapa-bordas-claro.jpg":"86153d48d7","mapa-bordas.jpg":"c88b82a8e7","mapa-campus-claro.jpg":"b307cf89c4","mapa-campus-claro.svg":"28ebea3feb","mapa-campus.jpg":"b4dc398960","mapa-campus.svg":"1e27187281","mapa-mini-claro.jpg":"f820802175","mapa-mini.jpg":"4d66caafdd"};
+function mapaUrl(nome){return MAPA_DIR+nome+(MAPA_V[nome]?'?v='+MAPA_V[nome]:'')}
+var MAPIMG=mapaUrl('mapa-bordas'+MAPSUF+'.jpg');
 /* mapa base: planta cadastral da Cidade Universitária (ETU/UFRJ), vetorizada; JPG para a visão geral, SVG nítido no zoom */
-var MAPHD=window.MAPHD_URL='mapa-campus'+MAPSUF+'.jpg',MAPVEC='mapa-campus'+MAPSUF+'.svg',MAPMINI='mapa-mini'+MAPSUF+'.jpg',MAPBLUR='mapa-blur'+MAPSUF+'.jpg',MAPVEC0='mapa-campus.svg';
+var MAPHD=window.MAPHD_URL=mapaUrl('mapa-campus'+MAPSUF+'.jpg'),MAPVEC=mapaUrl('mapa-campus'+MAPSUF+'.svg'),MAPMINI=mapaUrl('mapa-mini'+MAPSUF+'.jpg'),MAPBLUR=mapaUrl('mapa-blur'+MAPSUF+'.jpg'),MAPVEC0=mapaUrl('mapa-campus.svg');
 /* nomes recriados como texto: [texto, x, y, classe, nível de zoom, rotação] */
 /* guaritas (posições do mapa da Prefeitura; o nº 33 da legenda é "Guaritas / DISEG") */
 var GUARDS={
@@ -1315,7 +1319,7 @@ function warnHTML(c,key,open){
     '<div class="chips" role="group" aria-label="Tipo de mensagem">'+WTPL.map(function(t){return '<button class="chip" type="button" data-wt="'+t[0]+'" aria-pressed="'+(WS.tpl===t[0])+'">'+t[1]+'</button>'}).join('')+'</div>'+
     (WS.tpl==='saindo'?'<label class="wsafe"><input type="checkbox" id="wsafe-'+key+'" data-wsafe'+(WS.safe?' checked':'')+'> Pedir para me ligarem se eu não der notícia até '+fmt(c.arr+15)+'</label>':'')+
     '<label class="fld">Mensagem (pode editar)<textarea id="wtxt-'+key+'" class="wtxt" rows="5" maxlength="600">'+esc(txt)+'</textarea></label>'+
-    '<div class="later"><button class="copy" type="button" data-wcopy="'+key+'">Copiar mensagem</button><a class="copy wa" href="https://wa.me/?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener" data-wa="'+key+'">Abrir no WhatsApp</a></div>'+
+    '<div class="later"><button class="copy" type="button" data-wcopy="'+key+'">Copiar mensagem</button><a class="copy wa" href="https://wa.me/?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener" data-wa="'+key+'"><svg class="lk-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 18.8z"/></svg>Abrir no WhatsApp</a></div>'+
     '<p class="muted small">A página não envia nada sozinha: você escolhe para quem mandar no WhatsApp ou cola em outro app.</p></div>';
   return '<details class="det wdet" id="wdet-'+key+'"'+(WS.open?' open':'')+'><summary><span class="wdet-t"><b>Avisar alguém</b><small>Mensagem pronta com o ônibus e a hora de chegada</small></span></summary>'+body+'</details>';
 }
@@ -3304,7 +3308,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261107-2256';
+var APP_VERSION='20261108-1206';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -4464,7 +4468,7 @@ gateUpdate();
 function mapThemeSync(light){
   var suf=light?'-claro':'';if(suf===MAPSUF)return;MAPSUF=suf;
   var oldVec=MAPVEC;
-  MAPIMG='mapa-bordas'+suf+'.jpg';MAPHD=window.MAPHD_URL='mapa-campus'+suf+'.jpg';MAPVEC='mapa-campus'+suf+'.svg';MAPMINI='mapa-mini'+suf+'.jpg';MAPBLUR='mapa-blur'+suf+'.jpg';
+  MAPIMG=mapaUrl('mapa-bordas'+suf+'.jpg');MAPHD=window.MAPHD_URL=mapaUrl('mapa-campus'+suf+'.jpg');MAPVEC=mapaUrl('mapa-campus'+suf+'.svg');MAPMINI=mapaUrl('mapa-mini'+suf+'.jpg');MAPBLUR=mapaUrl('mapa-blur'+suf+'.jpg');
   var im=document.querySelector('#baseimg image');if(im)im.setAttribute('href',MAPIMG);
   var hd=$('#imgHD');if(hd)hd.setAttribute('href',MAPHD);
   var vc=$('#imgVec');if(vc&&vc.getAttribute('href')===oldVec)vc.setAttribute('href',MAPVEC);
@@ -5033,7 +5037,10 @@ function extFoldHTML(now){
   var sub=nx?'Próximo: '+esc(nx.L.n)+' para '+esc(nx.L.d)+' '+(nx.t-now<=1?'agora':'em '+Math.round(nx.t-now)+' min'):'Linhas municipais e BRT que saem do Fundão';
   return '<div id="extbox">'+foldHTML('fdExt',open,'Ônibus da cidade','<small>'+sub+'</small>',open?extPanelHTML(now):'')+'</div>';
 }
-aoFazer('trajeto montado',function(){if(plan&&!$('#extbox'))plan.insertAdjacentHTML('beforeend',extFoldHTML(nowMin()))});function extRepaint(){var b=$('#extbox');if(b){var t=document.createElement('div');t.innerHTML=extFoldHTML(nowMin());b.replaceWith(t.firstChild)}}
+function extNoTrajeto(){if(plan&&!$('#extbox'))plan.insertAdjacentHTML('beforeend',extFoldHTML(nowMin()))}
+aoFazer('trajeto montado',extNoTrajeto);
+extNoTrajeto();/* Trajetos já foi montado uma vez antes desta parte carregar: sem isto, o bloco só aparecia na remontagem seguinte */
+function extRepaint(){var b=$('#extbox');if(b){var t=document.createElement('div');t.innerHTML=extFoldHTML(nowMin());b.replaceWith(t.firstChild)}}
 document.addEventListener('toggle',function(e){if(e.target&&e.target.id==='fdExt'){try{localStorage.setItem('cse-fold-ext',e.target.open?'1':'0')}catch(x){}if(e.target.open&&!e.target.querySelector('.xl-list'))extRepaint()}},true);
 document.addEventListener('click',function(e){
   var g=e.target.closest&&e.target.closest('[data-xg]');if(g){EXTSEL.g=g.dataset.xg||null;EXTSEL.ln=null;extRepaint();return}
@@ -5589,7 +5596,8 @@ tiroLoop();
    O BandejApp (DevMob UFRJ / extensão Promove) mostra o cardápio dos RUs. Aqui só há um link para ele:
    nada de usar o serviço de dados deles sem combinar. */
 var BANDEJAPP_URL='https://devmobufrj.github.io/BandejApp/';
-function bandejaLinkHTML(){return '<a class="copy bdj-link" href="'+BANDEJAPP_URL+'" target="_blank" rel="noopener">Ver o cardápio no BandejApp</a>'}
+function bandejaLinkHTML(){return '<a class="copy bdj-link" href="'+BANDEJAPP_URL+'" target="_blank" rel="noopener">'+
+  '<svg class="lk-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 21V3c-2 1.5-3 4-3 7v3h3"/></svg>Ver o cardápio no BandejApp</a>'}
 /* ======================= Gestão › Saúde e estatísticas =======================
    Confere, a pedido, se cada serviço de que o app depende está respondendo (e em quanto tempo),
    e mostra números de uso. Só lê: não apaga nem altera nada. */
@@ -5720,6 +5728,38 @@ function edifDraw(){
 }
 aoFazer('mapa montado',edifDraw);
 edifDraw();
+/* ======================= Atalho para o Jaé (passagem dos ônibus, BRT e VLT da prefeitura) =======================
+   O Jaé não tem serviço aberto para outros apps (saldo, recarga, QR Code) nem um link público que abra o app direto
+   (como o wa.me do WhatsApp). Por isso o atalho leva à página do app oficial na loja do aparelho: lá aparece "Abrir"
+   se o app já estiver instalado e "Instalar"/"Obter" se não estiver. No computador, mostra as duas lojas. */
+var JAE_IOS='https://apps.apple.com/br/app/id6449981829';
+var JAE_PLAY='https://play.google.com/store/apps/details?id=br.com.billingpay.app.pf';
+function jaeAparelho(){
+  var ua=navigator.userAgent;
+  if(/iPhone|iPad|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1))return 'ios';
+  return /Android/.test(ua)?'android':'';
+}
+var JAE_IC='<svg class="lk-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M3 10h18M7 14.5h4"/></svg>';
+function jaeLink(url,txt){return '<a class="copy jae-link" href="'+url+'" target="_blank" rel="noopener">'+JAE_IC+txt+'</a>'}
+function jaeHTML(){
+  var a=jaeAparelho();
+  var botoes=a==='ios'?jaeLink(JAE_IOS,'Abrir ou baixar o Jaé'):a==='android'?jaeLink(JAE_PLAY,'Abrir ou baixar o Jaé'):
+    jaeLink(JAE_PLAY,'Jaé no Google Play')+jaeLink(JAE_IOS,'Jaé na App Store');
+  return '<div class="jae-box"><p class="small keep">Nos ônibus, BRT e VLT da prefeitura, a passagem é paga com o <b>Jaé</b>: cartão ou QR Code no app.</p>'+
+    '<div class="jae-bt">'+botoes+'</div>'+(a?'<p class="muted small keep">Se o app já estiver instalado, a loja mostra o botão Abrir.</p>':'')+'</div>';
+}
+/* em Trajetos, logo depois de "Ônibus da cidade" (fora do bloco, que é redesenhado a cada minuto) */
+function jaeTrajeto(){
+  if(!plan||$('#jaebox'))return;
+  var d=document.createElement('div');d.id='jaebox';d.innerHTML=jaeHTML();
+  var x=$('#extbox');if(x)x.insertAdjacentElement('afterend',d);else plan.appendChild(d);
+}
+aoFazer('trajeto montado',jaeTrajeto);
+jaeTrajeto();/* Trajetos já foi montado uma vez antes desta parte carregar */
+/* no detalhe de um ponto da prefeitura */
+aoFazer('detalhe montado',function(){
+  if(state.sel&&state.sel.kind==='ext'&&detail&&!detail.querySelector('.jae-box'))detail.insertAdjacentHTML('beforeend',jaeHTML());
+});
 /* ======================= Início: a aba pedida no endereço =======================
    Fica por último, depois que todas as partes carregaram: abrir uma aba desenha a tela inteira dela
    (Lugares, por exemplo, usa o Wi-Fi e o eduroam, definidos em partes posteriores). Abrir antes disso
