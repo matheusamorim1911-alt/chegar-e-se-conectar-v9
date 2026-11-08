@@ -14,6 +14,7 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `09-onibus-cidade-e-ct.css`: ônibus da cidade, ao vivo e planta real do CT
 - `10-tiroteios.css`: lista de tiroteios perto das saídas
 - `11-bandejapp-e-saude.css`: atalho do BandejApp e aba Saúde e estatísticas
+- `12-predios-ufrj.css`: cor dos prédios que faltavam na planta e do chão onde a planta é redesenhada
 
 ## Código (js/)
 - `01-nucleo.js`: pontos de extensão (etapas), modo do site, ajustes salvos e utilidades básicas
@@ -41,4 +42,5 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `23-tiroteios.js`: tiroteios perto das saídas do Fundão (Fogo Cruzado), opcional em Ajustes
 - `24-bandejapp.js`: atalho para o cardápio no BandejApp (app oficial do RU)
 - `25-saude.js`: Gestão › Saúde e estatísticas (se cada serviço responde e números de uso)
+- `26-predios-ufrj.js`: prédios que faltavam na planta (CENPES II, IEN, bloco central do CT…), CENPES e CEPEL redesenhados e nomes no zoom, do cadastro da UFRJ
 - `99-inicio.js`: abre a aba pedida no endereço (#predios, #grade…) depois que tudo carregou; fica sempre por último

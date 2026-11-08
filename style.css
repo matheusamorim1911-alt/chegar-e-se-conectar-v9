@@ -1697,3 +1697,9 @@ a.bdj-link{text-decoration:none;display:inline-flex;align-items:center}
 .sd-list .grow2{align-items:center}
 .sd-ms{font-variant-numeric:tabular-nums;color:var(--muted,inherit);font-size:12px;margin-right:6px}
 .sd-sec{margin-top:6px}
+/* prédios do cadastro da UFRJ que faltavam na planta: mesma cor e contorno dos prédios do mapa */
+#gEdif{fill:#4d5967;stroke:#6f7b89;stroke-width:.45;stroke-linejoin:round;pointer-events:none}
+.mapclaro #gEdif{fill:#c4cdd7;stroke:#96a2af}
+/* prédios borrados da planta, cobertos com a cor do chão antes de redesenhar (contorno largo cobre o traço antigo) */
+#gEdifFundo{fill:#12161c;stroke:#12161c;stroke-width:2.4;stroke-linejoin:round;pointer-events:none}
+.mapclaro #gEdifFundo{fill:#f4f6f8;stroke:#f4f6f8}
