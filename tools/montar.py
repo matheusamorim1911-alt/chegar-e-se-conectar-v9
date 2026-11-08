@@ -13,6 +13,9 @@ def montar():
   # prédios que faltavam na planta (gerados por tools/edificacoes_ufrj.py a partir do cadastro da UFRJ)
   assert js.count('__EDIFICACOES__')==1
   js=js.replace('__EDIFICACOES__',ler(os.path.join(S,'edificacoes.json')).strip())
+  # semáforos e lombadas para a previsão dos ônibus (gerados por tools/redutores.py)
+  assert js.count('__REDUTORES__')==1
+  js=js.replace('__REDUTORES__',ler(os.path.join(S,'redutores.json')).strip())
   return (ler(os.path.join(S,'pagina','cabecalho.html'))+'<style>\n'+css+'</style>\n'+ler(os.path.join(S,'pagina','corpo.html'))+
           "<script>\n(function(){\n'use strict';\n"+js+'})();\n</script>\n'+ler(os.path.join(S,'pagina','fim.html')))
 if __name__=='__main__':

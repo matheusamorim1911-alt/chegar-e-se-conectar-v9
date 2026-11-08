@@ -3308,7 +3308,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261108-1206';
+var APP_VERSION='20261108-1234';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -5029,7 +5029,8 @@ function extPanelHTML(now){
     var k=L.n+'|'+L.d,open=EXTSEL.ln===k,first=L.st[0][0];
     return '<li><button type="button" class="xl-row" data-xln="'+esc(k)+'" aria-expanded="'+open+'">'+extBadge(L)+'<span class="grow"><b>'+esc(L.d)+'</b><small>'+extWhen(L,first,now)+' · '+esc(EXTS[first]?EXTS[first].name:'')+'</small></span></button>'+
       (open?'<div class="xl-more"><p class="small keep">'+esc(L.nm)+'. Passa por: '+extStopsOf(L).map(function(n,i){return '<button type="button" class="linkbtn" data-kind="ext" data-id="'+L.st[i][0]+'">'+esc(n)+'</button>'}).join(', ')+'.</p><p class="small keep">Hoje: '+extToday(L)+' saídas'+(extToday(L)?', da primeira às '+fmt((L.t[extSvc(new Date())]||[0])[0])+' à última às '+fmt((L.t[extSvc(new Date())]||[0]).slice(-1)[0]):'')+'.</p></div>':'')+'</li>'}).join('')+'</ul>';
-  return liveStatusHTML()+chips+list+(fora?'<p class="muted small keep">'+fora+' linha'+(fora>1?'s':'')+' deste destino não circula'+(fora>1?'m':'')+' hoje.</p>':'')+'<p class="muted small keep xsrc">Horários programados pela prefeitura ('+esc(EXT.fonte)+'). O trânsito pode atrasar o ônibus.</p>';
+  return liveStatusHTML()+chips+list+(fora?'<p class="muted small keep">'+fora+' linha'+(fora>1?'s':'')+' deste destino não circula'+(fora>1?'m':'')+' hoje.</p>':'')+'<p class="muted small keep xsrc">Horários programados pela prefeitura ('+esc(EXT.fonte)+'). O trânsito pode atrasar o ônibus.'+
+    (REDUT&&REDUT.ajuste?' A posição ao vivo considera os semáforos mapeados pela UFRJ e pelo OpenStreetMap (© colaboradores do OpenStreetMap).':'')+'</p>';
 }
 function extFoldHTML(now){
   var open=(function(){try{return localStorage.getItem('cse-fold-ext')==='1'}catch(e){return false}})();
@@ -5323,6 +5324,8 @@ function lvmVb(v){var k=v*3.6;return k<2?0:k<15?1:k<35?2:3}/* faixa de velocidad
 function lvmPer(t){var d=new Date(t),h=d.getHours()+d.getMinutes()/60,w=d.getDay();return (w>0&&w<6&&((h>=6&&h<9.5)||(h>=16&&h<20)))?'p':'f'}
 function lvmDir(O){if(O.i==null)return 0;var a=shpAt(O.i,O.s).ang+(O.sign<0?180:0);return Math.round((((a%360)+360)%360)/45)%8}
 function lvmCel(O){var c=LVM_CEL*MPU;return Math.floor(O.x/c)+','+Math.floor(O.y/c)}
+/* número do traçado da prefeitura (posição em EXT.shp) a partir do índice interno */
+var LVM_TR=null;function lvmTracado(i){if(!LVM_TR){LVM_TR={};Object.keys(SHP_EXT).forEach(function(k){LVM_TR[SHP_EXT[k]]=k})}return i!=null&&LVM_TR[i]!=null?LVM_TR[i]:null}
 /* velocidade efetiva (m/s) ao longo do traçado: a informada, corrigida pelo que se aprendeu naquele trecho */
 function lvmVel(O){
   if(lvmVb(O.v)===0)return 0;/* parado fica parado: nas medições, 3 de cada 4 continuavam no mesmo lugar */
@@ -5340,7 +5343,9 @@ function lvmMede(o,P,O){
   var real=(O.s-P.s)*P.sign/MPU;
   if(Math.abs(real)>25*dt+60)return;
   var h=Math.min(dt,60),dRaw=P.v*h,dMod=(typeof lvDist==='function'?lvDist(P,h):lvV(P)*h),dReal=real*(h/dt);
-  var amostra=[Math.round(P.t/1000),o.l,lvmCel(P),lvmDir(P),lvmVb(P.v),lvmPer(P.t),Math.round(dt),Math.round(P.v*36),Math.round(real),Math.round(dRaw),Math.round(dMod)].join('|');
+  /* traçado e posição ao longo dele (de 5 em 5 m): permitem achar onde o ônibus perde tempo (semáforo, lombada) */
+  var tr=lvmTracado(P.i),pos=tr==null?'':Math.round(P.s/MPU/5)*5;
+  var amostra=[Math.round(P.t/1000),o.l,lvmCel(P),lvmDir(P),lvmVb(P.v),lvmPer(P.t),Math.round(dt),Math.round(P.v*36),Math.round(real),Math.round(dRaw),Math.round(dMod),tr==null?'':tr,pos,P.sign>0?1:-1].join('|');
   LVM.fila.push(amostra);LVM.hist.push(amostra);
   /* aprende só com ônibus em movimento, intervalos normais e sem salto para trás (erro de encaixe, não movimento) */
   if(dt<=75&&real>=-50&&lvmVb(P.v)>0)lvfSoma(LVM.loc,lvfChaves(lvmCel(P),lvmDir(P),lvmVb(P.v),lvmPer(P.t)),dReal,dRaw);
@@ -5375,7 +5380,7 @@ if(LIVE.url)setTimeout(function(){lvmCarrega()},2500);
 /* ---------- Gestão › Previsão dos ônibus ---------- */
 GTABS.push(['previsao','Previsão dos ônibus']);TAB_PERM.previsao='linhas';
 var LVG={am:null,busy:false,err:false,docs:0};
-function lvmParse(s){var a=String(s).split('|');if(a.length<11)return null;return {t:+a[0],l:a[1],cel:a[2],d:+a[3],vb:+a[4],per:a[5],dt:+a[6],v:+a[7]/36,real:+a[8],raw:+a[9],mod:+a[10]}}
+function lvmParse(s){var a=String(s).split('|');if(a.length<11)return null;return {t:+a[0],l:a[1],cel:a[2],d:+a[3],vb:+a[4],per:a[5],dt:+a[6],v:+a[7]/36,real:+a[8],raw:+a[9],mod:+a[10],tr:a[11]||'',pos:a[12]||'',sg:a[13]||''}}
 function lvgCarrega(){
   if(LVG.busy)return;LVG.busy=true;LVG.err=false;
   var p=FB_ON?fbInit().then(function(fb){return fb.db.collection('desvios').limit(3000).get()}).then(function(s){LVG.docs=s.docs.length;LVG.ids=s.docs.map(function(d){return [d.id,(d.data()||{}).ts||0]});var r=[];s.docs.forEach(function(d){(d.data().a||[]).forEach(function(x){r.push(x)})});return r.concat(LVM.fila)})
@@ -5384,8 +5389,8 @@ function lvgCarrega(){
 }
 function lvgMae(A,f){if(!A.length)return null;return A.reduce(function(s,a){return s+Math.abs(f(a))},0)/A.length}
 function lvgCSV(){
-  var A=LVG.am||[],l=['hora,linha,celula,direcao_0a7,faixa_vel,periodo,intervalo_s,vel_informada_kmh,andou_real_m,previsto_simples_m,previsto_aprendido_m'];
-  A.forEach(function(a){l.push([new Date(a.t*1000).toISOString(),a.l,'"'+a.cel+'"',a.d,a.vb,a.per,a.dt,Math.round(a.v*3.6),a.real,a.raw,a.mod].join(','))});
+  var A=LVG.am||[],l=['hora,linha,celula,direcao_0a7,faixa_vel,periodo,intervalo_s,vel_informada_kmh,andou_real_m,previsto_simples_m,previsto_aprendido_m,tracado,posicao_m,sentido'];
+  A.forEach(function(a){l.push([new Date(a.t*1000).toISOString(),a.l,'"'+a.cel+'"',a.d,a.vb,a.per,a.dt,Math.round(a.v*3.6),a.real,a.raw,a.mod,a.tr,a.pos,a.sg].join(','))});
   var el=document.createElement('a');el.href=URL.createObjectURL(new Blob([l.join('\n')],{type:'text/csv'}));el.download='desvios-previsao-onibus.csv';document.body.appendChild(el);el.click();setTimeout(function(){URL.revokeObjectURL(el.href);el.remove()},1000);
 }
 function gPrevisao(){
@@ -5396,6 +5401,8 @@ function gPrevisao(){
   var faixas=['parado','até 15 km/h','15 a 35 km/h','acima de 35 km/h'],linhas={};A.forEach(function(a){linhas[a.l]=1});
   var porVb=faixas.map(function(nm,i){var B=cur.filter(function(a){return a.vb===i});return '<tr><td>'+nm+'</td><td>'+B.length+'</td><td>'+f(lvgMae(B,function(a){return a.real*h(a)-a.raw}))+'</td><td>'+f(lvgMae(B,function(a){return a.real*h(a)-a.mod}))+'</td></tr>'}).join('');
   var hist=LV_HIST?'<p class="small keep"><b>Previsão ajustada pelo histórico de GPS da prefeitura</b> ('+esc(LV_HIST.de||'')+' a '+esc(LV_HIST.ate||'')+', '+(LV_HIST.pares||0).toLocaleString('pt-BR')+' pares de posições): erro médio nos dias de teste de '+f(LV_HIST.aval.so_velocidade)+' para '+f(Math.min.apply(null,Object.keys(LV_HIST.aval).map(function(k){return LV_HIST.aval[k]})))+'. Com isso, os aparelhos param de enviar medições.</p>':'';
+  var RA=REDUT&&REDUT.ajuste,red='<p class="small keep"><b>Semáforos e lombadas</b>: '+(REDUT.s||[]).length+' semáforos e '+(REDUT.l||[]).length+' lombadas mapeados (UFRJ e OpenStreetMap). '+
+    (RA?'Com o GPS da prefeitura ('+(RA.pares||0).toLocaleString('pt-BR')+' pares de posições), perder '+RA.semaforo_s+' s em cada semáforo'+(RA.lombada_s?' e '+RA.lombada_s+' s em cada lombada':'')+' baixou o erro médio nos dias de teste de '+f(RA.erro_antes_m)+' para '+f(RA.erro_depois_m)+'.':'Ainda sem ganho comprovado com o GPS da prefeitura: a previsão não os considera.')+'</p>';
   var pub=LVM.pubAt?'Modelo publicado em '+new Date(LVM.pubAt).toLocaleString('pt-BR')+' com '+(LVM.pubN||0).toLocaleString('pt-BR')+' medições.':'Nenhum modelo publicado ainda: cada aparelho usa só o que aprendeu sozinho.';
   var simTxt=sim?'Se publicar agora, o erro médio estimado passa de '+f(sim.raw)+' (só a velocidade) para '+f(sim.mod)+(sim.mod<sim.raw*0.98?'. Vale publicar.':sim.mod>sim.raw*1.02?'. Ainda não vale publicar.':': quase igual. Os dados ainda não mostram ganho; o app continua usando a velocidade informada onde não há ganho comprovado.'):'';
   return '<h3 class="gh">Previsão dos ônibus</h3>'+
@@ -5407,7 +5414,7 @@ function gPrevisao(){
     (saltos?'<p class="muted small keep">'+saltos+' medições ('+Math.round(saltos/A.length*100)+'%) foram descartadas: o ônibus pareceu voltar mais de 50 m, sinal de que foi encaixado no trecho errado do traçado.</p>':'')+
     '<table class="lvg-t"><thead><tr><th>Velocidade informada</th><th>Medições</th><th>Erro só com a velocidade</th><th>Erro do que o app mostrou</th></tr></thead><tbody>'+porVb+'</tbody></table>'+
     '<p class="muted small keep">Erro medido quando chega a posição nova (até 60 s de previsão). Medições feitas antes desta versão usaram o ajuste antigo.</p>'+
-    hist+'<p class="small keep">'+pub+'</p>'+
+    hist+red+'<p class="small keep">'+pub+'</p>'+
     '<div class="row gbtns">'+(FB_ON?'<button type="button" class="copy primary" id="lvgPub2"'+(A.length?'':' disabled')+'>Recalcular e publicar o modelo</button>':'')+
     '<button type="button" class="copy" id="lvgCsv"'+(A.length?'':' disabled')+'>Baixar medições (CSV)</button><button type="button" class="copy" id="lvgRe">Atualizar</button>'+
     (FB_ON&&LVG.docs?'<button type="button" class="linkbtn" id="lvgOld">Apagar medições com mais de 90 dias</button>':'')+'</div>';
@@ -5519,15 +5526,35 @@ if(LIVE.url&&window.fetch)fetch('historico-previsao.json',{cache:'no-cache'}).th
       if(best&&best.d<=25*MPU)out.push([best.s,q[0].toFixed(5)+','+q[1].toFixed(5)])});
     out.sort(function(a,b){return a[0]-b[0]});S.st=out.map(function(x){return x[0]});S.stK=out.map(function(x){return x[1]})});
 })();
-/* metros andados em dt segundos: na velocidade (corrigida pelo aprendizado), parando ~12 s no próximo ponto do caminho */
+/* semáforos e lombadas (UFRJ e OpenStreetMap, gerados por tools/redutores.py): posição ao longo de cada traçado.
+   Só mudam a previsão se o ajuste foi comprovado com o GPS da prefeitura (REDUT.ajuste); senão ficam guardados. */
+var REDUT={"fonte":"UFRJ (Mobilidade e Transporte, ArcGIS Online) e OpenStreetMap (© colaboradores do OpenStreetMap, ODbL)","s":[[-22.843312,-43.233795],[-22.843016,-43.234006],[-22.83971,-43.23737],[-22.839494,-43.237478],[-22.839587,-43.238778],[-22.838373,-43.240239],[-22.839426,-43.241228],[-22.839233,-43.241093],[-22.839217,-43.241411],[-22.838955,-43.241416],[-22.838282,-43.24225],[-22.840523,-43.240023],[-22.845255,-43.238797],[-22.844767,-43.238531],[-22.850078,-43.235156],[-22.849867,-43.234899],[-22.853421,-43.23273],[-22.853245,-43.232449],[-22.860963,-43.227263],[-22.860813,-43.226967],[-22.864523,-43.228994],[-22.864526,-43.229263],[-22.880771,-43.258243],[-22.868195,-43.254908],[-22.845426,-43.268012],[-22.84729,-43.267359],[-22.854046,-43.261359],[-22.869588,-43.268194],[-22.872481,-43.268546],[-22.872217,-43.268399],[-22.874008,-43.26648],[-22.847461,-43.265724],[-22.856692,-43.252321],[-22.865156,-43.25262],[-22.86589,-43.255155],[-22.865575,-43.254079],[-22.865235,-43.252912],[-22.866997,-43.254887],[-22.866303,-43.252525],[-22.85453,-43.260284],[-22.858012,-43.256904],[-22.851294,-43.264098],[-22.84216,-43.269766],[-22.845703,-43.267918],[-22.871133,-43.258098],[-22.871793,-43.258309],[-22.878804,-43.250881],[-22.880844,-43.253526],[-22.882925,-43.254121],[-22.854742,-43.26052],[-22.844203,-43.268878],[-22.861844,-43.224425],[-22.855095,-43.252504],[-22.872477,-43.268162],[-22.866487,-43.255836],[-22.866076,-43.255974],[-22.838455,-43.241933],[-22.833278,-43.239435],[-22.833344,-43.239689],[-22.832763,-43.238653],[-22.832979,-43.238867],[-22.873209,-43.267221],[-22.873249,-43.267614],[-22.874106,-43.266165],[-22.87422,-43.266642],[-22.874344,-43.266166],[-22.872709,-43.258534],[-22.873037,-43.262581],[-22.87326,-43.252927],[-22.873785,-43.257966],[-22.874031,-43.257863],[-22.883249,-43.254092],[-22.883937,-43.253662],[-22.859646,-43.267572],[-22.876805,-43.256516],[-22.878175,-43.255453],[-22.882944,-43.254406],[-22.884165,-43.253348],[-22.884613,-43.264571],[-22.884526,-43.26402],[-22.884857,-43.264595],[-22.884981,-43.265299],[-22.867285,-43.251866],[-22.867524,-43.251932],[-22.854556,-43.254601],[-22.850955,-43.263588],[-22.846859,-43.243126],[-22.880122,-43.268246],[-22.878554,-43.26577],[-22.878171,-43.264324],[-22.878439,-43.261457],[-22.879832,-43.259763],[-22.880392,-43.258928],[-22.883921,-43.248983],[-22.86698,-43.255337],[-22.880637,-43.250825],[-22.880471,-43.250279],[-22.854599,-43.254008],[-22.849539,-43.265973],[-22.84872,-43.266844],[-22.880666,-43.258936],[-22.861736,-43.267849],[-22.854752,-43.254193],[-22.854813,-43.254775],[-22.857326,-43.25714],[-22.856866,-43.267023]],"l":[[-22.850025,-43.235143],[-22.849905,-43.234964],[-22.846297,-43.237837],[-22.847287,-43.238576],[-22.843097,-43.233957],[-22.843265,-43.233798],[-22.860896,-43.226972],[-22.8609,-43.227236],[-22.863344,-43.230032],[-22.863081,-43.230232],[-22.866626,-43.218363],[-22.864184,-43.228122],[-22.863971,-43.228213],[-22.864682,-43.219677],[-22.864457,-43.220242],[-22.851317,-43.261],[-22.85153,-43.260691],[-22.831885,-43.242717],[-22.829917,-43.247193],[-22.830227,-43.246728],[-22.877039,-43.269797],[-22.839875,-43.238168],[-22.863135,-43.238984],[-22.862769,-43.238734],[-22.853067,-43.264697],[-22.852552,-43.265146],[-22.852289,-43.26517],[-22.851882,-43.264781],[-22.851562,-43.26444],[-22.862958,-43.238872],[-22.862692,-43.239003],[-22.863482,-43.239171],[-22.859679,-43.267804],[-22.837021,-43.267161],[-22.837044,-43.266643],[-22.8368,-43.265093],[-22.836416,-43.263363],[-22.839459,-43.266145],[-22.839881,-43.265255],[-22.839045,-43.264265],[-22.843005,-43.262414],[-22.842513,-43.268512],[-22.844757,-43.266222],[-22.845621,-43.266347],[-22.85015,-43.261207],[-22.850435,-43.261171],[-22.853116,-43.260851],[-22.854423,-43.262712],[-22.853379,-43.263264],[-22.854468,-43.254332],[-22.854762,-43.252739],[-22.854614,-43.253682],[-22.854573,-43.253864],[-22.854428,-43.25455],[-22.85023,-43.254399],[-22.847689,-43.25157],[-22.847802,-43.251063],[-22.846547,-43.249558],[-22.846841,-43.248346],[-22.848305,-43.248106],[-22.845308,-43.254552],[-22.845325,-43.254232],[-22.845477,-43.255021],[-22.851239,-43.264013],[-22.884738,-43.219124],[-22.884274,-43.219833],[-22.883985,-43.220549],[-22.882339,-43.223826],[-22.831653,-43.242893],[-22.841937,-43.238868],[-22.843822,-43.238211],[-22.847123,-43.238017],[-22.857797,-43.230733],[-22.858263,-43.231051],[-22.856044,-43.246127],[-22.855943,-43.245239],[-22.855842,-43.24428],[-22.855745,-43.243288],[-22.855467,-43.242235],[-22.855186,-43.242311],[-22.855435,-43.243473],[-22.859601,-43.241187],[-22.861177,-43.238999],[-22.860955,-43.239375],[-22.861078,-43.239299],[-22.861525,-43.238728],[-22.864097,-43.243352],[-22.863781,-43.243186],[-22.864706,-43.243647],[-22.864864,-43.244068],[-22.864747,-43.240631],[-22.864374,-43.240052],[-22.864704,-43.238776],[-22.865211,-43.238983],[-22.866082,-43.239361],[-22.866622,-43.239605],[-22.866195,-43.238527],[-22.866554,-43.238548],[-22.867596,-43.239063],[-22.866981,-43.237346],[-22.867394,-43.236725],[-22.867507,-43.236274],[-22.867577,-43.235366],[-22.86858,-43.236844],[-22.868627,-43.237353],[-22.868806,-43.237702],[-22.868278,-43.239682],[-22.868834,-43.239769],[-22.868662,-43.24098],[-22.869836,-43.240758],[-22.870183,-43.240353],[-22.870938,-43.239469],[-22.869805,-43.237771],[-22.870761,-43.237944],[-22.869022,-43.242103],[-22.869256,-43.241674],[-22.869386,-43.241563],[-22.86977,-43.24122],[-22.870539,-43.240382],[-22.871513,-43.239321],[-22.871614,-43.239136],[-22.871909,-43.239563],[-22.872312,-43.240154],[-22.87308,-43.241284],[-22.873559,-43.24166],[-22.872407,-43.242584],[-22.874586,-43.240859],[-22.875227,-43.240342],[-22.875663,-43.240116],[-22.875689,-43.239652],[-22.876019,-43.240234],[-22.875094,-43.239138],[-22.874772,-43.238577],[-22.876344,-43.24082],[-22.876373,-43.2412],[-22.876009,-43.239136],[-22.876531,-43.238781],[-22.877166,-43.238332],[-22.877258,-43.237938],[-22.876554,-43.237425],[-22.877821,-43.238357],[-22.877668,-43.238243],[-22.878514,-43.238857],[-22.879121,-43.239278],[-22.875543,-43.242272],[-22.875068,-43.242629],[-22.874592,-43.243027],[-22.871256,-43.242569],[-22.87107,-43.241543],[-22.870646,-43.240929],[-22.870182,-43.242196],[-22.870527,-43.243138],[-22.869709,-43.243073],[-22.869366,-43.242428],[-22.868766,-43.257852],[-22.868723,-43.2569],[-22.869466,-43.257985],[-22.869439,-43.257533],[-22.869412,-43.257085],[-22.869383,-43.256609],[-22.869313,-43.255422],[-22.869839,-43.255933],[-22.870431,-43.255898],[-22.870069,-43.256317],[-22.870162,-43.257916],[-22.869496,-43.265448],[-22.869805,-43.265685],[-22.875128,-43.259674],[-22.875872,-43.259369],[-22.876569,-43.259799],[-22.877001,-43.259104],[-22.877288,-43.2598],[-22.876811,-43.260916],[-22.87815,-43.266995],[-22.877116,-43.267611],[-22.876306,-43.268095],[-22.875557,-43.268804],[-22.875422,-43.268206],[-22.875617,-43.269457],[-22.877528,-43.269517],[-22.869865,-43.264918],[-22.841513,-43.264223],[-22.8464,-43.26421],[-22.839319,-43.260205],[-22.868903,-43.255978],[-22.863701,-43.23814],[-22.869031,-43.248648],[-22.851394,-43.260849],[-22.841365,-43.238464],[-22.880907,-43.259815],[-22.877896,-43.244562],[-22.876019,-43.259309],[-22.851888,-43.260705],[-22.851261,-43.261233],[-22.840948,-43.237601],[-22.866155,-43.21703],[-22.866985,-43.216466],[-22.866446,-43.215844],[-22.865505,-43.217481],[-22.865013,-43.217526],[-22.864862,-43.217924],[-22.864317,-43.218826],[-22.863926,-43.219083],[-22.864698,-43.215046],[-22.855426,-43.250086],[-22.855297,-43.249236]],"ajuste":null},LV_EV_IGNORA=10;
+(function(){
+  var A=REDUT.ajuste;if(!A)return;
+  var evs=[];(REDUT.s||[]).forEach(function(q){evs.push([q,A.semaforo_s,20])});(REDUT.l||[]).forEach(function(q){evs.push([q,A.lombada_s,15])});
+  Object.keys(SHP_EXT).forEach(function(k){var S=SHP[SHP_EXT[k]];if(!S)return;var out=[];
+    evs.forEach(function(e){if(!(e[1]>0))return;var p=ll2map(e[0][0],e[0][1]),best=null;
+      for(var j=1;j<S.P.length;j++){var a=S.P[j-1],b=S.P[j],dx=b[0]-a[0],dy=b[1]-a[1],L2=dx*dx+dy*dy||1e-9,t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L2)),d=Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy);
+        if(!best||d<best.d)best={d:d,s:S.c[j-1]+t*Math.sqrt(L2)}}
+      if(best&&best.d<=e[2]*MPU)out.push([best.s,e[1]])});
+    out.sort(function(a,b){return a[0]-b[0]});S.ev=out});
+})();
+/* metros andados em dt segundos: na velocidade (corrigida pelo aprendizado), parando ~12 s no próximo ponto do caminho
+   e, com o ajuste comprovado, perdendo alguns segundos em cada semáforo e lombada pelo caminho */
 function lvDist(O,dt){
   var v=lvV(O);if(!(v>0)||!(dt>0))return 0;var d=v*dt,S=SHP[O.i],st=S&&S.st;if(!st||!st.length)return d;
   var sk=LV_PONTO_IGNORA*MPU,n=null,j;
   if(O.sign>0){for(j=0;j<st.length;j++)if(st[j]>O.s+sk){n=(st[j]-O.s)/MPU;break}}
   else{for(j=st.length-1;j>=0;j--)if(st[j]<O.s-sk){n=(O.s-st[j])/MPU;break}}
-  if(n==null||n>d)return d;
-  var H=LV_HIST,dw=LV_PONTO_S;if(H){if(H.D!=null)dw=H.D;var pk=S.stK&&S.stK[j];if(H.pd&&pk&&H.pd[pk]!=null)dw=H.pd[pk]}
-  return n+Math.max(0,dt-n/v-dw)*v;
+  var H=LV_HIST,dw=LV_PONTO_S;if(H&&n!=null){if(H.D!=null)dw=H.D;var pk=S.stK&&S.stK[j];if(H.pd&&pk&&H.pd[pk]!=null)dw=H.pd[pk]}
+  if(!S.ev||!S.ev.length){if(n==null||n>d)return d;return n+Math.max(0,dt-n/v-dw)*v}
+  /* com semáforos e lombadas: percorre os eventos pela ordem, gastando o tempo (mesma conta de tools/redutores.py) */
+  var ev=[];if(n!=null)ev.push([n,dw]);
+  var ei=LV_EV_IGNORA*MPU;S.ev.forEach(function(e){var x=(e[0]-O.s)*O.sign;if(x>ei)ev.push([x/MPU,e[1]])});
+  ev.sort(function(a,b){return a[0]-b[0]});
+  var andou=0,tempo=dt;
+  for(var k=0;k<ev.length;k++){var falta=ev[k][0]-andou;if(falta>v*tempo)break;tempo-=falta/v;andou=ev[k][0];if(ev[k][1]>=tempo)return andou;tempo-=ev[k][1]}
+  return andou+v*tempo;
 }
 /* ======================= v38: ônibus mais frescos e sem o mapa da cidade por baixo =======================
    Cada segundo de atraso da posição soma ~2,5 a 3 m de erro na previsão. O Worker passou a guardar a resposta por 5 s

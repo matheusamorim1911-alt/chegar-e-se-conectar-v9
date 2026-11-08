@@ -60,6 +60,8 @@ function lvmVb(v){var k=v*3.6;return k<2?0:k<15?1:k<35?2:3}/* faixa de velocidad
 function lvmPer(t){var d=new Date(t),h=d.getHours()+d.getMinutes()/60,w=d.getDay();return (w>0&&w<6&&((h>=6&&h<9.5)||(h>=16&&h<20)))?'p':'f'}
 function lvmDir(O){if(O.i==null)return 0;var a=shpAt(O.i,O.s).ang+(O.sign<0?180:0);return Math.round((((a%360)+360)%360)/45)%8}
 function lvmCel(O){var c=LVM_CEL*MPU;return Math.floor(O.x/c)+','+Math.floor(O.y/c)}
+/* número do traçado da prefeitura (posição em EXT.shp) a partir do índice interno */
+var LVM_TR=null;function lvmTracado(i){if(!LVM_TR){LVM_TR={};Object.keys(SHP_EXT).forEach(function(k){LVM_TR[SHP_EXT[k]]=k})}return i!=null&&LVM_TR[i]!=null?LVM_TR[i]:null}
 /* velocidade efetiva (m/s) ao longo do traçado: a informada, corrigida pelo que se aprendeu naquele trecho */
 function lvmVel(O){
   if(lvmVb(O.v)===0)return 0;/* parado fica parado: nas medições, 3 de cada 4 continuavam no mesmo lugar */
@@ -77,7 +79,9 @@ function lvmMede(o,P,O){
   var real=(O.s-P.s)*P.sign/MPU;
   if(Math.abs(real)>25*dt+60)return;
   var h=Math.min(dt,60),dRaw=P.v*h,dMod=(typeof lvDist==='function'?lvDist(P,h):lvV(P)*h),dReal=real*(h/dt);
-  var amostra=[Math.round(P.t/1000),o.l,lvmCel(P),lvmDir(P),lvmVb(P.v),lvmPer(P.t),Math.round(dt),Math.round(P.v*36),Math.round(real),Math.round(dRaw),Math.round(dMod)].join('|');
+  /* traçado e posição ao longo dele (de 5 em 5 m): permitem achar onde o ônibus perde tempo (semáforo, lombada) */
+  var tr=lvmTracado(P.i),pos=tr==null?'':Math.round(P.s/MPU/5)*5;
+  var amostra=[Math.round(P.t/1000),o.l,lvmCel(P),lvmDir(P),lvmVb(P.v),lvmPer(P.t),Math.round(dt),Math.round(P.v*36),Math.round(real),Math.round(dRaw),Math.round(dMod),tr==null?'':tr,pos,P.sign>0?1:-1].join('|');
   LVM.fila.push(amostra);LVM.hist.push(amostra);
   /* aprende só com ônibus em movimento, intervalos normais e sem salto para trás (erro de encaixe, não movimento) */
   if(dt<=75&&real>=-50&&lvmVb(P.v)>0)lvfSoma(LVM.loc,lvfChaves(lvmCel(P),lvmDir(P),lvmVb(P.v),lvmPer(P.t)),dReal,dRaw);
@@ -112,7 +116,7 @@ if(LIVE.url)setTimeout(function(){lvmCarrega()},2500);
 /* ---------- Gestão › Previsão dos ônibus ---------- */
 GTABS.push(['previsao','Previsão dos ônibus']);TAB_PERM.previsao='linhas';
 var LVG={am:null,busy:false,err:false,docs:0};
-function lvmParse(s){var a=String(s).split('|');if(a.length<11)return null;return {t:+a[0],l:a[1],cel:a[2],d:+a[3],vb:+a[4],per:a[5],dt:+a[6],v:+a[7]/36,real:+a[8],raw:+a[9],mod:+a[10]}}
+function lvmParse(s){var a=String(s).split('|');if(a.length<11)return null;return {t:+a[0],l:a[1],cel:a[2],d:+a[3],vb:+a[4],per:a[5],dt:+a[6],v:+a[7]/36,real:+a[8],raw:+a[9],mod:+a[10],tr:a[11]||'',pos:a[12]||'',sg:a[13]||''}}
 function lvgCarrega(){
   if(LVG.busy)return;LVG.busy=true;LVG.err=false;
   var p=FB_ON?fbInit().then(function(fb){return fb.db.collection('desvios').limit(3000).get()}).then(function(s){LVG.docs=s.docs.length;LVG.ids=s.docs.map(function(d){return [d.id,(d.data()||{}).ts||0]});var r=[];s.docs.forEach(function(d){(d.data().a||[]).forEach(function(x){r.push(x)})});return r.concat(LVM.fila)})
@@ -121,8 +125,8 @@ function lvgCarrega(){
 }
 function lvgMae(A,f){if(!A.length)return null;return A.reduce(function(s,a){return s+Math.abs(f(a))},0)/A.length}
 function lvgCSV(){
-  var A=LVG.am||[],l=['hora,linha,celula,direcao_0a7,faixa_vel,periodo,intervalo_s,vel_informada_kmh,andou_real_m,previsto_simples_m,previsto_aprendido_m'];
-  A.forEach(function(a){l.push([new Date(a.t*1000).toISOString(),a.l,'"'+a.cel+'"',a.d,a.vb,a.per,a.dt,Math.round(a.v*3.6),a.real,a.raw,a.mod].join(','))});
+  var A=LVG.am||[],l=['hora,linha,celula,direcao_0a7,faixa_vel,periodo,intervalo_s,vel_informada_kmh,andou_real_m,previsto_simples_m,previsto_aprendido_m,tracado,posicao_m,sentido'];
+  A.forEach(function(a){l.push([new Date(a.t*1000).toISOString(),a.l,'"'+a.cel+'"',a.d,a.vb,a.per,a.dt,Math.round(a.v*3.6),a.real,a.raw,a.mod,a.tr,a.pos,a.sg].join(','))});
   var el=document.createElement('a');el.href=URL.createObjectURL(new Blob([l.join('\n')],{type:'text/csv'}));el.download='desvios-previsao-onibus.csv';document.body.appendChild(el);el.click();setTimeout(function(){URL.revokeObjectURL(el.href);el.remove()},1000);
 }
 function gPrevisao(){
@@ -133,6 +137,8 @@ function gPrevisao(){
   var faixas=['parado','até 15 km/h','15 a 35 km/h','acima de 35 km/h'],linhas={};A.forEach(function(a){linhas[a.l]=1});
   var porVb=faixas.map(function(nm,i){var B=cur.filter(function(a){return a.vb===i});return '<tr><td>'+nm+'</td><td>'+B.length+'</td><td>'+f(lvgMae(B,function(a){return a.real*h(a)-a.raw}))+'</td><td>'+f(lvgMae(B,function(a){return a.real*h(a)-a.mod}))+'</td></tr>'}).join('');
   var hist=LV_HIST?'<p class="small keep"><b>Previsão ajustada pelo histórico de GPS da prefeitura</b> ('+esc(LV_HIST.de||'')+' a '+esc(LV_HIST.ate||'')+', '+(LV_HIST.pares||0).toLocaleString('pt-BR')+' pares de posições): erro médio nos dias de teste de '+f(LV_HIST.aval.so_velocidade)+' para '+f(Math.min.apply(null,Object.keys(LV_HIST.aval).map(function(k){return LV_HIST.aval[k]})))+'. Com isso, os aparelhos param de enviar medições.</p>':'';
+  var RA=REDUT&&REDUT.ajuste,red='<p class="small keep"><b>Semáforos e lombadas</b>: '+(REDUT.s||[]).length+' semáforos e '+(REDUT.l||[]).length+' lombadas mapeados (UFRJ e OpenStreetMap). '+
+    (RA?'Com o GPS da prefeitura ('+(RA.pares||0).toLocaleString('pt-BR')+' pares de posições), perder '+RA.semaforo_s+' s em cada semáforo'+(RA.lombada_s?' e '+RA.lombada_s+' s em cada lombada':'')+' baixou o erro médio nos dias de teste de '+f(RA.erro_antes_m)+' para '+f(RA.erro_depois_m)+'.':'Ainda sem ganho comprovado com o GPS da prefeitura: a previsão não os considera.')+'</p>';
   var pub=LVM.pubAt?'Modelo publicado em '+new Date(LVM.pubAt).toLocaleString('pt-BR')+' com '+(LVM.pubN||0).toLocaleString('pt-BR')+' medições.':'Nenhum modelo publicado ainda: cada aparelho usa só o que aprendeu sozinho.';
   var simTxt=sim?'Se publicar agora, o erro médio estimado passa de '+f(sim.raw)+' (só a velocidade) para '+f(sim.mod)+(sim.mod<sim.raw*0.98?'. Vale publicar.':sim.mod>sim.raw*1.02?'. Ainda não vale publicar.':': quase igual. Os dados ainda não mostram ganho; o app continua usando a velocidade informada onde não há ganho comprovado.'):'';
   return '<h3 class="gh">Previsão dos ônibus</h3>'+
@@ -144,7 +150,7 @@ function gPrevisao(){
     (saltos?'<p class="muted small keep">'+saltos+' medições ('+Math.round(saltos/A.length*100)+'%) foram descartadas: o ônibus pareceu voltar mais de 50 m, sinal de que foi encaixado no trecho errado do traçado.</p>':'')+
     '<table class="lvg-t"><thead><tr><th>Velocidade informada</th><th>Medições</th><th>Erro só com a velocidade</th><th>Erro do que o app mostrou</th></tr></thead><tbody>'+porVb+'</tbody></table>'+
     '<p class="muted small keep">Erro medido quando chega a posição nova (até 60 s de previsão). Medições feitas antes desta versão usaram o ajuste antigo.</p>'+
-    hist+'<p class="small keep">'+pub+'</p>'+
+    hist+red+'<p class="small keep">'+pub+'</p>'+
     '<div class="row gbtns">'+(FB_ON?'<button type="button" class="copy primary" id="lvgPub2"'+(A.length?'':' disabled')+'>Recalcular e publicar o modelo</button>':'')+
     '<button type="button" class="copy" id="lvgCsv"'+(A.length?'':' disabled')+'>Baixar medições (CSV)</button><button type="button" class="copy" id="lvgRe">Atualizar</button>'+
     (FB_ON&&LVG.docs?'<button type="button" class="linkbtn" id="lvgOld">Apagar medições com mais de 90 dias</button>':'')+'</div>';
@@ -256,15 +262,35 @@ if(LIVE.url&&window.fetch)fetch('historico-previsao.json',{cache:'no-cache'}).th
       if(best&&best.d<=25*MPU)out.push([best.s,q[0].toFixed(5)+','+q[1].toFixed(5)])});
     out.sort(function(a,b){return a[0]-b[0]});S.st=out.map(function(x){return x[0]});S.stK=out.map(function(x){return x[1]})});
 })();
-/* metros andados em dt segundos: na velocidade (corrigida pelo aprendizado), parando ~12 s no próximo ponto do caminho */
+/* semáforos e lombadas (UFRJ e OpenStreetMap, gerados por tools/redutores.py): posição ao longo de cada traçado.
+   Só mudam a previsão se o ajuste foi comprovado com o GPS da prefeitura (REDUT.ajuste); senão ficam guardados. */
+var REDUT=__REDUTORES__,LV_EV_IGNORA=10;
+(function(){
+  var A=REDUT.ajuste;if(!A)return;
+  var evs=[];(REDUT.s||[]).forEach(function(q){evs.push([q,A.semaforo_s,20])});(REDUT.l||[]).forEach(function(q){evs.push([q,A.lombada_s,15])});
+  Object.keys(SHP_EXT).forEach(function(k){var S=SHP[SHP_EXT[k]];if(!S)return;var out=[];
+    evs.forEach(function(e){if(!(e[1]>0))return;var p=ll2map(e[0][0],e[0][1]),best=null;
+      for(var j=1;j<S.P.length;j++){var a=S.P[j-1],b=S.P[j],dx=b[0]-a[0],dy=b[1]-a[1],L2=dx*dx+dy*dy||1e-9,t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L2)),d=Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy);
+        if(!best||d<best.d)best={d:d,s:S.c[j-1]+t*Math.sqrt(L2)}}
+      if(best&&best.d<=e[2]*MPU)out.push([best.s,e[1]])});
+    out.sort(function(a,b){return a[0]-b[0]});S.ev=out});
+})();
+/* metros andados em dt segundos: na velocidade (corrigida pelo aprendizado), parando ~12 s no próximo ponto do caminho
+   e, com o ajuste comprovado, perdendo alguns segundos em cada semáforo e lombada pelo caminho */
 function lvDist(O,dt){
   var v=lvV(O);if(!(v>0)||!(dt>0))return 0;var d=v*dt,S=SHP[O.i],st=S&&S.st;if(!st||!st.length)return d;
   var sk=LV_PONTO_IGNORA*MPU,n=null,j;
   if(O.sign>0){for(j=0;j<st.length;j++)if(st[j]>O.s+sk){n=(st[j]-O.s)/MPU;break}}
   else{for(j=st.length-1;j>=0;j--)if(st[j]<O.s-sk){n=(O.s-st[j])/MPU;break}}
-  if(n==null||n>d)return d;
-  var H=LV_HIST,dw=LV_PONTO_S;if(H){if(H.D!=null)dw=H.D;var pk=S.stK&&S.stK[j];if(H.pd&&pk&&H.pd[pk]!=null)dw=H.pd[pk]}
-  return n+Math.max(0,dt-n/v-dw)*v;
+  var H=LV_HIST,dw=LV_PONTO_S;if(H&&n!=null){if(H.D!=null)dw=H.D;var pk=S.stK&&S.stK[j];if(H.pd&&pk&&H.pd[pk]!=null)dw=H.pd[pk]}
+  if(!S.ev||!S.ev.length){if(n==null||n>d)return d;return n+Math.max(0,dt-n/v-dw)*v}
+  /* com semáforos e lombadas: percorre os eventos pela ordem, gastando o tempo (mesma conta de tools/redutores.py) */
+  var ev=[];if(n!=null)ev.push([n,dw]);
+  var ei=LV_EV_IGNORA*MPU;S.ev.forEach(function(e){var x=(e[0]-O.s)*O.sign;if(x>ei)ev.push([x/MPU,e[1]])});
+  ev.sort(function(a,b){return a[0]-b[0]});
+  var andou=0,tempo=dt;
+  for(var k=0;k<ev.length;k++){var falta=ev[k][0]-andou;if(falta>v*tempo)break;tempo-=falta/v;andou=ev[k][0];if(ev[k][1]>=tempo)return andou;tempo-=ev[k][1]}
+  return andou+v*tempo;
 }
 /* ======================= v38: ônibus mais frescos e sem o mapa da cidade por baixo =======================
    Cada segundo de atraso da posição soma ~2,5 a 3 m de erro na previsão. O Worker passou a guardar a resposta por 5 s
