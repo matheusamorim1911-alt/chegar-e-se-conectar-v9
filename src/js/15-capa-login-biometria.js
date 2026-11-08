@@ -14,8 +14,6 @@
   if(!LITE)idle(function(){applyView()},{timeout:3000});
 })();
 drawBanner();
-if(location.hash==='#siglas')setTimeout(function(){if(cover.hidden&&login.hidden)openGloss()},0);
-setTab(location.hash.slice(1));
 /* ---------- modo enxuto: menos texto na tela (detalhes ficam em 'Sobre' e na legenda) ---------- */
 document.documentElement.dataset.density='compact';
 $('#legBtn').addEventListener('click',function(){var l=$('#legend'),o=!l.classList.contains('open');l.classList.toggle('open',o);this.setAttribute('aria-expanded',String(o))});

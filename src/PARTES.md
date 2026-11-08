@@ -41,3 +41,4 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `23-tiroteios.js`: tiroteios perto das saídas do Fundão (Fogo Cruzado), opcional em Ajustes
 - `24-bandejapp.js`: atalho para o cardápio no BandejApp (app oficial do RU)
 - `25-saude.js`: Gestão › Saúde e estatísticas (se cada serviço responde e números de uso)
+- `99-inicio.js`: abre a aba pedida no endereço (#predios, #grade…) depois que tudo carregou; fica sempre por último
