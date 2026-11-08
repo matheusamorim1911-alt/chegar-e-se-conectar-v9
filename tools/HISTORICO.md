@@ -67,3 +67,17 @@ python3 tools/perfil_trechos.py historico.csv
 
 Ele testa cada dia com o perfil feito pelos outros dias e só grava `perfil-onibus.json` para os períodos (manhã,
 tarde, noite) com ganho comprovado. Quanto mais dias úteis, mais trechos cobertos e mais períodos entram.
+
+### Faixas de horário testadas (8/11/2026, 4 dias úteis, 184.911 pares)
+
+| faixas | erro médio no teste |
+|---|---|
+| sem perfil | 60,8 m |
+| manhã 5-12, tarde 12-18, noite 18-5 | 54,3 m |
+| 5-7, 7-9, 9-11, 11-13, 13-18, noite | 53,5 m |
+| 5-7, 7-9, 9-11, 11-13, 13-17, 17-19, 19-5 | 53,9 m |
+| **5-7, 7-9, 9-13, 13-18, noite (padrão)** | **52,7 m** |
+
+O pico da manhã (7-9) precisa de perfil próprio (69,0 → 56,6 m; com a manhã inteira, só 64,7 m). O fim da tarde
+(17-19) ficou melhor junto com a tarde (55,1 m) do que sozinho (57,1 m) com estes dados. Para testar outras faixas:
+`python3 tools/perfil_trechos.py <gps…> --teste --faixas 5-7,7-9,9-13,13-17,17-19,19-5 --detalhar 7-9,17-19`.
