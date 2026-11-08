@@ -1710,3 +1710,49 @@ a.bdj-link{text-decoration:none;display:inline-flex;align-items:center}
 a.jae-link{text-decoration:none;display:inline-flex;align-items:center}
 /* ícone genérico nos atalhos para apps de fora (Jaé, BandejApp, WhatsApp): não usamos a marca deles */
 .lk-ic{width:16px;height:16px;margin-right:6px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+/* seguir um ônibus da cidade: botão "Buscar ônibus", busca, card e caminho feito */
+.segbtn{position:absolute;top:116px;right:10px;z-index:3;display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:0 13px;border-radius:999px;font:600 13px var(--f-body);color:var(--mc-ink);cursor:pointer;border:1px solid var(--mc-glass-line)}
+.segbtn[aria-expanded="true"]{border-color:var(--mc-ink)}
+.segbtn:focus-visible,.seg-x:focus-visible,.seg-row:focus-visible,.seg-volta:focus-visible{outline:2px solid var(--mc-ink);outline-offset:2px}
+.seg-ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+.segbusca{position:absolute;top:162px;right:10px;z-index:5;width:min(330px,calc(100% - 20px));max-height:calc(100% - 172px);display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:18px;color:var(--mc-ink);font-size:13px}
+.seg-bh{display:flex;gap:6px;align-items:center}
+.seg-bh input{flex:1;min-width:0;height:38px;padding:0 12px;border-radius:12px;border:1px solid var(--mc-glass-line);background:var(--mc-bg);color:var(--mc-ink);font:500 15px var(--f-body)}
+.seg-bh input:focus{outline:2px solid var(--mc-ink);outline-offset:0}
+.seg-x{width:34px;height:34px;flex:none;border:0;border-radius:50%;background:transparent;color:var(--mc-ink);font:600 20px/1 var(--f-body);cursor:pointer}
+.seg-x:hover{background:var(--mc-soft)}
+.seg-lista{overflow:auto;min-height:0;overscroll-behavior:contain}
+.seg-lista ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.seg-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:7px 8px;border-radius:12px;border:1px solid transparent;background:transparent;color:var(--mc-ink);font:inherit;cursor:pointer}
+.seg-row:hover,.seg-row.on{background:var(--mc-soft);border-color:var(--mc-glass-line)}
+.seg-row b{display:block;font-size:13.5px;line-height:1.25}
+.seg-row small,.segcard small{display:block;color:var(--mc-ink2);font-size:12px;margin-top:1px}
+.seg-msg{margin:2px 4px 6px;color:var(--mc-ink2)}
+.seg-nota{margin:0 4px;color:var(--mc-ink2);font-size:12px}
+.segcard{position:absolute;left:10px;bottom:10px;z-index:4;width:min(340px,calc(100% - 124px));padding:10px 12px;border-radius:18px;color:var(--mc-ink);font-size:13px;display:flex;flex-direction:column;gap:6px}
+.segcard p{margin:0;line-height:1.35}
+.seg-top{display:flex;align-items:center;gap:10px}
+.seg-top b{display:block;font-size:14px;line-height:1.25}
+#segInfo{display:flex;flex-direction:column;gap:4px}
+.segcard .linkbtn{color:var(--mc-ink);align-self:flex-start;padding:0;min-height:30px;font-size:13px}
+.seg-volta{align-self:flex-start;min-height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--mc-ink);background:var(--mc-ink);color:var(--mc-bg);font:700 13px var(--f-body);cursor:pointer}
+#segBusca[hidden],#segCard[hidden],#segSeta[hidden]{display:none}
+.segseta{position:absolute;z-index:3;width:38px;height:38px;margin:-19px 0 0 -19px;border-radius:50%;border:2px solid #fff;background:var(--sc,#FFD24A);display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.45);padding:0}
+.segseta svg{width:20px;height:20px;fill:#fff;transform:rotate(var(--rot,0deg))}
+.segseta:focus-visible{outline:2px solid var(--mc-ink);outline-offset:2px}
+/* o ônibus seguido em destaque; os outros mais apagados */
+#gLive.seg-modo .xlive:not(.seg-on){opacity:.55}
+.mk.xlive.seg-on .lv-dot{stroke:#FFD24A;stroke-width:3.5}
+.mk.xlive.seg-on .hit{fill:rgba(255,210,74,.28)}
+.seg-rastro{fill:none;stroke:var(--sc,#FFD24A);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;opacity:.75}
+/* com o card aberto, ele fica no lugar do card de cobertura do Wi-Fi */
+.mapwrap.seguindo .covcard{bottom:auto;top:58px}
+/* no computador a legenda fica no canto de baixo do mapa: o card vai logo acima dela */
+@media (min-width:860px){.segcard{bottom:62px}.segbusca{max-height:calc(100% - 172px - 190px);min-height:220px}}
+@media (max-width:680px){
+  .segbtn{top:92px;min-height:36px;padding:0 11px}
+  .segbusca{top:136px;max-height:calc(100% - 146px)}
+  .segcard{width:calc(100% - 72px);padding:9px 11px}
+  .mapwrap.seguindo .zoomlvl{display:none}
+}
+.lowgfx .segbtn,.lowgfx .segbusca,.lowgfx .segcard{background:var(--mc-bg)!important}
