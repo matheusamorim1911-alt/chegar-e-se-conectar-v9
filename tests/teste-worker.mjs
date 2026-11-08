@@ -14,7 +14,7 @@ ok(r.length === 1 && r[0].v === 'A1', 'mantém só linhas do Fundão, na região
 ok(r[0].t === Date.parse('2026-11-07T10:14:30-03:00'), 'hora tratada como horário de Brasília');
 globalThis.caches = { default: { match: async () => null, put: async () => {} } };
 let urls = [];
-globalThis.fetch = async u => { urls.push(u); return new Response(JSON.stringify(u.includes('sppo') ? amostra.map(o => ({ ...o, datetime: '2026-11-07T' + new Date(Date.now() - 3 * 3600e3 - 30e3).toISOString().slice(11, 19) + 'Z' })) : []), { status: 200 }); };
+globalThis.fetch = async u => { urls.push(u); return new Response(JSON.stringify(u.includes('sppo') ? amostra.map(o => ({ ...o, datetime: new Date(Date.now() - 3 * 3600e3 - 30e3).toISOString().slice(0, 19) + 'Z' })) : []), { status: 200 }); };
 const resp = await worker.fetch(new Request('https://x.workers.dev/'), {}, { waitUntil() {} });
 const j = await resp.json();
 ok(resp.headers.get('access-control-allow-origin') === '*', 'CORS liberado');

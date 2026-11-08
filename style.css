@@ -1703,3 +1703,9 @@ a.bdj-link{text-decoration:none;display:inline-flex;align-items:center}
 /* prédios borrados da planta, cobertos com a cor do chão antes de redesenhar (contorno largo cobre o traço antigo) */
 #gEdifFundo{fill:#12161c;stroke:#12161c;stroke-width:2.4;stroke-linejoin:round;pointer-events:none}
 .mapclaro #gEdifFundo{fill:#f4f6f8;stroke:#f4f6f8}
+/* atalho para o Jaé */
+.jae-box{margin:10px 0 4px}
+.jae-box p{margin:0 0 8px}
+a.jae-link{text-decoration:none;display:inline-flex;align-items:center}
+/* ícone genérico nos atalhos para apps de fora (Jaé, BandejApp): não usamos a marca deles */
+.lk-ic{width:16px;height:16px;margin-right:6px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
