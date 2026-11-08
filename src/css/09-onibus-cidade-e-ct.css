@@ -45,6 +45,7 @@ div.xl-row{cursor:default}
 .ctwrap{position:relative;border-radius:16px;overflow:hidden;background:#0B1520;border:1px solid var(--glass-line)}
 :root[data-theme="light"] .ctwrap{background:#F3F6F9}
 .ctsvg{display:block;width:100%;height:auto;max-height:62vh;min-height:220px;touch-action:none;cursor:grab}
+.ctsvg.rot{max-height:min(82vh,760px)}
 .ctr{stroke:#0B1520;stroke-width:var(--ctsw);fill-opacity:.85;cursor:pointer;vector-effect:non-scaling-stroke}
 :root[data-theme="light"] .ctr{stroke:#fff}
 .ctr.dim{fill-opacity:.12}
