@@ -15,7 +15,7 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `10-tiroteios.css`: lista de tiroteios perto das saídas
 - `11-bandejapp-e-saude.css`: atalho do BandejApp e aba Saúde e estatísticas
 - `12-predios-ufrj.css`: cor dos prédios que faltavam na planta e do chão onde a planta é redesenhada
-- `13-jae.css`: atalho para o Jaé e ícone dos atalhos para apps de fora
+- `13-jae.css`: atalho para o Jaé e ícone dos atalhos para apps de fora (Jaé, BandejApp, WhatsApp)
 
 ## Código (js/)
 - `01-nucleo.js`: pontos de extensão (etapas), modo do site, ajustes salvos e utilidades básicas

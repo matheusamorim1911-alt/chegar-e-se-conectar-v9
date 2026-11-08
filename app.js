@@ -1319,7 +1319,7 @@ function warnHTML(c,key,open){
     '<div class="chips" role="group" aria-label="Tipo de mensagem">'+WTPL.map(function(t){return '<button class="chip" type="button" data-wt="'+t[0]+'" aria-pressed="'+(WS.tpl===t[0])+'">'+t[1]+'</button>'}).join('')+'</div>'+
     (WS.tpl==='saindo'?'<label class="wsafe"><input type="checkbox" id="wsafe-'+key+'" data-wsafe'+(WS.safe?' checked':'')+'> Pedir para me ligarem se eu não der notícia até '+fmt(c.arr+15)+'</label>':'')+
     '<label class="fld">Mensagem (pode editar)<textarea id="wtxt-'+key+'" class="wtxt" rows="5" maxlength="600">'+esc(txt)+'</textarea></label>'+
-    '<div class="later"><button class="copy" type="button" data-wcopy="'+key+'">Copiar mensagem</button><a class="copy wa" href="https://wa.me/?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener" data-wa="'+key+'">Abrir no WhatsApp</a></div>'+
+    '<div class="later"><button class="copy" type="button" data-wcopy="'+key+'">Copiar mensagem</button><a class="copy wa" href="https://wa.me/?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener" data-wa="'+key+'"><svg class="lk-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 18.8z"/></svg>Abrir no WhatsApp</a></div>'+
     '<p class="muted small">A página não envia nada sozinha: você escolhe para quem mandar no WhatsApp ou cola em outro app.</p></div>';
   return '<details class="det wdet" id="wdet-'+key+'"'+(WS.open?' open':'')+'><summary><span class="wdet-t"><b>Avisar alguém</b><small>Mensagem pronta com o ônibus e a hora de chegada</small></span></summary>'+body+'</details>';
 }
@@ -3308,7 +3308,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261108-1201';
+var APP_VERSION='20261108-1206';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -5729,16 +5729,24 @@ function edifDraw(){
 aoFazer('mapa montado',edifDraw);
 edifDraw();
 /* ======================= Atalho para o Jaé (passagem dos ônibus, BRT e VLT da prefeitura) =======================
-   O Jaé não tem serviço aberto para outros apps (saldo, recarga, QR Code): aqui só há um aviso curto e um link para
-   o app oficial. No iPhone abre a página do app na App Store (que mostra "Abrir" se já estiver instalado); nos outros
-   aparelhos, a busca do app no Google Play. */
+   O Jaé não tem serviço aberto para outros apps (saldo, recarga, QR Code) nem um link público que abra o app direto
+   (como o wa.me do WhatsApp). Por isso o atalho leva à página do app oficial na loja do aparelho: lá aparece "Abrir"
+   se o app já estiver instalado e "Instalar"/"Obter" se não estiver. No computador, mostra as duas lojas. */
 var JAE_IOS='https://apps.apple.com/br/app/id6449981829';
-var JAE_PLAY='https://play.google.com/store/search?q='+encodeURIComponent('Jaé Transporte')+'&c=apps';
-function jaeUrl(){return /iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)?JAE_IOS:JAE_PLAY}
+var JAE_PLAY='https://play.google.com/store/apps/details?id=br.com.billingpay.app.pf';
+function jaeAparelho(){
+  var ua=navigator.userAgent;
+  if(/iPhone|iPad|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1))return 'ios';
+  return /Android/.test(ua)?'android':'';
+}
+var JAE_IC='<svg class="lk-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M3 10h18M7 14.5h4"/></svg>';
+function jaeLink(url,txt){return '<a class="copy jae-link" href="'+url+'" target="_blank" rel="noopener">'+JAE_IC+txt+'</a>'}
 function jaeHTML(){
+  var a=jaeAparelho();
+  var botoes=a==='ios'?jaeLink(JAE_IOS,'Abrir ou baixar o Jaé'):a==='android'?jaeLink(JAE_PLAY,'Abrir ou baixar o Jaé'):
+    jaeLink(JAE_PLAY,'Jaé no Google Play')+jaeLink(JAE_IOS,'Jaé na App Store');
   return '<div class="jae-box"><p class="small keep">Nos ônibus, BRT e VLT da prefeitura, a passagem é paga com o <b>Jaé</b>: cartão ou QR Code no app.</p>'+
-    '<a class="copy jae-link" href="'+jaeUrl()+'" target="_blank" rel="noopener">'+
-    '<svg class="lk-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M3 10h18M7 14.5h4"/></svg>App do Jaé</a></div>';
+    '<div class="jae-bt">'+botoes+'</div>'+(a?'<p class="muted small keep">Se o app já estiver instalado, a loja mostra o botão Abrir.</p>':'')+'</div>';
 }
 /* em Trajetos, logo depois de "Ônibus da cidade" (fora do bloco, que é redesenhado a cada minuto) */
 function jaeTrajeto(){
