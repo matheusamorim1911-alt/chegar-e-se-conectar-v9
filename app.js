@@ -3308,7 +3308,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261108-1234';
+var APP_VERSION='20261108-1311';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -5403,6 +5403,7 @@ function gPrevisao(){
   var hist=LV_HIST?'<p class="small keep"><b>Previsão ajustada pelo histórico de GPS da prefeitura</b> ('+esc(LV_HIST.de||'')+' a '+esc(LV_HIST.ate||'')+', '+(LV_HIST.pares||0).toLocaleString('pt-BR')+' pares de posições): erro médio nos dias de teste de '+f(LV_HIST.aval.so_velocidade)+' para '+f(Math.min.apply(null,Object.keys(LV_HIST.aval).map(function(k){return LV_HIST.aval[k]})))+'. Com isso, os aparelhos param de enviar medições.</p>':'';
   var RA=REDUT&&REDUT.ajuste,red='<p class="small keep"><b>Semáforos e lombadas</b>: '+(REDUT.s||[]).length+' semáforos e '+(REDUT.l||[]).length+' lombadas mapeados (UFRJ e OpenStreetMap). '+
     (RA?'Com o GPS da prefeitura ('+(RA.pares||0).toLocaleString('pt-BR')+' pares de posições), perder '+RA.semaforo_s+' s em cada semáforo'+(RA.lombada_s?' e '+RA.lombada_s+' s em cada lombada':'')+' baixou o erro médio nos dias de teste de '+f(RA.erro_antes_m)+' para '+f(RA.erro_depois_m)+'.':'Ainda sem ganho comprovado com o GPS da prefeitura: a previsão não os considera.')+'</p>';
+  var PF=LV_PERF,perf='<p class="small keep"><b>Perfil dos trechos</b> (dias úteis): '+(PF?Object.keys(PF.periodos).map(function(k){var R=PF.periodos[k];return {manha:'manhã',tarde:'tarde',noite:'noite'}[k]+' '+f(R.erro_antes_m)+' → '+f(R.erro_depois_m)}).join(', ')+' nos dias de teste. '+(Object.keys(PF.periodos).length<3?'Outros períodos, fins de semana':'Fins de semana')+' e feriados usam a previsão de sempre.':'ainda sem ganho comprovado (gere com tools/perfil_trechos.py).')+'</p>';
   var pub=LVM.pubAt?'Modelo publicado em '+new Date(LVM.pubAt).toLocaleString('pt-BR')+' com '+(LVM.pubN||0).toLocaleString('pt-BR')+' medições.':'Nenhum modelo publicado ainda: cada aparelho usa só o que aprendeu sozinho.';
   var simTxt=sim?'Se publicar agora, o erro médio estimado passa de '+f(sim.raw)+' (só a velocidade) para '+f(sim.mod)+(sim.mod<sim.raw*0.98?'. Vale publicar.':sim.mod>sim.raw*1.02?'. Ainda não vale publicar.':': quase igual. Os dados ainda não mostram ganho; o app continua usando a velocidade informada onde não há ganho comprovado.'):'';
   return '<h3 class="gh">Previsão dos ônibus</h3>'+
@@ -5414,7 +5415,7 @@ function gPrevisao(){
     (saltos?'<p class="muted small keep">'+saltos+' medições ('+Math.round(saltos/A.length*100)+'%) foram descartadas: o ônibus pareceu voltar mais de 50 m, sinal de que foi encaixado no trecho errado do traçado.</p>':'')+
     '<table class="lvg-t"><thead><tr><th>Velocidade informada</th><th>Medições</th><th>Erro só com a velocidade</th><th>Erro do que o app mostrou</th></tr></thead><tbody>'+porVb+'</tbody></table>'+
     '<p class="muted small keep">Erro medido quando chega a posição nova (até 60 s de previsão). Medições feitas antes desta versão usaram o ajuste antigo.</p>'+
-    hist+red+'<p class="small keep">'+pub+'</p>'+
+    hist+red+perf+'<p class="small keep">'+pub+'</p>'+
     '<div class="row gbtns">'+(FB_ON?'<button type="button" class="copy primary" id="lvgPub2"'+(A.length?'':' disabled')+'>Recalcular e publicar o modelo</button>':'')+
     '<button type="button" class="copy" id="lvgCsv"'+(A.length?'':' disabled')+'>Baixar medições (CSV)</button><button type="button" class="copy" id="lvgRe">Atualizar</button>'+
     (FB_ON&&LVG.docs?'<button type="button" class="linkbtn" id="lvgOld">Apagar medições com mais de 90 dias</button>':'')+'</div>';
@@ -5539,9 +5540,29 @@ var REDUT={"fonte":"UFRJ (Mobilidade e Transporte, ArcGIS Online) e OpenStreetMa
       if(best&&best.d<=e[2]*MPU)out.push([best.s,e[1]])});
     out.sort(function(a,b){return a[0]-b[0]});S.ev=out});
 })();
+/* perfil dos trechos (tools/perfil_trechos.py, arquivo perfil-onibus.json): em dia útil, a velocidade com que os ônibus
+   costumam seguir de cada trecho de 60 m, por período (manhã, tarde, noite). Só existem os períodos com ganho comprovado
+   nos testes; fins de semana e feriados usam a previsão de sempre. */
+var LV_PERF=null;
+if(LIVE.url&&window.fetch)fetch('perfil-onibus.json',{cache:'no-cache'}).then(function(r){return r.ok?r.json():null}).then(function(o){if(o&&o.p&&o.periodos)LV_PERF=o},function(){});
+function lvDiaUtil(t){var d=new Date(t),w=d.getDay(),k=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  return w>0&&w<6&&!FERIADOS.some(function(f){return f[0]===k})}
+function lvPeriodo(t){var h=new Date(t).getHours();return h>=5&&h<12?'manha':h>=12&&h<18?'tarde':'noite'}
+function lvPerfil(O){
+  var P=LV_PERF;if(!P||O.i==null||!lvDiaUtil(O.t))return null;
+  var per=lvPeriodo(O.t),R=P.periodos[per],tr=lvmTracado(O.i);if(!R||tr==null)return null;
+  var L=P.p[tr+'|'+(O.sign>0?1:-1)+'|'+per];if(!L)return null;
+  var v=L[1][Math.floor(O.s/MPU/(P.trecho_m||60))-L[0]];
+  return v!=null&&v>=0?{v:v/10,w:R.w}:null;
+}
 /* metros andados em dt segundos: na velocidade (corrigida pelo aprendizado), parando ~12 s no próximo ponto do caminho
-   e, com o ajuste comprovado, perdendo alguns segundos em cada semáforo e lombada pelo caminho */
+   e, com o ajuste comprovado, perdendo alguns segundos em cada semáforo e lombada pelo caminho; onde há perfil do
+   trecho, mistura com o que os outros ônibus costumam fazer dali */
 function lvDist(O,dt){
+  var d0=lvDist0(O,dt),pf=d0>0?lvPerfil(O):null;
+  return pf?pf.w*d0+(1-pf.w)*pf.v*dt:d0;
+}
+function lvDist0(O,dt){
   var v=lvV(O);if(!(v>0)||!(dt>0))return 0;var d=v*dt,S=SHP[O.i],st=S&&S.st;if(!st||!st.length)return d;
   var sk=LV_PONTO_IGNORA*MPU,n=null,j;
   if(O.sign>0){for(j=0;j<st.length;j++)if(st[j]>O.s+sk){n=(st[j]-O.s)/MPU;break}}
