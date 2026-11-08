@@ -72,10 +72,11 @@ def subpaths(d):
   for parte in re.split(r'M', d)[1:]:
     v = [float(t) for t in re.findall(r'-?\d+(?:\.\d+)?', parte)]
     yield [px(v[i], v[i + 1]) for i in range(0, len(v) - 1, 2)]
+BASE = []  # prédios da planta, em coordenadas do mapa
 for attrs, d in re.findall(r'<path ([^>]*?) d="([^"]*)"', svg):
   if 'fill="#c4cdd7"' in attrs:
     for p in subpaths(d):
-      if len(p) > 2: df.polygon(p, fill=1)
+      if len(p) > 2: df.polygon(p, fill=1); BASE.append([(x / S + X0, y / S + Y0) for x, y in p])
   elif 'fill="none"' in attrs:
     for p in subpaths(d):
       if len(p) > 1: dt.line(p, fill=1, width=2)
@@ -92,7 +93,7 @@ def dentro(P, x, y):
     j = i
   return o
 
-def simplifica(P, t=0.25):  # Douglas–Peucker num anel fechado
+def simplifica(P, t=0.5):  # Douglas–Peucker num anel fechado (0,5 unidade ≈ 1,8 m: tira os dentes dos pilares nas fachadas)
   def dp(Q):
     if len(Q) < 3: return Q
     (ax, ay), (bx, by) = Q[0], Q[-1]; L = math.hypot(bx - ax, by - ay) or 1e-9
@@ -101,6 +102,13 @@ def simplifica(P, t=0.25):  # Douglas–Peucker num anel fechado
   if len(P) < 4: return P
   f = max(range(len(P)), key=lambda i: math.hypot(P[i][0] - P[0][0], P[i][1] - P[0][1]))
   return dp(P[:f + 1])[:-1] + dp(P[f:] + [P[0]])[:-1]
+
+# Lotes em que a planta tem os prédios borrados (traçados de uma imagem): lá os prédios da planta são cobertos
+# com a cor do chão e todos os prédios do cadastro são desenhados por cima.
+REDESENHAR = ['CUF-CES-15', 'CUF-CES-14']  # CENPES (o prédio em estrela e os anexos) e CEPEL
+lote = {f['properties'].get('CODIGO'): [ll2map(*q[:2]) for q in f['geometry']['coordinates'][0]] for f in lotes if f.get('geometry')}
+apagar = [B for B in BASE for c in REDESENHAR
+          if sum(dentro(lote[c], x, y) for x, y in B) >= 0.8 * len(B)]
 
 faltam, n_total = [], 0
 for f in edif:
@@ -125,21 +133,26 @@ for f in edif:
         n += 1; ix, iy = round((x - X0) * S), round((y - Y0) * S); cheio += 0 <= ix < W * S and 0 <= iy < H * S and F[ix, iy]
       x += 0.25
     y += 0.25
-  if acerto / borda < 0.35 and (not n or cheio / n < 0.15):
+  if f['properties'].get('CODIGO') in REDESENHAR or acerto / borda < 0.35 and (not n or cheio / n < 0.15):
     faltam.append((f['properties'].get('CODIGO', ''), nome(f['properties']), aneis))
 
 def fmt(v): return ('%.1f' % v).rstrip('0').rstrip('.')
-def centro(cod):
-  P = [p for c, _, aneis in faltam if c == cod for p in aneis[0]]
-  return [round(sum(p[0] for p in P) / len(P), 1), round(sum(p[1] for p in P) / len(P), 1)]
+def centro(cod):  # centro de área do lote
+  P = lote[cod]; a = cx = cy = 0
+  for i in range(len(P)):
+    (x0, y0), (x1, y1) = P[i - 1], P[i]; k = x0 * y1 - x1 * y0
+    a += k; cx += (x0 + x1) * k; cy += (y0 + y1) * k
+  return [round(cx / (3 * a), 1), round(cy / (3 * a), 1)]
 # nomes novos no zoom: [texto, x, y, nível] (nível 1 aparece primeiro; 3 só bem de perto), como BLDN em src/js/03-mapa.js
 ROTULOS = [('CENPES II (Petrobras)', 'CUF-CES-13', 2), ('Centro de Tecnologia', 'CUF-CT-01', 2), ('IEN (Engenharia Nuclear)', 'CUF-CES-20', 2),
-           ('LabOceano', 'CUF-CT-17', 3), ('Estação Meteorológica', 'CUF-CCMN-05', 3), ('Embratel', 'CUF-CES-24', 3)]
+           ('LabOceano', 'CUF-CT-17', 3), ('Estação Meteorológica', 'CUF-CCMN-05', 3), ('Embratel', 'CUF-CES-24', 3),
+           ('CENPES (Petrobras)', 'CUF-CES-15', 2), ('CEPEL', 'CUF-CES-14', 2)]
 saida = {
   'fonte': 'UFRJ, cadastro de edificações da Cidade Universitária (ArcGIS Online)',
   'item': '7c0652800dcc498e8b9d2754aa962f8c',
   'predios': [[n, ' '.join('M' + ' '.join(fmt(v) for p in A for v in p) + 'Z' for A in aneis)] for c, n, aneis in faltam],
+  'apagar': ' '.join('M' + ' '.join(fmt(v) for p in B for v in p) + 'Z' for B in apagar),
   'rotulos': [[t] + centro(c) + [lv] for t, c, lv in ROTULOS],
 }
 json.dump(saida, open(SAI, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
-print('%d prédios no cadastro, %d faltavam na planta → %s (%d KB)' % (n_total, len(faltam), os.path.relpath(SAI, ROOT), os.path.getsize(SAI) // 1024))
+print('%d prédios no cadastro, %d desenhados (faltavam ou redesenhados), %d da planta cobertos → %s (%d KB)' % (n_total, len(faltam), len(apagar), os.path.relpath(SAI, ROOT), os.path.getsize(SAI) // 1024))
