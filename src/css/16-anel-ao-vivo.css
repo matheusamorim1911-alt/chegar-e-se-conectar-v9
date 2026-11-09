@@ -1,0 +1,15 @@
+/* anel dos ônibus ao vivo ao redor da bússola (verde: atualizando; laranja: com atraso; vermelho: parado) */
+.anelvivo{position:absolute;top:4px;right:4px;width:108px;height:108px;z-index:3;pointer-events:none;--av:#34C759}
+.anelvivo[hidden]{display:none}
+.anelvivo svg{display:block;width:100%;height:100%;transform:rotate(-90deg)}
+.av-trilho{fill:none;stroke:var(--av);stroke-width:2.2;opacity:.22}
+.av-arco{fill:none;stroke:var(--av);stroke-width:3.4;stroke-linecap:round;stroke-dasharray:24 76;transform-origin:50px 50px;animation:avgira 1.4s linear infinite}
+.anelvivo.lento{--av:#FF9F0A}
+.anelvivo.lento .av-arco{animation-duration:2.6s}
+.anelvivo.parado{--av:#FF453A}
+.anelvivo.parado .av-trilho{opacity:.9;stroke-width:3.4}
+.anelvivo.parado .av-arco{animation:none;opacity:0}
+@keyframes avgira{to{transform:rotate(360deg)}}
+@media (max-width:680px){.anelvivo{top:4px;right:4px;width:92px;height:92px}}
+.lowgfx .av-arco{animation:none}
+@media (prefers-reduced-motion:reduce){.av-arco{animation:none}}

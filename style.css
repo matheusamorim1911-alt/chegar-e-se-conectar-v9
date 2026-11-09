@@ -1788,7 +1788,24 @@ a.jae-link{text-decoration:none;display:inline-flex;align-items:center}
 .rua.c{stroke-width:1;stroke-opacity:.13}
 .rua.m{stroke:#5B8DB8;stroke-width:1.4;stroke-opacity:.45}
 .rua-n{fill:var(--mc-ink2);font-family:var(--f-body);font-weight:600;font-size:calc(var(--fw,4) * 2.1px);text-anchor:middle;dominant-baseline:middle;paint-order:stroke;stroke:var(--mc-bg);stroke-width:calc(var(--fw,4) * .7px);stroke-linejoin:round;opacity:.85}
-.ruas-fonte{position:absolute;left:14px;top:52px;z-index:2;margin:0;padding:1px 6px;border-radius:6px;font-size:10.5px;color:var(--mc-ink2);background:var(--mc-glass)}
+.ruas-fonte{position:absolute;right:118px;bottom:17px;z-index:2;margin:0;padding:1px 7px;border-radius:6px;font-size:10.5px;color:var(--mc-ink2);background:var(--mc-bg);opacity:.9;white-space:nowrap}
 .ruas-fonte a{color:inherit}
 .ruas-fonte[hidden]{display:none}
-@media (max-width:680px){.ruas-fonte{top:50px;left:12px}.ruas-fonte .rf-l{display:none}}
+@media (max-width:680px){.ruas-fonte .rf-l{display:none}
+  /* seguindo um ônibus, o card ocupa a parte de baixo: o crédito sobe para o canto de cima */
+  .mapwrap.seguindo .ruas-fonte{bottom:auto;right:auto;top:54px;left:12px}}
+/* anel dos ônibus ao vivo ao redor da bússola (verde: atualizando; laranja: com atraso; vermelho: parado) */
+.anelvivo{position:absolute;top:4px;right:4px;width:108px;height:108px;z-index:3;pointer-events:none;--av:#34C759}
+.anelvivo[hidden]{display:none}
+.anelvivo svg{display:block;width:100%;height:100%;transform:rotate(-90deg)}
+.av-trilho{fill:none;stroke:var(--av);stroke-width:2.2;opacity:.22}
+.av-arco{fill:none;stroke:var(--av);stroke-width:3.4;stroke-linecap:round;stroke-dasharray:24 76;transform-origin:50px 50px;animation:avgira 1.4s linear infinite}
+.anelvivo.lento{--av:#FF9F0A}
+.anelvivo.lento .av-arco{animation-duration:2.6s}
+.anelvivo.parado{--av:#FF453A}
+.anelvivo.parado .av-trilho{opacity:.9;stroke-width:3.4}
+.anelvivo.parado .av-arco{animation:none;opacity:0}
+@keyframes avgira{to{transform:rotate(360deg)}}
+@media (max-width:680px){.anelvivo{top:4px;right:4px;width:92px;height:92px}}
+.lowgfx .av-arco{animation:none}
+@media (prefers-reduced-motion:reduce){.av-arco{animation:none}}
