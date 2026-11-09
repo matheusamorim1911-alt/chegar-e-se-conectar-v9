@@ -33,4 +33,19 @@ const mock=fs.readFileSync(path.join(__dirname,'firebase-mock.js'),'utf8');
  ok(pills.length>=10&&!pills.includes('Fora do ar'),'nenhum serviço simulado aparece fora do ar '+JSON.stringify(pills));
  ok(errs.length===0,'sem erros de JavaScript '+JSON.stringify(errs));
  await (await p.$('#gBody')).screenshot({path:process.env.FOTO||'/tmp/saude.png'});
+ // Worker caindo: quem está fora do ar, por quê, falhas por hora e tentativas com a prefeitura
+ const h0=new Date();h0.setMinutes(0,0,0);
+ await p.route('**workers.dev/',r=>r.abort('failed'));
+ await p.route('**workers.dev/saude**',r=>J(r,{t:agora,cloudflareConfigurado:true,dataCenter:'GIG',cloudflare:{pedidos:769,erros:215,limite:100000,desde:new Date(new Date().setUTCHours(0,0,0,0)).toISOString()},
+   cloudflareDetalhe:{porStatus:{success:554,exceededResources:190,scriptThrewException:5,clientDisconnected:20},porHora:[{h:new Date(h0-3600e3).toISOString(),pedidos:300,falhas:80},{h:h0.toISOString(),pedidos:469,falhas:115}],cpuMedianoMs:6.2,cpuP99Ms:15.4},
+   registro:[{t:agora-120e3,r:'ok',n:40,fontes:[{f:'sppo',ok:true,ms:1800,kb:3650},{f:'brt',ok:true,ms:400,kb:280}]},{t:agora-60e3,r:'reserva',fontes:[{f:'sppo',ok:false,motivo:'a prefeitura não respondeu em 8 s',ms:8000},{f:'brt',ok:false,motivo:'a prefeitura respondeu HTTP 503 (erro no servidor dela)',ms:300}]}]}));
+ await p.click('#sdCheck');await p.waitForTimeout(4000);
+ const t2=await p.evaluate(()=>document.getElementById('gBody').innerText);
+ ok(/Fora do ar agora/.test(t2)&&/O Worker não respondeu\. Quase sempre é o limite de processamento/.test(t2),'Worker caindo: aparece em "Fora do ar agora" com o motivo');
+ ok(/Não dá para conferir agora: o Worker não respondeu\. Nas últimas 2 tentativas do Worker, 1 falhou/.test(t2),'a prefeitura não leva a culpa quando quem caiu foi o Worker');
+ ok(/195 de 769 pedidos ao Worker falharam hoje/.test(t2)&&/190 passaram do limite de processamento da Cloudflare/.test(t2)&&/5 deram erro no código do Worker/.test(t2)&&/não é falha do Worker/.test(t2),'falhas de hoje por motivo, sem contar quem desistiu');
+ ok(/15,4 ms \(o limite é 10 ms\)/.test(t2)&&await p.$$eval('.sd-hora',x=>x.length===2),'tempo de processamento e falhas por hora');
+ ok(/Prefeitura: 1 de 2 tentativas falhou/.test(t2)&&/data center GIG/.test(t2)&&/não respondeu em 8 s/.test(t2)&&/usou a cópia guardada/.test(t2),'tentativas com a prefeitura, com o motivo de cada falha');
+ await p.evaluate(()=>{const e=document.querySelector('.sd-fora');if(e)e.scrollIntoView()});await p.waitForTimeout(300);await p.screenshot({path:(process.env.FOTO||'/tmp/saude.png').replace('.png','-fora.png')});await p.evaluate(()=>{const e=document.querySelector('.sd-horas');if(e)e.scrollIntoView({block:'center'})});await p.waitForTimeout(300);await p.screenshot({path:(process.env.FOTO||'/tmp/saude.png').replace('.png','-falhas.png')});
+ ok(errs.length===0,'sem erros de JavaScript com o Worker caindo '+JSON.stringify(errs));
  await b.close();srv.close();process.exit(falhou?1:0)})();

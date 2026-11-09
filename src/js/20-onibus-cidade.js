@@ -82,8 +82,12 @@ function liveFetch(){
   /* v38: no máximo um pedido a cada 5 s, mesmo quando várias partes do app pedem ao mesmo tempo ao abrir */
   var agora=Date.now();if(LIVE.ult&&agora-LIVE.ult<5000)return;LIVE.ult=agora;
   fetch(LIVE.url,{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
-    LIVE.bus=(d.onibus||[]).filter(function(o){return Date.now()-o.t<6*60e3});LIVE.t=Date.now();LIVE.err=!!d.falhou;liveDraw();liveRefreshText();
-  },function(){LIVE.err=true;liveRefreshText()});
+    var novos=(d.onibus||[]).filter(function(o){return Date.now()-o.t<6*60e3});
+    /* a prefeitura falhou e o Worker não tinha cópia: mantém os ônibus que já estavam no mapa (até 6 min) */
+    if(d.falhou&&!novos.length)novos=LIVE.bus.filter(function(o){return Date.now()-o.t<6*60e3});
+    LIVE.bus=novos;LIVE.t=Date.now();LIVE.err=!!d.falhou;LIVE.falhas=d.falhou?(LIVE.falhas||0)+1:0;liveDraw();liveRefreshText();
+    if(d.falhou)setTimeout(liveFetch,5200);
+  },function(){LIVE.err=true;LIVE.falhas=(LIVE.falhas||0)+1;liveRefreshText();setTimeout(liveFetch,5200)});
 }
 function liveLoop(){clearInterval(LIVE.timer);if(!LIVE.url)return;liveFetch();LIVE.timer=setInterval(function(){liveFetch()},10000)}
 document.addEventListener('visibilitychange',function(){if(!document.hidden)liveFetch()});

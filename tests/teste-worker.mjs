@@ -1,5 +1,5 @@
 // Testa o Worker sem internet: simula a API da prefeitura com uma amostra e confere o filtro.
-import worker, { filtrar, fcFiltrar } from '../worker/gps-fundao.js';
+import worker, { filtrar, fcFiltrar, extrairLinhas } from '../worker/gps-fundao.js';
 let falhou = false; const ok = (c, m) => { console.log((c ? 'ok   ' : 'FALHA') + '  ' + m); if (!c) falhou = true; };
 const agora = Date.parse('2026-11-07T10:15:00-03:00');
 const amostra = [
@@ -71,4 +71,33 @@ ok(j7.cloudflare && j7.cloudflare.pedidos === 1500 && j7.cloudflare.erros === 3 
 const r8 = await worker.fetch(new Request('https://x.workers.dev/saude'), { CF_CONTA: ' conta1\n', CF_TOKEN: '"Bearer cft"\n' }, { waitUntil() {} });
 const j8 = await r8.json();
 ok(j8.cloudflare && j8.cloudflare.pedidos === 1500, 'saúde: aceita segredos colados com espaço, aspas, quebra de linha ou "Bearer"');
+// ---------- leitura leve da resposta da prefeitura ----------
+const cidade = [];for (let i = 0; i < 3000; i++) cidade.push({ id_veiculo: 'X' + i, servico: i % 9 ? String(100 + i % 500) : '485', sentido: 'I', latitude: -22.85, longitude: -43.23, velocidade: 10, direcao: 90, route_id: 'r', trip_id: 't', shape_id: 's', datetime: '2026-11-07T10:14:30Z' });
+const txt = JSON.stringify(cidade);
+ok(JSON.stringify(filtrar(extrairLinhas(txt), agora)) === JSON.stringify(filtrar(JSON.parse(txt), agora)), 'leitura leve: mesmos ônibus que ler a resposta inteira');
+ok(extrairLinhas('{"veiculos":[{"linha":"42"}]}') === null, 'formato sem "servico" (BRT) cai na leitura normal');
+// ---------- registro das tentativas com a prefeitura (aba Saúde) ----------
+const g2 = new Map();
+globalThis.caches = { default: { match: async r => g2.get(r.url)?.clone() ?? null, put: async (r, v) => { g2.set(r.url, v); } } };
+const roda = async () => { const cx = { esperas: [], waitUntil(p) { this.esperas.push(p); } }; const r = await worker.fetch(new Request('https://x.workers.dev/'), {}, cx); await Promise.all(cx.esperas); g2.delete('https://cache.local/gps-fundao'); return r; };
+globalThis.fetch = async u => u.includes('sppo') ? new Response('erro', { status: 503 }) : new Response('{"veiculos":[]}');
+await roda();
+globalThis.fetch = async u => { const e = new Error('The operation was aborted due to timeout'); e.name = 'TimeoutError'; throw e; };
+await roda();
+globalThis.fetch = async u => new Response(JSON.stringify(u.includes('sppo') ? amostra.map(o => ({ ...o, datetime: new Date(Date.now() - 3 * 3600e3 - 30e3).toISOString().slice(0, 19) + 'Z' })) : { veiculos: [] }));
+await roda();
+const rs = await (await worker.fetch(new Request('https://x.workers.dev/saude'), {}, { waitUntil() {} })).json();
+const R = rs.registro || [];
+ok(R.length === 3 && R[0].r === 'parcial' && /HTTP 503 \(erro no servidor dela\)/.test(R[0].fontes.find(f => f.f === 'sppo').motivo), 'registro: HTTP 503 da prefeitura com o motivo em palavras');
+ok(R[1].r === 'reserva' && /não respondeu em 8 s/.test(R[1].fontes[0].motivo), 'registro: tempo esgotado, e o app recebeu a cópia guardada');
+ok(R[2].r === 'ok' && R[2].fontes.every(f => f.ok && f.ms >= 0 && f.kb >= 0), 'registro: tentativa boa com tempo e tamanho');
+// detalhe da Cloudflare: por que os pedidos falharam
+globalThis.fetch = async (u, o) => { const b = JSON.parse(o.body);
+  if (/status/.test(b.query)) return new Response(JSON.stringify({ data: { viewer: { accounts: [{ workersInvocationsAdaptive: [
+    { sum: { requests: 500, errors: 0 }, quantiles: { cpuTimeP50: 2100, cpuTimeP99: 14500 }, dimensions: { scriptName: 'w', status: 'success', datetimeHour: '2026-11-09T15:00:00Z' } },
+    { sum: { requests: 120, errors: 120 }, quantiles: { cpuTimeP50: 11000, cpuTimeP99: 16000 }, dimensions: { scriptName: 'w', status: 'exceededResources', datetimeHour: '2026-11-09T15:00:00Z' } }] }] } } }));
+  return new Response(JSON.stringify({ data: { viewer: { accounts: [{ workersInvocationsAdaptive: [{ sum: { requests: 620, errors: 120 }, dimensions: { scriptName: 'w' } }] }] } } })); };
+const rd = await (await worker.fetch(new Request('https://x.workers.dev/saude'), { CF_CONTA: 'c', CF_TOKEN: 't' }, { waitUntil() {} })).json();
+const D = rd.cloudflareDetalhe;
+ok(D && D.porStatus.exceededResources === 120 && D.porHora[0].falhas === 120 && D.porHora[0].pedidos === 620 && D.cpuP99Ms === 16, 'saúde: falhas por motivo e por hora, e o tempo de processamento');
 process.exit(falhou ? 1 : 0);
