@@ -1,9 +1,9 @@
 /* seguir um ônibus da cidade: botão "Buscar ônibus", busca, card e caminho feito */
-.segbtn{position:absolute;top:116px;right:10px;z-index:3;display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:0 13px;border-radius:999px;font:600 13px var(--f-body);color:var(--mc-ink);cursor:pointer;border:1px solid var(--mc-glass-line)}
+.segbtn{position:absolute;top:10px;left:10px;z-index:3;display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:0 13px;border-radius:999px;font:600 13px var(--f-body);color:var(--mc-ink);cursor:pointer;border:1px solid var(--mc-glass-line)}
 .segbtn[aria-expanded="true"]{border-color:var(--mc-ink)}
 .segbtn:focus-visible,.seg-x:focus-visible,.seg-row:focus-visible,.seg-volta:focus-visible{outline:2px solid var(--mc-ink);outline-offset:2px}
 .seg-ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
-.segbusca{position:absolute;top:162px;right:10px;z-index:5;width:min(330px,calc(100% - 20px));max-height:calc(100% - 172px);display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:18px;color:var(--mc-ink);font-size:13px}
+.segbusca{position:absolute;top:56px;left:10px;z-index:5;width:min(330px,calc(100% - 20px));max-height:calc(100% - 66px);display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:18px;color:var(--mc-ink);font-size:13px}
 .seg-bh{display:flex;gap:6px;align-items:center}
 .seg-bh input{flex:1;min-width:0;height:38px;padding:0 12px;border-radius:12px;border:1px solid var(--mc-glass-line);background:var(--mc-bg);color:var(--mc-ink);font:500 15px var(--f-body)}
 .seg-bh input:focus{outline:2px solid var(--mc-ink);outline-offset:0}
@@ -36,10 +36,10 @@
 /* com o card aberto, ele fica no lugar do card de cobertura do Wi-Fi */
 .mapwrap.seguindo .covcard{bottom:auto;top:58px}
 /* no computador a legenda fica no canto de baixo do mapa: o card vai logo acima dela */
-@media (min-width:860px){.segcard{bottom:62px}.segbusca{max-height:calc(100% - 172px - 190px);min-height:220px}}
+@media (min-width:860px){.segcard{bottom:62px}.segbusca{max-height:calc(100% - 66px - 190px);min-height:220px}}
 @media (max-width:680px){
-  .segbtn{top:92px;min-height:36px;padding:0 11px}
-  .segbusca{top:136px;max-height:calc(100% - 146px)}
+  .segbtn{min-height:36px;padding:0 12px}
+  .segbusca{top:54px;max-height:calc(100% - 64px)}
   .segcard{width:calc(100% - 72px);padding:9px 11px}
   .mapwrap.seguindo .zoomlvl{display:none}
 }

@@ -11,6 +11,7 @@ App web (sem framework) da Cidade Universitária da UFRJ, publicado pelo GitHub 
   - `src/redutores.json`: semáforos e lombadas (UFRJ e OpenStreetMap) para a previsão dos ônibus, gerado por `tools/redutores.py` (fontes em `tools/dados/redutores-fontes.json`).
   - Planta do CT (`src/js/21-planta-ct.js`): no celular em pé, quando o enquadramento é mais largo que alto, a planta gira 90° (o Bloco A fica em cima).
   - `mapa-*.jpg` (capa, fundos e visão geral do mapa): refeitas por `tools/planta_imagens.py` a partir das originais em `tools/dados/planta/` e de `src/edificacoes.json`. Rode depois de mudar os prédios. Os `mapa-campus*.svg` (zoom) ficam como estão; os prédios entram por cima pelo app.
+- Ícone do app (pin com a Ilha do Fundão): `tools/icone_app.py` gera `icone.svg` e os PNGs (`icon-*.png`, `apple-touch-icon.png`, `favicon-32.png`) a partir do litoral do OpenStreetMap. Não usar o brasão (Minerva) da UFRJ: o app não é oficial.
 - `tools/montar.py` junta as partes num arquivo único (`app-completo.html`, o que vai para o claude.ai).
 - `python3 tools/build_site.py` gera o site: `app.js`, `style.css`, o corpo do `index.html`, `version.json` e `sw.js`. **Nunca edite esses arquivos à mão.** O cabeçalho do `index.html` (até `<body>`) é mantido.
 
@@ -36,6 +37,7 @@ App web (sem framework) da Cidade Universitária da UFRJ, publicado pelo GitHub 
 
 ## Desempenho
 - Modos em Ajustes: completo (vidro e animações), intermediário (padrão no celular: tudo opaco, classe `solido`, sem `backdrop-filter` nem refração, mas com o movimento do mapa e dos ônibus) e leve (`lowgfx`: opaco e sem movimento). Regras só visuais usam `.solido`; as de movimento, `.lowgfx`.
+- O mapa base é sempre sólido (o controle de transparência saiu; no lugar, "Buscar ônibus").
 - `box()` em `03-mapa.js` guarda a caixa do mapa (renova ao rolar, redimensionar e no começo de cada toque): lê-la a cada quadro forçava o layout. Durante o arrasto, os ônibus ao vivo esperam.
 
 ## Tiroteios (Fogo Cruzado)

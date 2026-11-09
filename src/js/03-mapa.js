@@ -72,7 +72,7 @@ function mk(kind,id,p,label,inner){
 }
 function buildMap(){
   etapas('mapa vai montar');
-  $('#mapbase').innerHTML='<g id="world0" transform="rotate('+ROT+')"><g id="baseimg"'+(window.__opac?' style="opacity:'+window.__opac+'"':'')+'><image href="'+MAPIMG+'" x="-270" y="-340" width="2034" height="1300" preserveAspectRatio="none" decoding="async"/><image id="imgHD" href="'+MAPHD+'" x="109" y="-45" width="1233" height="701" preserveAspectRatio="none" decoding="async"/><image id="imgVec"'+(vecOn?' href="'+MAPVEC+'"':'')+' x="109" y="-45" width="1233" height="701" preserveAspectRatio="none"/></g></g>';
+  $('#mapbase').innerHTML='<g id="world0" transform="rotate('+ROT+')"><g id="baseimg"><image href="'+MAPIMG+'" x="-270" y="-340" width="2034" height="1300" preserveAspectRatio="none" decoding="async"/><image id="imgHD" href="'+MAPHD+'" x="109" y="-45" width="1233" height="701" preserveAspectRatio="none" decoding="async"/><image id="imgVec"'+(vecOn?' href="'+MAPVEC+'"':'')+' x="109" y="-45" width="1233" height="701" preserveAspectRatio="none"/></g></g>';
   var s='<rect class="v-hit" x="-3000" y="-3000" width="8000" height="8000"/>';
   s+='<g id="world" transform="rotate('+ROT+')">';
   s+='<g id="gLines">';
