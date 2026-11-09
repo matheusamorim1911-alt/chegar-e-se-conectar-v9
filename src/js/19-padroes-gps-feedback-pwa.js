@@ -93,7 +93,7 @@ function fbkOpen(nota){
   var el=$('#fbkSheet');
   if(!el){document.body.insertAdjacentHTML('beforeend','<div class="la-wrap" id="fbkSheet" role="dialog" aria-modal="true" aria-labelledby="fbkT" hidden><div class="la-box"></div></div>');el=$('#fbkSheet')}
   el.querySelector('.la-box').innerHTML='<p class="eyebrow keep">Feedback</p><h2 id="fbkT">Conte para a gente</h2><p class="la-p">Achou um erro, tem uma ideia ou quer elogiar? A equipe lê tudo.</p>'+
-    '<div class="seg" role="radiogroup" aria-label="Tipo">'+FBK_TIPOS.map(function(t,i){return '<button type="button" data-fbkt="'+t[0]+'" aria-pressed="'+(i===0)+'">'+t[1]+'</button>'}).join('')+'</div>'+
+    '<div class="seg chips" role="radiogroup" aria-label="Tipo">'+FBK_TIPOS.map(function(t,i){return '<button type="button" data-fbkt="'+t[0]+'" aria-pressed="'+(i===0)+'">'+t[1]+'</button>'}).join('')+'</div>'+
     '<label class="fld">Sua mensagem<textarea id="fbkTxt" rows="5" maxlength="1000" placeholder="Ex.: o horário da Linha 2 no CT estava errado hoje às 18h"></textarea></label>'+
     (ACC.email?'<label class="wsafe"><input type="checkbox" id="fbkMail"> Pode me responder em '+esc(ACC.email)+'</label>':'')+
     '<div class="la-btns"><button type="button" class="lg-btn pri" id="fbkSend">Enviar</button></div><button type="button" class="la-no" data-fbkclose>Cancelar</button>'+

@@ -135,8 +135,8 @@ header{position:relative}
 @media (max-width:560px){.cl-temp{font-size:30px}.cl-ic{width:40px;height:40px}.cl-alerta{border-radius:16px;flex:1 1 100%}}
 .cl-alvo{margin-top:2px}
 .balvo-t{margin:4px 0 0;font-size:15px}
-.lowgfx .tbrow,.lowgfx .climabox{background:var(--surface)!important;box-shadow:none!important}
-.lowgfx .climabox::before{display:none}.lowgfx .cl-alerta{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.solido .tbrow,.solido .climabox{background:var(--surface)!important;box-shadow:none!important}
+.solido .climabox::before{display:none}.solido .cl-alerta{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 
 .cfgtime{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:16px;border:1px solid var(--lg-rim2);background:linear-gradient(180deg,var(--lg-top),var(--lg-bot));box-shadow:inset 0 1px 0 var(--lg-rim)}
 .cfgtime label{font-weight:600}

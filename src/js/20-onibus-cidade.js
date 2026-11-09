@@ -26,7 +26,7 @@ function extStopsOf(L){return L.st.map(function(s){return EXTS[s[0]]?EXTS[s[0]].
 function extPanelHTML(now){
   var g=EXTSEL.g,all=EXT.lines.filter(function(L){return !g||L.g===g}),ls=all.filter(function(L){return extToday(L)}),fora=all.length-ls.length;
   ls.sort(function(a,b){var x=extNext(a,a.st[0][0],now,1)[0],y=extNext(b,b.st[0][0],now,1)[0];return (x==null?1e9:x)-(y==null?1e9:y)});
-  var chips='<div class="seg xg" role="group" aria-label="Destino"><button type="button" data-xg="" aria-pressed="'+!g+'">Todos</button>'+EXT_G.map(function(G){return '<button type="button" data-xg="'+G[0]+'" aria-pressed="'+(g===G[0])+'">'+G[1]+'</button>'}).join('')+'</div>';
+  var chips='<div class="seg chips xg" role="group" aria-label="Destino"><button type="button" data-xg="" aria-pressed="'+!g+'">Todos</button>'+EXT_G.map(function(G){return '<button type="button" data-xg="'+G[0]+'" aria-pressed="'+(g===G[0])+'">'+G[1]+'</button>'}).join('')+'</div>';
   var list='<ul class="xl-list">'+ls.map(function(L){
     var k=L.n+'|'+L.d,open=EXTSEL.ln===k,first=L.st[0][0];
     return '<li><button type="button" class="xl-row" data-xln="'+esc(k)+'" aria-expanded="'+open+'">'+extBadge(L)+'<span class="grow"><b>'+esc(L.d)+'</b><small>'+extWhen(L,first,now)+' · '+esc(EXTS[first]?EXTS[first].name:'')+'</small></span></button>'+

@@ -225,7 +225,7 @@ setOpac(savedOp);
 opac.addEventListener('input',function(){setOpac(opac.value);try{localStorage.setItem('cse-ufrj-opac',opac.value)}catch(e){}});
 renderAll();
 /* Liquid Glass: brilho segue o ponteiro; refração só em navegadores Chromium */
-try{if(LITE===false&&navigator.userAgentData&&navigator.userAgentData.brands&&navigator.userAgentData.brands.some(function(b){return /Chromium/.test(b.brand)}))document.documentElement.classList.add('refract')}catch(e){}
+try{if(LITE===false&&perfEff()==='completo'&&navigator.userAgentData&&navigator.userAgentData.brands&&navigator.userAgentData.brands.some(function(b){return /Chromium/.test(b.brand)}))document.documentElement.classList.add('refract')}catch(e){}
 document.addEventListener('pointermove',function(e){
   var el=e.target.closest&&e.target.closest('.chip,.item,.swap,.scale button,.copy,.seg button,.zoomctl button,.cv-btn');
   if(!el)return;var r=el.getBoundingClientRect();

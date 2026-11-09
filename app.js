@@ -32,7 +32,9 @@ function applyPerf(){
   LITE=e==='leve'?true:(m==='auto'&&SAVEDATA&&!DESKTOP)?true:false;
   r.classList.toggle('lite',LITE);r.classList.toggle('lowgfx',e==='leve');
   r.classList.toggle('perf-c',e==='completo');r.classList.toggle('perf-i',e==='intermediario');
-  if(e==='leve')r.classList.remove('refract');
+  /* intermediário e leve: tudo opaco (sem vidro, desfoque nem brilho); o leve também tira o movimento do mapa */
+  r.classList.toggle('solido',e!=='completo');
+  if(e!=='completo')r.classList.remove('refract');
 }
 applyPerf();
 var $=function(s,r){return (r||document).querySelector(s)};
@@ -399,7 +401,14 @@ function buildMap(){
   etapas('mapa montado');
 }
 /* ---------- zoom e arrasto ---------- */
-function box(){var r=svg.getBoundingClientRect();return {l:r.left,t:r.top,w:Math.max(1,r.width),h:Math.max(1,r.height)}}
+/* a caixa do mapa na tela fica guardada: ler getBoundingClientRect a cada quadro obrigava o navegador a refazer o
+   layout depois de mover os ônibus (no celular, mais de 1 s a cada 8 s de arrasto). Renova ao rolar, redimensionar
+   e no começo de cada toque. */
+var BOX=null;
+function box(){if(!BOX){var r=svg.getBoundingClientRect();BOX={l:r.left,t:r.top,w:Math.max(1,r.width),h:Math.max(1,r.height)}}return BOX}
+function boxRenova(){BOX=null}
+addEventListener('scroll',boxRenova,{passive:true,capture:true});addEventListener('resize',boxRenova);
+if(window.ResizeObserver)new ResizeObserver(boxRenova).observe(svg);
 function clampView(){
   var b=box(),minW=b.w/7;
   view.w=Math.max(minW,Math.min(fitW,view.w));view.h=view.w*b.h/b.w;
@@ -457,7 +466,8 @@ function initZoom(){
   if(!ROT&&box().w<680){var c=[665,382];view.w=Math.min(fitW,700,860*box().w/box().h);view.h=view.w*box().h/box().w;view.x=c[0]-view.w/2;view.y=Math.max(BASE.y-60,Math.min(c[1]-view.h/2,BASE.y+BASE.h+40-view.h))}
   applyView();
   var pts={},start=null,moved=0;
-  svg.addEventListener('wheel',function(e){e.preventDefault();lastGesture=Date.now();zoomAt(toMap(e.clientX,e.clientY),Math.exp(-e.deltaY*(e.deltaMode===1?0.05:0.0016)))},{passive:false});
+  svg.addEventListener('wheel',function(e){e.preventDefault();if(Date.now()-lastGesture>300)boxRenova();lastGesture=Date.now();zoomAt(toMap(e.clientX,e.clientY),Math.exp(-e.deltaY*(e.deltaMode===1?0.05:0.0016)))},{passive:false});
+  svg.addEventListener('pointerdown',boxRenova,true);
   svg.addEventListener('pointerdown',function(e){
     if(e.pointerType==='mouse'&&e.button!==0)return;
     pts[e.pointerId]={x:e.clientX,y:e.clientY};moved=0;
@@ -3311,7 +3321,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261108-1633';
+var APP_VERSION='20261109-1452';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -4211,7 +4221,7 @@ setOpac(savedOp);
 opac.addEventListener('input',function(){setOpac(opac.value);try{localStorage.setItem('cse-ufrj-opac',opac.value)}catch(e){}});
 renderAll();
 /* Liquid Glass: brilho segue o ponteiro; refração só em navegadores Chromium */
-try{if(LITE===false&&navigator.userAgentData&&navigator.userAgentData.brands&&navigator.userAgentData.brands.some(function(b){return /Chromium/.test(b.brand)}))document.documentElement.classList.add('refract')}catch(e){}
+try{if(LITE===false&&perfEff()==='completo'&&navigator.userAgentData&&navigator.userAgentData.brands&&navigator.userAgentData.brands.some(function(b){return /Chromium/.test(b.brand)}))document.documentElement.classList.add('refract')}catch(e){}
 document.addEventListener('pointermove',function(e){
   var el=e.target.closest&&e.target.closest('.chip,.item,.swap,.scale button,.copy,.seg button,.zoomctl button,.cv-btn');
   if(!el)return;var r=el.getBoundingClientRect();
@@ -4919,7 +4929,7 @@ function fbkOpen(nota){
   var el=$('#fbkSheet');
   if(!el){document.body.insertAdjacentHTML('beforeend','<div class="la-wrap" id="fbkSheet" role="dialog" aria-modal="true" aria-labelledby="fbkT" hidden><div class="la-box"></div></div>');el=$('#fbkSheet')}
   el.querySelector('.la-box').innerHTML='<p class="eyebrow keep">Feedback</p><h2 id="fbkT">Conte para a gente</h2><p class="la-p">Achou um erro, tem uma ideia ou quer elogiar? A equipe lê tudo.</p>'+
-    '<div class="seg" role="radiogroup" aria-label="Tipo">'+FBK_TIPOS.map(function(t,i){return '<button type="button" data-fbkt="'+t[0]+'" aria-pressed="'+(i===0)+'">'+t[1]+'</button>'}).join('')+'</div>'+
+    '<div class="seg chips" role="radiogroup" aria-label="Tipo">'+FBK_TIPOS.map(function(t,i){return '<button type="button" data-fbkt="'+t[0]+'" aria-pressed="'+(i===0)+'">'+t[1]+'</button>'}).join('')+'</div>'+
     '<label class="fld">Sua mensagem<textarea id="fbkTxt" rows="5" maxlength="1000" placeholder="Ex.: o horário da Linha 2 no CT estava errado hoje às 18h"></textarea></label>'+
     (ACC.email?'<label class="wsafe"><input type="checkbox" id="fbkMail"> Pode me responder em '+esc(ACC.email)+'</label>':'')+
     '<div class="la-btns"><button type="button" class="lg-btn pri" id="fbkSend">Enviar</button></div><button type="button" class="la-no" data-fbkclose>Cancelar</button>'+
@@ -5027,7 +5037,7 @@ function extStopsOf(L){return L.st.map(function(s){return EXTS[s[0]]?EXTS[s[0]].
 function extPanelHTML(now){
   var g=EXTSEL.g,all=EXT.lines.filter(function(L){return !g||L.g===g}),ls=all.filter(function(L){return extToday(L)}),fora=all.length-ls.length;
   ls.sort(function(a,b){var x=extNext(a,a.st[0][0],now,1)[0],y=extNext(b,b.st[0][0],now,1)[0];return (x==null?1e9:x)-(y==null?1e9:y)});
-  var chips='<div class="seg xg" role="group" aria-label="Destino"><button type="button" data-xg="" aria-pressed="'+!g+'">Todos</button>'+EXT_G.map(function(G){return '<button type="button" data-xg="'+G[0]+'" aria-pressed="'+(g===G[0])+'">'+G[1]+'</button>'}).join('')+'</div>';
+  var chips='<div class="seg chips xg" role="group" aria-label="Destino"><button type="button" data-xg="" aria-pressed="'+!g+'">Todos</button>'+EXT_G.map(function(G){return '<button type="button" data-xg="'+G[0]+'" aria-pressed="'+(g===G[0])+'">'+G[1]+'</button>'}).join('')+'</div>';
   var list='<ul class="xl-list">'+ls.map(function(L){
     var k=L.n+'|'+L.d,open=EXTSEL.ln===k,first=L.st[0][0];
     return '<li><button type="button" class="xl-row" data-xln="'+esc(k)+'" aria-expanded="'+open+'">'+extBadge(L)+'<span class="grow"><b>'+esc(L.d)+'</b><small>'+extWhen(L,first,now)+' · '+esc(EXTS[first]?EXTS[first].name:'')+'</small></span></button>'+
@@ -5241,8 +5251,8 @@ function ctpInner(){
       if(r.bloco)return '<li><button type="button" data-ctbl="'+esc(r.bloco[0])+'"><b>Bloco '+esc(r.bloco[0])+'</b><small>'+esc(r.bloco[3])+'</small></button></li>';
       if(r.mais)return '<li class="muted small">e mais '+r.mais+'… refine a busca</li>';
       return '<li><button type="button" data-cts="'+r.s.i+'"><b>'+esc(ctpLabel(r.s))+'</b><small>'+esc((r.s[4]?r.s[3]+' · ':'')+ctpWhere(r.s))+'</small></button></li>'}).join(''):'<li class="muted small">Nada encontrado.</li>')+'</ul>'}
-  h+='<div class="seg ctseg" role="group" aria-label="Bloco"><button type="button" data-ctbl="" aria-pressed="'+!CTP.bl+'">Todos</button>'+bls.map(function(b){return '<button type="button" data-ctbl="'+esc(b)+'" aria-pressed="'+(CTP.bl===b)+'">'+esc(b==='Auditório'?'Aud.':b)+'</button>'}).join('')+'</div>';
-  h+='<div class="seg ctseg" role="group" aria-label="Andar">'+pavs.map(function(k){return '<button type="button" data-ctpav="'+k+'" aria-pressed="'+(CTP.pav===k)+'">'+CTP_PAV[k]+'</button>'}).join('')+'</div>';
+  h+='<div class="seg chips ctseg" role="group" aria-label="Bloco"><button type="button" data-ctbl="" aria-pressed="'+!CTP.bl+'">Todos</button>'+bls.map(function(b){return '<button type="button" data-ctbl="'+esc(b)+'" aria-pressed="'+(CTP.bl===b)+'">'+esc(b==='Auditório'?'Aud.':b)+'</button>'}).join('')+'</div>';
+  h+='<div class="seg chips ctseg" role="group" aria-label="Andar">'+pavs.map(function(k){return '<button type="button" data-ctpav="'+k+'" aria-pressed="'+(CTP.pav===k)+'">'+CTP_PAV[k]+'</button>'}).join('')+'</div>';
   h+='<div class="ctf">'+CTP_F.map(function(f){return '<button type="button" class="chip" data-ctf="'+f[0]+'" aria-pressed="'+(CTP.f===f[0])+'"><span class="sw" style="background:'+CTP_G[f[0]][1]+';opacity:1"></span>'+f[1]+'</button>'}).join('')+'</div>';
   var cnt=CTP.f?ctpRooms().filter(function(s){return s[2]===CTP.f}).length:0;
   h+='<div class="ctwrap">'+ctpSVG()+'<div class="ctz"><button type="button" data-ctz="1" aria-label="Aproximar">+</button><button type="button" data-ctz="-1" aria-label="Afastar">−</button><button type="button" data-ctz="0" aria-label="Ver tudo">⤢</button></div></div>';
@@ -5284,21 +5294,32 @@ function projOn(i,p){var S=SHP[i],best=null;for(var j=1;j<S.P.length;j++){var a=
 var LV2={st:{},raf:0,last:0};
 function lvLen(i){var c=SHP[i].c;return c[c.length-1]}
 function lvSign(o,sn,prev){
+  /* parado (velocidade quase zero): o GPS oscila uns metros; mantém o sentido de antes */
+  if(prev&&prev.i===sn.i&&prev.sign&&!(o.vel>2))return prev.sign;
   if(prev&&prev.i===sn.i&&prev.s!=null){var ds=sn.s-prev.s;if(Math.abs(ds)/MPU>5)return ds>0?1:-1}
   if(o.vel>2){var comp=((angN()+o.dir)%360+360)%360,d=Math.abs(((sn.ang-comp)%360+540)%360-180);return d>90?-1:1}
   return prev&&prev.sign||1;
 }
+/* Sem dar ré na tela (teste com 4 dias de GPS, 282 mil atualizações: 27% delas faziam o ônibus voltar, em média 95 m):
+   - só adianta o ônibus até LV_PRED_MAX s depois da última posição (depois disso a previsão quase sempre passa do ponto);
+   - se a posição nova fica até LV_SEGURA_M atrás do que aparece, o marcador espera parado até a previsão alcançá-lo
+     (até 30 s); correções maiores viram um salto rápido, nunca um deslize para trás.
+   Resultado no teste: ré em 2,3% das atualizações (só as grandes, agora em salto); erro do que aparece 42,4 → 43,9 m. */
+var LV_PRED_MAX=30,LV_SEGURA_M=150;
 function lvPred(S,now){
   var O=S.obs;if(!O||O.i==null)return null;
-  var dt=Math.max(0,Math.min(60,(now-O.t)/1000)),s=O.s+O.sign*lvDist(O,dt)*MPU;
+  var dt=Math.max(0,Math.min(LV_PRED_MAX,(now-O.t)/1000)),s=O.s+O.sign*lvDist(O,dt)*MPU;
   return Math.max(0,Math.min(lvLen(O.i),s));
 }
 function lvFrame(){
-  LV2.raf=0;var now=Date.now(),red=matchMedia('(prefers-reduced-motion:reduce)').matches||perfEff()==='leve',any=false;
+  LV2.raf=0;
+  /* durante o arrasto ou a pinça, os ônibus esperam (o mapa inteiro já se move); voltam a andar logo depois */
+  if(Date.now()-lastGesture<200&&!document.hidden){LV2.raf=requestAnimationFrame(function(){setTimeout(lvFrame,120)});return}var now=Date.now(),red=matchMedia('(prefers-reduced-motion:reduce)').matches||perfEff()==='leve',any=false;
   Object.keys(LV2.st).forEach(function(v){var S=LV2.st[v];if(!S.el||!S.el.isConnected)return;
     var O=S.obs,x=null,y=null,ang=null,ps=lvPred(S,now),si=null,ss=null,mv=O&&O.i!=null&&lvV(O)>0.3;
     var k=S.blend?Math.min(1,(now-S.blend.t0)/1500):1;if(S.blend&&k>=1)S.blend=null;
-    if(ps!=null){si=O.i;ss=ps;
+    if(S.hold&&(ps==null||S.hold.i!==O.i||(ps-S.hold.s)*O.sign>=0||now-S.hold.ini>30e3)){var ex=S.hold;S.hold=null;if(ps!=null&&ex.i===O.i&&(ps-ex.s)*O.sign<0)lvSalto(S)}
+    if(ps!=null){si=O.i;ss=S.hold?S.hold.s:ps;if(S.hold)any=true;
       if(S.blend){any=true;var e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
         /* mesmo traçado e perto: desliza pela rota; senão, em linha reta */
         if(S.blend.i===si&&S.blend.s!=null&&Math.abs(S.blend.s-ps)<700*MPU)ss=S.blend.s+(ps-S.blend.s)*e;
@@ -5311,6 +5332,22 @@ function lvFrame(){
   });
   if(any&&!red&&!document.hidden)LV2.raf=requestAnimationFrame(function(){setTimeout(lvFrame,90)});
 }
+/* chegou uma posição nova: decide como o marcador vai até a previsão nova */
+function lvCorrige(S,A){
+  var O=S.obs,now=Date.now(),ps=lvPred(S,now),h=S.hold;S.blend=null;S.hold=null;
+  if(S.x==null)return;
+  if(ps!=null&&S.i===O.i&&S.s!=null){
+    var g=(ps-S.s)*O.sign/MPU;
+    if(g<-10){/* a previsão tinha passado do ponto: espera parado (ônibus andando, até 150 m) ou salta, sem andar de ré */
+      if(-g<LV_SEGURA_M&&O.v>0){S.hold={i:O.i,s:S.s,ini:h&&h.i===O.i?h.ini:now};return}
+      lvSalto(S);return}
+  }
+  /* outro traçado (ou sem traçado): se o caminho até a posição nova vai contra o sentido em que o ônibus andava, salta */
+  if(A&&A.i!=null&&S.i!=null&&S.s!=null){var q=ps!=null?shpAt(O.i,ps):{x:O.x,y:O.y},a=shpAt(S.i,S.s).ang*Math.PI/180,sg=A.sign||1,
+      dx=q.x-S.x,dy=q.y-S.y;if((dx*Math.sin(a)-dy*Math.cos(a))*sg<-10*MPU){lvSalto(S);return}}
+  S.blend={x:S.x,y:S.y,i:S.i,s:S.s,t0:now};
+}
+function lvSalto(S){S.blend=null;if(S.el&&S.el.animate&&!matchMedia('(prefers-reduced-motion:reduce)').matches)try{S.el.animate([{opacity:.1},{opacity:1}],{duration:380,easing:'ease-out'})}catch(e){}}
 aoFazer('mapa vai montar',function(){LV2.st={}});/* os marcadores ao vivo são recriados */
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&!LV2.raf)lvFrame()});
 /* atraso das posições no aviso "ao vivo" */
@@ -5489,11 +5526,10 @@ function liveDrawCore(){
     if(!S||!S.el||!S.el.isConnected){
       G.insertAdjacentHTML('beforeend',mk('ext',liveNearStop([obs.x,obs.y]),[obs.x,obs.y],tit,'<title>'+esc(tit)+'</title><circle class="hit" r="16"/><path class="lv-dir" d="M0 -18l5.5 6.5h-11z"/><circle class="lv-dot" r="11" style="fill:'+liveColor(o.l)+'"/><text class="lv-t" y="3.5">'+esc(o.l.replace(/^S[A-Z]*/,'').slice(0,3))+'</text>').replace('class="mk ext"','class="mk ext xlive" data-v="'+esc(o.v)+'"'));
       S=LV2.st[o.v]={el:G.lastElementChild};
-    }else if(!prev||prev.t!==o.t){
-      S.blend={x:S.x,y:S.y,i:S.i,s:S.s,t0:Date.now()};
-    }
+    }else if(!prev||prev.t!==o.t){S.novo=true}
     var tt=S.el.querySelector('title');if(tt)tt.textContent=tit;S.el.setAttribute('aria-label',tit);
     S.obs=obs;S.age=idade;S.el.dataset.id=liveNearStop([obs.x,obs.y]);
+    if(S.novo){S.novo=false;lvCorrige(S,prev)}
   });
   Object.keys(LV2.st).forEach(function(v){if(!seen[v]){if(LV2.st[v].el)LV2.st[v].el.remove();delete LV2.st[v]}});
 }

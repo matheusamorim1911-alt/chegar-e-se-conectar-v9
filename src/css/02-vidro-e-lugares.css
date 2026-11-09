@@ -32,8 +32,18 @@ body{background-image:radial-gradient(40% 35% at 4% 2%,var(--glow-a),transparent
 .item{border-radius:18px}
 .fld select,.clock input{border-radius:14px}
 .scale button{border-radius:14px}
-.seg{border-radius:999px;padding:4px}
+.seg{border-radius:999px;padding:4px;display:inline-flex;gap:4px;align-items:stretch;max-width:100%}
+/* os botões de um grupo não tinham estilo próprio: o celular mostrava o botão padrão (cinza, com borda clara) */
+.seg button{flex:1 1 auto;min-height:38px;padding:0 14px;border:0;background:transparent;color:var(--ink2);font:600 14px var(--f-body);cursor:pointer;-webkit-appearance:none;appearance:none}
+.seg button[aria-pressed="true"],.seg button[aria-selected="true"]{color:var(--ink)}
 .seg button{border-radius:999px;position:relative;isolation:isolate;transition:transform .35s cubic-bezier(.34,1.56,.64,1),background-color .2s}
+/* grupos que quebram linha (destinos, blocos do CT, tipos de comentário): cada opção é um botão próprio, sem o trilho
+   em volta (com duas linhas ele virava uma cápsula torta) */
+.seg.chips,.lite .seg.chips,.solido .seg.chips,.refract .seg.chips{display:flex;flex-wrap:wrap;gap:6px;padding:0!important;background:none!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border-radius:0}
+.seg.chips button{min-height:34px;padding:0 14px;border:1px solid var(--glass-line);background:var(--surface);color:var(--ink);font-weight:600;font-size:13.5px;box-shadow:none}
+.seg.chips button:hover{background:var(--glass-hi)}
+.seg.chips button[aria-pressed="true"]{background:var(--press);border-color:var(--press);color:var(--ink-inv);box-shadow:none}
+.seg.chips button::before{display:none}
 /* brilho especular que acompanha o cursor e faixa de reflexo no topo */
 .chip::before,.item::before,.swap::before,.scale button::before,.copy::before,.seg button::before,.zoomctl button::before{
   content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;

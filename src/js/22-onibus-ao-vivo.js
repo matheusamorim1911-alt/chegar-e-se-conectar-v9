@@ -9,21 +9,32 @@ function projOn(i,p){var S=SHP[i],best=null;for(var j=1;j<S.P.length;j++){var a=
 var LV2={st:{},raf:0,last:0};
 function lvLen(i){var c=SHP[i].c;return c[c.length-1]}
 function lvSign(o,sn,prev){
+  /* parado (velocidade quase zero): o GPS oscila uns metros; mantém o sentido de antes */
+  if(prev&&prev.i===sn.i&&prev.sign&&!(o.vel>2))return prev.sign;
   if(prev&&prev.i===sn.i&&prev.s!=null){var ds=sn.s-prev.s;if(Math.abs(ds)/MPU>5)return ds>0?1:-1}
   if(o.vel>2){var comp=((angN()+o.dir)%360+360)%360,d=Math.abs(((sn.ang-comp)%360+540)%360-180);return d>90?-1:1}
   return prev&&prev.sign||1;
 }
+/* Sem dar ré na tela (teste com 4 dias de GPS, 282 mil atualizações: 27% delas faziam o ônibus voltar, em média 95 m):
+   - só adianta o ônibus até LV_PRED_MAX s depois da última posição (depois disso a previsão quase sempre passa do ponto);
+   - se a posição nova fica até LV_SEGURA_M atrás do que aparece, o marcador espera parado até a previsão alcançá-lo
+     (até 30 s); correções maiores viram um salto rápido, nunca um deslize para trás.
+   Resultado no teste: ré em 2,3% das atualizações (só as grandes, agora em salto); erro do que aparece 42,4 → 43,9 m. */
+var LV_PRED_MAX=30,LV_SEGURA_M=150;
 function lvPred(S,now){
   var O=S.obs;if(!O||O.i==null)return null;
-  var dt=Math.max(0,Math.min(60,(now-O.t)/1000)),s=O.s+O.sign*lvDist(O,dt)*MPU;
+  var dt=Math.max(0,Math.min(LV_PRED_MAX,(now-O.t)/1000)),s=O.s+O.sign*lvDist(O,dt)*MPU;
   return Math.max(0,Math.min(lvLen(O.i),s));
 }
 function lvFrame(){
-  LV2.raf=0;var now=Date.now(),red=matchMedia('(prefers-reduced-motion:reduce)').matches||perfEff()==='leve',any=false;
+  LV2.raf=0;
+  /* durante o arrasto ou a pinça, os ônibus esperam (o mapa inteiro já se move); voltam a andar logo depois */
+  if(Date.now()-lastGesture<200&&!document.hidden){LV2.raf=requestAnimationFrame(function(){setTimeout(lvFrame,120)});return}var now=Date.now(),red=matchMedia('(prefers-reduced-motion:reduce)').matches||perfEff()==='leve',any=false;
   Object.keys(LV2.st).forEach(function(v){var S=LV2.st[v];if(!S.el||!S.el.isConnected)return;
     var O=S.obs,x=null,y=null,ang=null,ps=lvPred(S,now),si=null,ss=null,mv=O&&O.i!=null&&lvV(O)>0.3;
     var k=S.blend?Math.min(1,(now-S.blend.t0)/1500):1;if(S.blend&&k>=1)S.blend=null;
-    if(ps!=null){si=O.i;ss=ps;
+    if(S.hold&&(ps==null||S.hold.i!==O.i||(ps-S.hold.s)*O.sign>=0||now-S.hold.ini>30e3)){var ex=S.hold;S.hold=null;if(ps!=null&&ex.i===O.i&&(ps-ex.s)*O.sign<0)lvSalto(S)}
+    if(ps!=null){si=O.i;ss=S.hold?S.hold.s:ps;if(S.hold)any=true;
       if(S.blend){any=true;var e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
         /* mesmo traçado e perto: desliza pela rota; senão, em linha reta */
         if(S.blend.i===si&&S.blend.s!=null&&Math.abs(S.blend.s-ps)<700*MPU)ss=S.blend.s+(ps-S.blend.s)*e;
@@ -36,6 +47,22 @@ function lvFrame(){
   });
   if(any&&!red&&!document.hidden)LV2.raf=requestAnimationFrame(function(){setTimeout(lvFrame,90)});
 }
+/* chegou uma posição nova: decide como o marcador vai até a previsão nova */
+function lvCorrige(S,A){
+  var O=S.obs,now=Date.now(),ps=lvPred(S,now),h=S.hold;S.blend=null;S.hold=null;
+  if(S.x==null)return;
+  if(ps!=null&&S.i===O.i&&S.s!=null){
+    var g=(ps-S.s)*O.sign/MPU;
+    if(g<-10){/* a previsão tinha passado do ponto: espera parado (ônibus andando, até 150 m) ou salta, sem andar de ré */
+      if(-g<LV_SEGURA_M&&O.v>0){S.hold={i:O.i,s:S.s,ini:h&&h.i===O.i?h.ini:now};return}
+      lvSalto(S);return}
+  }
+  /* outro traçado (ou sem traçado): se o caminho até a posição nova vai contra o sentido em que o ônibus andava, salta */
+  if(A&&A.i!=null&&S.i!=null&&S.s!=null){var q=ps!=null?shpAt(O.i,ps):{x:O.x,y:O.y},a=shpAt(S.i,S.s).ang*Math.PI/180,sg=A.sign||1,
+      dx=q.x-S.x,dy=q.y-S.y;if((dx*Math.sin(a)-dy*Math.cos(a))*sg<-10*MPU){lvSalto(S);return}}
+  S.blend={x:S.x,y:S.y,i:S.i,s:S.s,t0:now};
+}
+function lvSalto(S){S.blend=null;if(S.el&&S.el.animate&&!matchMedia('(prefers-reduced-motion:reduce)').matches)try{S.el.animate([{opacity:.1},{opacity:1}],{duration:380,easing:'ease-out'})}catch(e){}}
 aoFazer('mapa vai montar',function(){LV2.st={}});/* os marcadores ao vivo são recriados */
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&!LV2.raf)lvFrame()});
 /* atraso das posições no aviso "ao vivo" */
@@ -214,11 +241,10 @@ function liveDrawCore(){
     if(!S||!S.el||!S.el.isConnected){
       G.insertAdjacentHTML('beforeend',mk('ext',liveNearStop([obs.x,obs.y]),[obs.x,obs.y],tit,'<title>'+esc(tit)+'</title><circle class="hit" r="16"/><path class="lv-dir" d="M0 -18l5.5 6.5h-11z"/><circle class="lv-dot" r="11" style="fill:'+liveColor(o.l)+'"/><text class="lv-t" y="3.5">'+esc(o.l.replace(/^S[A-Z]*/,'').slice(0,3))+'</text>').replace('class="mk ext"','class="mk ext xlive" data-v="'+esc(o.v)+'"'));
       S=LV2.st[o.v]={el:G.lastElementChild};
-    }else if(!prev||prev.t!==o.t){
-      S.blend={x:S.x,y:S.y,i:S.i,s:S.s,t0:Date.now()};
-    }
+    }else if(!prev||prev.t!==o.t){S.novo=true}
     var tt=S.el.querySelector('title');if(tt)tt.textContent=tit;S.el.setAttribute('aria-label',tit);
     S.obs=obs;S.age=idade;S.el.dataset.id=liveNearStop([obs.x,obs.y]);
+    if(S.novo){S.novo=false;lvCorrige(S,prev)}
   });
   Object.keys(LV2.st).forEach(function(v){if(!seen[v]){if(LV2.st[v].el)LV2.st[v].el.remove();delete LV2.st[v]}});
 }
