@@ -126,7 +126,14 @@ function buildMap(){
   etapas('mapa montado');
 }
 /* ---------- zoom e arrasto ---------- */
-function box(){var r=svg.getBoundingClientRect();return {l:r.left,t:r.top,w:Math.max(1,r.width),h:Math.max(1,r.height)}}
+/* a caixa do mapa na tela fica guardada: ler getBoundingClientRect a cada quadro obrigava o navegador a refazer o
+   layout depois de mover os ônibus (no celular, mais de 1 s a cada 8 s de arrasto). Renova ao rolar, redimensionar
+   e no começo de cada toque. */
+var BOX=null;
+function box(){if(!BOX){var r=svg.getBoundingClientRect();BOX={l:r.left,t:r.top,w:Math.max(1,r.width),h:Math.max(1,r.height)}}return BOX}
+function boxRenova(){BOX=null}
+addEventListener('scroll',boxRenova,{passive:true,capture:true});addEventListener('resize',boxRenova);
+if(window.ResizeObserver)new ResizeObserver(boxRenova).observe(svg);
 function clampView(){
   var b=box(),minW=b.w/7;
   view.w=Math.max(minW,Math.min(fitW,view.w));view.h=view.w*b.h/b.w;
@@ -184,7 +191,8 @@ function initZoom(){
   if(!ROT&&box().w<680){var c=[665,382];view.w=Math.min(fitW,700,860*box().w/box().h);view.h=view.w*box().h/box().w;view.x=c[0]-view.w/2;view.y=Math.max(BASE.y-60,Math.min(c[1]-view.h/2,BASE.y+BASE.h+40-view.h))}
   applyView();
   var pts={},start=null,moved=0;
-  svg.addEventListener('wheel',function(e){e.preventDefault();lastGesture=Date.now();zoomAt(toMap(e.clientX,e.clientY),Math.exp(-e.deltaY*(e.deltaMode===1?0.05:0.0016)))},{passive:false});
+  svg.addEventListener('wheel',function(e){e.preventDefault();if(Date.now()-lastGesture>300)boxRenova();lastGesture=Date.now();zoomAt(toMap(e.clientX,e.clientY),Math.exp(-e.deltaY*(e.deltaMode===1?0.05:0.0016)))},{passive:false});
+  svg.addEventListener('pointerdown',boxRenova,true);
   svg.addEventListener('pointerdown',function(e){
     if(e.pointerType==='mouse'&&e.button!==0)return;
     pts[e.pointerId]={x:e.clientX,y:e.clientY};moved=0;

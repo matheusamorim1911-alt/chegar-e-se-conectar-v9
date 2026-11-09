@@ -30,7 +30,9 @@ function applyPerf(){
   LITE=e==='leve'?true:(m==='auto'&&SAVEDATA&&!DESKTOP)?true:false;
   r.classList.toggle('lite',LITE);r.classList.toggle('lowgfx',e==='leve');
   r.classList.toggle('perf-c',e==='completo');r.classList.toggle('perf-i',e==='intermediario');
-  if(e==='leve')r.classList.remove('refract');
+  /* intermediário e leve: tudo opaco (sem vidro, desfoque nem brilho); o leve também tira o movimento do mapa */
+  r.classList.toggle('solido',e!=='completo');
+  if(e!=='completo')r.classList.remove('refract');
 }
 applyPerf();
 var $=function(s,r){return (r||document).querySelector(s)};

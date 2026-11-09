@@ -20,7 +20,7 @@
 .cov-per{display:grid;grid-template-columns:1fr 1fr}
 .cov-per button{min-height:34px;font-size:12.5px}
 @media (max-width:680px){.covbtn{top:auto;bottom:10px;left:10px}.covcard{bottom:10px;padding:10px 12px;gap:6px;width:calc(100% - 86px)}.covcard .muted{display:none}}
-.lowgfx .covcard,.lowgfx .covbtn{background:var(--mc-bg)!important}
+.solido .covcard,.solido .covbtn{background:var(--mc-bg)!important}
 
 /* rede e Wi-Fi */
 .netbox{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:var(--surface)}
@@ -118,7 +118,7 @@ a.copy{display:inline-flex;align-items:center;text-decoration:none}
 .cv-navb svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .cv-navb:hover{transform:translateY(-1px)}.cv-navb:active{transform:scale(.95)}
 .cv-navb:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
-.lowgfx .cv-navb{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--surface)}
+.solido .cv-navb{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--surface)}
 .cover[data-style="titulo"] .cv-sheet{padding-top:max(76px,calc(env(safe-area-inset-top,0px) + 62px))}
 .rosecard .cmp-cal{color:var(--warn);font-weight:600}
 .rosecard .cmp-gps{display:block;opacity:.8;font-size:11px}

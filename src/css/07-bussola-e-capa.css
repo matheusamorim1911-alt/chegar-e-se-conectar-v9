@@ -60,7 +60,7 @@
 .iag-arrow{position:fixed;top:max(10px,env(safe-area-inset-top));right:14px;z-index:2147483101;padding:8px 12px;border-radius:999px;background:#FF9F5A;color:#0B1117;font-weight:700;font-size:15px;box-shadow:0 6px 18px rgba(0,0,0,.35);animation:iagb 1.2s ease-in-out infinite}
 @keyframes iagb{50%{transform:translateY(-5px)}}
 @media (prefers-reduced-motion:reduce){.iag-arrow{animation:none}}
-.lowgfx .iagate{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(5,9,14,.92)}
+.solido .iagate{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(5,9,14,.92)}
 .lowgfx .iag-arrow{animation:none}
 .newver{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:12px;padding:10px 12px 10px 16px;border-radius:999px;background:var(--surface);color:var(--ink);border:1px solid var(--line);box-shadow:0 12px 30px -10px rgba(0,0,0,.45);font-size:14px;max-width:calc(100vw - 32px)}
 .gcard.vagas{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
@@ -105,20 +105,20 @@
 .plandet[open]>summary::after{content:"Fechar"}
 
 /* modo leve: sem transparência, desfoque, sombras e efeitos animados */
-.lowgfx *,.lowgfx *::before,.lowgfx *::after{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
-.lowgfx body{background-image:none!important}
-.lowgfx body::after{display:none!important}
-.lowgfx .chip,.lowgfx .item,.lowgfx .swap,.lowgfx .scale button,.lowgfx .copy,.lowgfx .fld select,.lowgfx .clock input,.lowgfx .tag,.lowgfx .seg,.lowgfx .panel,.lowgfx .cfgbtn,.lowgfx .mudpill,.lowgfx .gl-item,.lowgfx .cfghead,.lowgfx .gl-tools,.lowgfx .hrow,.lowgfx .plcard,.lowgfx .fold,.lowgfx .filabox,.lowgfx .cv-btn,.lowgfx .prof,.lowgfx .tgl,.lowgfx .cvdet,.lowgfx .gcard,.lowgfx .gtile,.lowgfx .inapp{background:var(--surface)!important;box-shadow:none!important}
-.lowgfx .chip[aria-pressed="false"]{opacity:1}
-.lowgfx .glass,.lowgfx .legend,.lowgfx .mapctl,.lowgfx .zoomctl,.lowgfx .rosebox,.lowgfx .zoomlvl{background:var(--mc-bg)!important;box-shadow:none!important}
-.lowgfx .cfgmodal{background:var(--bg)!important}
-.lowgfx .cfgsheet,.lowgfx .cv-sheet{background:var(--surface)!important;box-shadow:none!important}
-.lowgfx .chip::before,.lowgfx .item::before,.lowgfx .swap::before,.lowgfx .copy::before,.lowgfx .seg button::before,.lowgfx .zoomctl button::before{display:none!important}
-.lowgfx .fw.gl{display:none}
+.solido *,.solido *::before,.solido *::after{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.solido body{background-image:none!important}
+.solido body::after{display:none!important}
+.solido .chip,.solido .item,.solido .swap,.solido .scale button,.solido .copy,.solido .fld select,.solido .clock input,.solido .tag,.solido .seg,.solido .panel,.solido .cfgbtn,.solido .mudpill,.solido .gl-item,.solido .cfghead,.solido .gl-tools,.solido .hrow,.solido .plcard,.solido .fold,.solido .filabox,.solido .cv-btn,.solido .prof,.solido .tgl,.solido .cvdet,.solido .gcard,.solido .gtile,.solido .inapp{background:var(--surface)!important;box-shadow:none!important}
+.solido .chip[aria-pressed="false"]{opacity:1}
+.solido .glass,.solido .legend,.solido .mapctl,.solido .zoomctl,.solido .rosebox,.solido .zoomlvl{background:var(--mc-bg)!important;box-shadow:none!important}
+.solido .cfgmodal{background:var(--bg)!important}
+.solido .cfgsheet,.solido .cv-sheet{background:var(--surface)!important;box-shadow:none!important}
+.solido .chip::before,.solido .item::before,.solido .swap::before,.solido .copy::before,.solido .seg button::before,.solido .zoomctl button::before{display:none!important}
+.solido .fw.gl{display:none}
 .lowgfx .cover .cv-map,.lowgfx .cv-pin,.lowgfx .lg-bio.scan,.lowgfx .lg-bio.scan::after{animation:none!important}
 .lowgfx .cover .cv-map{transform:none}
-.lowgfx .cover[data-style="cartao"] .cv-map,.lowgfx .cover[data-style="titulo"] .cv-map{filter:none}
-.lowgfx .lg-bg{filter:none!important}
+.solido .cover[data-style="cartao"] .cv-map,.solido .cover[data-style="titulo"] .cv-map{filter:none}
+.solido .lg-bg{filter:none!important}
 .lowgfx *{transition-duration:0s!important}
 .perfopts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .perfopts .chip{justify-content:center;min-height:40px;padding:0 8px;font-size:13.5px}
@@ -146,8 +146,9 @@
 @keyframes cvpop{from{transform:translateY(10px) scale(.92);opacity:0}to{transform:none;opacity:1}}
 @media (prefers-reduced-motion:reduce){.cv-btn,.cv-btn svg{transition:none}.cv-btn.main,.cover.enter .cv-row .cv-btn,.cv-btn.tap::before{animation:none}.cv-btn:hover{transform:none}}
 .cover.enter .cv-sheet>.cv-btn.main{animation-name:cvitem,cvshine;animation-duration:.55s,5.5s;animation-timing-function:cubic-bezier(.2,.9,.25,1),ease-in-out;animation-fill-mode:both,none;animation-iteration-count:1,infinite}
-.lowgfx .cv-btn.main{animation:none!important;background-image:none!important}
-.lowgfx .cv-btn::before,.lowgfx .cv-btn::after{display:none}
+.lowgfx .cv-btn.main{animation:none!important}
+.solido .cv-btn.main{background-image:none!important}
+.solido .cv-btn::before,.solido .cv-btn::after{display:none}
 .lowgfx .cover.enter .cv-row .cv-btn{animation:none}
 .wdet>summary{position:relative;padding-right:84px;min-height:52px}
 .wdet-t{display:flex;flex-direction:column;gap:1px}
@@ -173,8 +174,8 @@
 .cover[data-style="titulo"] .cv-onlyt svg{background:linear-gradient(180deg,#FFB27A,#F08A3E)!important;border-color:rgba(255,255,255,.55)!important;color:#1B0E05;box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 14px 30px -12px rgba(255,159,90,.9)!important}
 .cover[data-style="titulo"] .cv-row .cv-btn span{font-weight:700;text-shadow:0 1px 8px rgba(0,0,0,.6)}
 @media (max-width:360px){.cover[data-style="titulo"] .cv-row .cv-btn svg{padding:15px;width:22px;height:22px}}
-.lowgfx .cover[data-style="titulo"] .cv-row .cv-btn svg{background:#1E2A36;-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none}
-.lowgfx .cover[data-style="titulo"] .cv-onlyt svg{background:#F08A3E!important}
+.solido .cover[data-style="titulo"] .cv-row .cv-btn svg{background:#1E2A36;-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none}
+.solido .cover[data-style="titulo"] .cv-onlyt svg{background:#F08A3E!important}
 /* v17: capa "título" legível no tema claro */
 @media (prefers-color-scheme: light){
 :root:not([data-theme="dark"]) .cover[data-style="titulo"] .cv-sheet{color:#0F1C28;background:linear-gradient(180deg,rgba(236,241,246,.86) 0%,rgba(236,241,246,.55) 38%,rgba(236,241,246,0) 62%,rgba(236,241,246,0) 72%,rgba(236,241,246,.7) 100%)}
@@ -185,7 +186,7 @@
 :root:not([data-theme="dark"]) .cover[data-style="titulo"] .cv-row .cv-btn svg{background:linear-gradient(180deg,rgba(255,255,255,.82),rgba(255,255,255,.55));border-color:rgba(16,32,46,.16);box-shadow:inset 0 1px 0 #fff,0 12px 26px -14px rgba(16,32,46,.55)}
 :root:not([data-theme="dark"]) .cover[data-style="titulo"] .cv-onlyt{color:#13202C!important}
 :root:not([data-theme="dark"]) .cover[data-style="titulo"] .cv-row .cv-btn:focus-visible svg{outline-color:#13202C}
-:root:not([data-theme="dark"]).lowgfx .cover[data-style="titulo"] .cv-row .cv-btn svg{background:#FFFFFF}
+:root:not([data-theme="dark"]).solido .cover[data-style="titulo"] .cv-row .cv-btn svg{background:#FFFFFF}
 }
 :root[data-theme="light"] .cover[data-style="titulo"] .cv-sheet{color:#0F1C28;background:linear-gradient(180deg,rgba(236,241,246,.86) 0%,rgba(236,241,246,.55) 38%,rgba(236,241,246,0) 62%,rgba(236,241,246,0) 72%,rgba(236,241,246,.7) 100%)}
 :root[data-theme="light"] .cover[data-style="titulo"] .cv-t{color:#0F1C28;text-shadow:0 1px 0 rgba(255,255,255,.7),0 0 30px rgba(255,255,255,.9)}
@@ -195,6 +196,6 @@
 :root[data-theme="light"] .cover[data-style="titulo"] .cv-row .cv-btn svg{background:linear-gradient(180deg,rgba(255,255,255,.82),rgba(255,255,255,.55));border-color:rgba(16,32,46,.16);box-shadow:inset 0 1px 0 #fff,0 12px 26px -14px rgba(16,32,46,.55)}
 :root[data-theme="light"] .cover[data-style="titulo"] .cv-onlyt{color:#13202C!important}
 :root[data-theme="light"] .cover[data-style="titulo"] .cv-row .cv-btn:focus-visible svg{outline-color:#13202C}
-:root[data-theme="light"].lowgfx .cover[data-style="titulo"] .cv-row .cv-btn svg{background:#FFFFFF}
+:root[data-theme="light"].solido .cover[data-style="titulo"] .cv-row .cv-btn svg{background:#FFFFFF}
 .bld-lbl{font:italic 600 15px var(--f-body);fill:#C3CED9;letter-spacing:.01em;pointer-events:none}
 

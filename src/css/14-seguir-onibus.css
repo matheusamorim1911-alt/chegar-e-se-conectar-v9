@@ -43,4 +43,4 @@
   .segcard{width:calc(100% - 72px);padding:9px 11px}
   .mapwrap.seguindo .zoomlvl{display:none}
 }
-.lowgfx .segbtn,.lowgfx .segbusca,.lowgfx .segcard{background:var(--mc-bg)!important}
+.solido .segbtn,.solido .segbusca,.solido .segcard{background:var(--mc-bg)!important}
