@@ -36,6 +36,7 @@ App web (sem framework) da Cidade Universitária da UFRJ, publicado pelo GitHub 
 
 ## Desempenho
 - Modos em Ajustes: completo (vidro e animações), intermediário (padrão no celular: tudo opaco, classe `solido`, sem `backdrop-filter` nem refração, mas com o movimento do mapa e dos ônibus) e leve (`lowgfx`: opaco e sem movimento). Regras só visuais usam `.solido`; as de movimento, `.lowgfx`.
+- O mapa base é sempre sólido (o controle de transparência saiu; no lugar, "Buscar ônibus").
 - `box()` em `03-mapa.js` guarda a caixa do mapa (renova ao rolar, redimensionar e no começo de cada toque): lê-la a cada quadro forçava o layout. Durante o arrasto, os ônibus ao vivo esperam.
 
 ## Tiroteios (Fogo Cruzado)

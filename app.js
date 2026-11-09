@@ -347,7 +347,7 @@ function mk(kind,id,p,label,inner){
 }
 function buildMap(){
   etapas('mapa vai montar');
-  $('#mapbase').innerHTML='<g id="world0" transform="rotate('+ROT+')"><g id="baseimg"'+(window.__opac?' style="opacity:'+window.__opac+'"':'')+'><image href="'+MAPIMG+'" x="-270" y="-340" width="2034" height="1300" preserveAspectRatio="none" decoding="async"/><image id="imgHD" href="'+MAPHD+'" x="109" y="-45" width="1233" height="701" preserveAspectRatio="none" decoding="async"/><image id="imgVec"'+(vecOn?' href="'+MAPVEC+'"':'')+' x="109" y="-45" width="1233" height="701" preserveAspectRatio="none"/></g></g>';
+  $('#mapbase').innerHTML='<g id="world0" transform="rotate('+ROT+')"><g id="baseimg"><image href="'+MAPIMG+'" x="-270" y="-340" width="2034" height="1300" preserveAspectRatio="none" decoding="async"/><image id="imgHD" href="'+MAPHD+'" x="109" y="-45" width="1233" height="701" preserveAspectRatio="none" decoding="async"/><image id="imgVec"'+(vecOn?' href="'+MAPVEC+'"':'')+' x="109" y="-45" width="1233" height="701" preserveAspectRatio="none"/></g></g>';
   var s='<rect class="v-hit" x="-3000" y="-3000" width="8000" height="8000"/>';
   s+='<g id="world" transform="rotate('+ROT+')">';
   s+='<g id="gLines">';
@@ -3321,7 +3321,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261109-1452';
+var APP_VERSION='20261109-1544';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -4214,11 +4214,7 @@ if(!cover.hidden&&login.hidden)requestAnimationFrame(function(){cvEnter()});
 if('MutationObserver' in window)new MutationObserver(function(){if(login.hidden&&!cover.hidden&&cover.classList.contains('pre'))cvEnter()}).observe(login,{attributes:true,attributeFilter:['hidden']});
 setTimeout(function(){if(login.hidden&&!cover.hidden&&cover.classList.contains('pre'))cvEnter()},1500);
 $('#rosebox').innerHTML='<svg viewBox="-72 -72 144 144">'+rose(0,0,36,NORTH+ROT)+'</svg>';
-var opac=$('#opac'),opacv=$('#opacv');
-function setOpac(v){v=Math.max(15,Math.min(100,+v||80));opac.value=v;opacv.textContent=v+'%';var im=$('#baseimg');window.__opac=v/100;if(im)im.style.opacity=v/100}
-var savedOp=80;try{savedOp=+localStorage.getItem('cse-ufrj-opac')||80}catch(e){}
-setOpac(savedOp);
-opac.addEventListener('input',function(){setOpac(opac.value);try{localStorage.setItem('cse-ufrj-opac',opac.value)}catch(e){}});
+/* o mapa base fica sempre sólido (o controle de transparência saiu; no lugar dele fica "Buscar ônibus") */
 renderAll();
 /* Liquid Glass: brilho segue o ponteiro; refração só em navegadores Chromium */
 try{if(LITE===false&&perfEff()==='completo'&&navigator.userAgentData&&navigator.userAgentData.brands&&navigator.userAgentData.brands.some(function(b){return /Chromium/.test(b.brand)}))document.documentElement.classList.add('refract')}catch(e){}

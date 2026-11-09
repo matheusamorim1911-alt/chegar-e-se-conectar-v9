@@ -218,11 +218,7 @@ if(!cover.hidden&&login.hidden)requestAnimationFrame(function(){cvEnter()});
 if('MutationObserver' in window)new MutationObserver(function(){if(login.hidden&&!cover.hidden&&cover.classList.contains('pre'))cvEnter()}).observe(login,{attributes:true,attributeFilter:['hidden']});
 setTimeout(function(){if(login.hidden&&!cover.hidden&&cover.classList.contains('pre'))cvEnter()},1500);
 $('#rosebox').innerHTML='<svg viewBox="-72 -72 144 144">'+rose(0,0,36,NORTH+ROT)+'</svg>';
-var opac=$('#opac'),opacv=$('#opacv');
-function setOpac(v){v=Math.max(15,Math.min(100,+v||80));opac.value=v;opacv.textContent=v+'%';var im=$('#baseimg');window.__opac=v/100;if(im)im.style.opacity=v/100}
-var savedOp=80;try{savedOp=+localStorage.getItem('cse-ufrj-opac')||80}catch(e){}
-setOpac(savedOp);
-opac.addEventListener('input',function(){setOpac(opac.value);try{localStorage.setItem('cse-ufrj-opac',opac.value)}catch(e){}});
+/* o mapa base fica sempre sólido (o controle de transparência saiu; no lugar dele fica "Buscar ônibus") */
 renderAll();
 /* Liquid Glass: brilho segue o ponteiro; refração só em navegadores Chromium */
 try{if(LITE===false&&perfEff()==='completo'&&navigator.userAgentData&&navigator.userAgentData.brands&&navigator.userAgentData.brands.some(function(b){return /Chromium/.test(b.brand)}))document.documentElement.classList.add('refract')}catch(e){}
