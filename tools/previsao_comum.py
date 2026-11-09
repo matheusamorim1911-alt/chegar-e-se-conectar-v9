@@ -107,8 +107,7 @@ def pares(gps):
           if best is None or d + pen < best[0]: best = (d + pen, i, s, ang)
       if not best: P = None; continue
       i, s, ang = best[1], best[2], best[3]
-      if P and P['i'] == i and o[4] <= 2: sign = P['sign']  # parado: mantém o sentido (como lvSign no app)
-      elif P and P['i'] == i and abs(s - P['s']) > 5: sign = 1 if s > P['s'] else -1
+      if P and P['i'] == i and abs(s - P['s']) > 5: sign = 1 if s > P['s'] else -1
       elif comp is not None: sign = -1 if abs((ang - comp + 540) % 360 - 180) > 90 else 1
       else: sign = P['sign'] if P else 1
       O = {'t': o[6], 'i': i, 's': s, 'sign': sign, 'v': min(70, o[4]) / 3.6}
