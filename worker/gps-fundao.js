@@ -1,9 +1,10 @@
 // Cloudflare Worker: posição ao vivo dos ônibus que atendem o Fundão.
 // Busca a API aberta da prefeitura (dados.mobilidade.rio), filtra só as linhas do app
 // e a região da Ilha do Fundão, e devolve um JSON pequeno com CORS liberado.
-// O resultado fica guardado por 5 segundos: todos os usuários usam a mesma cópia, então a prefeitura recebe
-// no máximo 1 pedido a cada 5 s por fonte (por data center da Cloudflare), não importa quantas pessoas usem o app.
-// Se a prefeitura falhar ou demorar, devolve a última resposta boa (até 2 min), marcada com x-cache: antiga.
+// O resultado fica guardado por 10 segundos (a prefeitura atualiza cada ônibus a cada ~30 s): todos os usuários usam
+// a mesma cópia, então a prefeitura recebe no máximo 1 pedido a cada 10 s por fonte (por data center da Cloudflare), não importa quantas pessoas usem o app.
+// Se a prefeitura falhar ou demorar, devolve a última resposta boa (até 3 min), marcada com x-cache: antiga.
+// Cada tentativa fica registrada (resultado, tempo, tamanho e motivo da falha) e aparece na aba Saúde do app (/saude).
 // Em /tiroteios, entrega os tiroteios recentes perto das saídas do Fundão (Fogo Cruzado), para quem ligou o aviso no app.
 
 const LINHAS = new Set(['321','323','324','325','326','327','328','329','42','43','485','486','616','634','635','663','696','90','901','910','913','915','922','975','979','SN324','SN328','SN696','SP324','SP328','SP329','SP485','SP635','SPB326','SR328','SV922','SVB901']);
@@ -13,7 +14,7 @@ const FONTES = ['https://dados.mobilidade.rio/gps/sppo', 'https://dados.mobilida
 // JANELA_MIN: período pedido à prefeitura. Os ônibus mandam posição a cada ~30 s e chegam com ~11 s de atraso,
 // então 1,5 min basta para ter todos; um período maior aumenta a resposta (cidade inteira) e o Worker pode
 // estourar o limite de processamento do plano grátis da Cloudflare nos horários de pico.
-const CACHE_S = 5, RESERVA_S = 120, JANELA_MIN = 1.5, VELHO_MIN = 6;
+const CACHE_S = 10, RESERVA_S = 180, JANELA_MIN = 1.5, VELHO_MIN = 6;
 
 // A API usa horário de Brasília (UTC-3) e pede datas assim: 2026-11-07+10:10:00
 function dataRio(ms) {
@@ -46,18 +47,66 @@ export function filtrar(lista, agora) {
   return [...porOnibus.values()];
 }
 
+// A resposta dos ônibus (sppo) tem ~3,7 MB e ~11 mil registros da cidade inteira. Ler tudo com JSON.parse e
+// filtrar depois passava do limite de processamento do plano grátis da Cloudflare (10 ms) e o Worker caía antes
+// de responder. Aqui o texto é varrido atrás de "servico":"…" e só os registros das linhas do app viram objeto.
+// Se o formato mudar (a marca não aparece), volta ao JSON.parse.
+export function extrairLinhas(texto) {
+  const marca = '"servico":"';
+  let i = texto.indexOf(marca);
+  if (i < 0) return null;
+  const out = [];
+  while (i >= 0) {
+    const a = i + marca.length, b = texto.indexOf('"', a);
+    if (b < 0) break;
+    if (LINHAS.has(texto.slice(a, b).trim().toUpperCase())) {
+      const ini = texto.lastIndexOf('{', i), fim = texto.indexOf('}', b);
+      if (ini >= 0 && fim > b) { try { out.push(JSON.parse(texto.slice(ini, fim + 1))); } catch (e) { /* registro quebrado: pula */ } }
+    }
+    i = texto.indexOf(marca, b);
+  }
+  return out;
+}
+// motivo de uma falha, em palavras (vai para a aba Saúde)
+function motivoErro(e) {
+  const m = String(e && (e.name === 'TimeoutError' ? 'tempo' : e.message) || e);
+  if (m === 'tempo' || /timed? ?out|aborted/i.test(m)) return 'a prefeitura não respondeu em 8 s';
+  if (/json|unexpected|parse/i.test(m)) return 'a prefeitura mandou uma resposta que não é JSON';
+  return 'erro de rede: ' + m.slice(0, 80);
+}
+function motivoHttp(st) {
+  return 'a prefeitura respondeu HTTP ' + st + (st === 429 ? ' (pedidos demais)' : st >= 500 ? ' (erro no servidor dela)' : st === 404 ? ' (endereço não encontrado)' : st === 403 ? ' (acesso recusado)' : '');
+}
 async function buscar(agora) {
   const q = `?dataInicial=${dataRio(agora - JANELA_MIN * 60e3)}&dataFinal=${dataRio(agora)}`;
-  let falhas = 0;
+  const fontes = [];
   const partes = await Promise.all(FONTES.map(async u => {
+    const f = { f: u.split('/').pop(), ok: false }, t0 = Date.now(); fontes.push(f);
     try {
       const r = await fetch(u + q, { headers: { 'user-agent': 'chega-ai-ufrj (UFRJ)' }, signal: AbortSignal.timeout(8000) });
-      if (!r.ok) { falhas++; return []; }
-      const d = await r.json();
-      return Array.isArray(d) ? d : (d.veiculos || d.data || []);
-    } catch (e) { falhas++; return []; }
+      f.http = r.status;
+      if (!r.ok) { f.motivo = motivoHttp(r.status); return []; }
+      const texto = await r.text();
+      f.kb = Math.round(texto.length / 1024);
+      let lista = extrairLinhas(texto);
+      if (!lista) { const d = JSON.parse(texto); lista = Array.isArray(d) ? d : (d.veiculos || d.data || []); }
+      f.ok = true; f.n = lista.length; return lista;
+    } catch (e) { f.motivo = motivoErro(e); return []; }
+    finally { f.ms = Date.now() - t0; }
   }));
-  return { onibus: filtrar(partes.flat(), agora), falhou: falhas === FONTES.length };
+  return { onibus: filtrar(partes.flat(), agora), falhou: fontes.every(f => !f.ok), fontes };
+}
+// registro das últimas tentativas de falar com a prefeitura (para a aba Saúde): fica no cache deste data center
+const REGISTRO = 'https://cache.local/gps-registro', REGISTRO_N = 60;
+async function registrar(entrada) {
+  const cache = caches.default, chave = new Request(REGISTRO);
+  let L = [];
+  try { const g = await cache.match(chave); if (g) L = await g.json(); } catch (e) { L = []; }
+  L.push(entrada); if (L.length > REGISTRO_N) L = L.slice(-REGISTRO_N);
+  await cache.put(chave, new Response(JSON.stringify(L), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=86400' } }));
+}
+async function lerRegistro() {
+  try { const g = await caches.default.match(new Request(REGISTRO)); return g ? await g.json() : []; } catch (e) { return []; }
 }
 
 // ---------- Tiroteios perto das saídas do Fundão (API Fogo Cruzado v2, conteúdo de uso livre) ----------
@@ -158,11 +207,14 @@ export async function usoCloudflare(env, agora) {
   for (const l of linhas) { const n = l.sum.requests || 0; pedidos += n; erros += l.sum.errors || 0; const k = (l.dimensions || {}).scriptName || '?'; porWorker[k] = (porWorker[k] || 0) + n; }
   return { pedidos, erros, limite: CF_LIMITE_DIA, desde, porWorker };
 }
-async function saude(env, cors) {
-  const agora = Date.now();let cf = null, erroCf = '';
+async function saude(env, cors, req) {
+  const agora = Date.now();let cf = null, erroCf = '', det = null;
   try { cf = await usoCloudflare(env, agora); } catch (e) { erroCf = String(e.message || e).slice(0, 120); }
+  if (cf) { try { det = await detalheCloudflare(env, agora); } catch (e) { det = { erro: String(e.message || e).slice(0, 120) }; } }
+  const registro = await lerRegistro();
   return new Response(JSON.stringify({ t: agora, worker: 'gps-fundao', tiroteiosConfigurado: !!(env.FC_EMAIL && env.FC_SENHA),
-    cloudflare: cf, cloudflareErro: erroCf || undefined, cloudflareConfigurado: !!(env.CF_CONTA && env.CF_TOKEN) }), { headers: { ...cors, 'cache-control': 'no-store' } });
+    cloudflare: cf, cloudflareErro: erroCf || undefined, cloudflareConfigurado: !!(env.CF_CONTA && env.CF_TOKEN),
+    cloudflareDetalhe: det, dataCenter: (req && req.cf && req.cf.colo) || undefined, registro }), { headers: { ...cors, 'cache-control': 'no-store' } });
 }
 
 export default {
@@ -170,21 +222,23 @@ export default {
     const cors = { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET', 'content-type': 'application/json; charset=utf-8' };
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
     if (new URL(req.url).pathname.replace(/\/$/, '') === '/tiroteios') return tiroteios(env, ctx, cors);
-    if (new URL(req.url).pathname.replace(/\/$/, '') === '/saude') return saude(env, cors);
+    if (new URL(req.url).pathname.replace(/\/$/, '') === '/saude') return saude(env, cors, req);
     const chave = new Request('https://cache.local/gps-fundao');
     const cache = caches.default;
     const guardado = await cache.match(chave);
     if (guardado) return new Response(guardado.body, { headers: { ...cors, 'x-cache': 'hit' } });
     const reserva = new Request('https://cache.local/gps-fundao-reserva');
     const agora = Date.now();
-    let onibus = [], falhou = true;
-    try { ({ onibus, falhou } = await buscar(agora)); } catch (e) { falhou = true; }
+    let onibus = [], falhou = true, fontes = [];
+    try { ({ onibus, falhou, fontes } = await buscar(agora)); } catch (e) { falhou = true; fontes = [{ f: 'worker', ok: false, motivo: 'erro no Worker: ' + String(e.message || e).slice(0, 80) }]; }
     if (falhou) {
       const velho = await cache.match(reserva);
+      ctx.waitUntil(registrar({ t: agora, r: velho ? 'reserva' : 'falhou', fontes }).catch(() => {}));
       if (velho) return new Response(velho.body, { headers: { ...cors, 'x-cache': 'antiga' } });
       /* sem cópia guardada: responde que falhou (com CORS), em vez de deixar o app sem resposta */
       return new Response(JSON.stringify({ t: agora, fonte: 'SMTR / Prefeitura do Rio (dados.mobilidade.rio)', onibus: [], falhou: true }), { headers: { ...cors, 'cache-control': 'no-store' } });
     }
+    ctx.waitUntil(registrar({ t: agora, r: fontes.every(f => f.ok) ? 'ok' : 'parcial', n: onibus.length, fontes }).catch(() => {}));
     const corpo = JSON.stringify({ t: agora, fonte: 'SMTR / Prefeitura do Rio (dados.mobilidade.rio)', onibus });
     const resp = new Response(corpo, { headers: { ...cors, 'cache-control': `public, max-age=${CACHE_S}` } });
     ctx.waitUntil(cache.put(chave, resp.clone()));
@@ -192,3 +246,28 @@ export default {
     return resp;
   }
 };
+// Por que os pedidos falharam hoje (status da Cloudflare: success, exceededResources = passou do limite de
+// processamento, scriptThrewException = erro no código…), pedidos e erros por hora e o tempo de processamento.
+// É uma consulta à parte: se a API de análise recusar algum campo, o resto da aba Saúde continua funcionando.
+export async function detalheCloudflare(env, agora) {
+  const token = limpaSegredo(env.CF_TOKEN), conta = limpaSegredo(env.CF_CONTA);
+  if (!conta || !token) return null;
+  const d = new Date(agora), desde = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())).toISOString();
+  const query = 'query($c:String!,$a:Time!,$b:Time!){viewer{accounts(filter:{accountTag:$c}){workersInvocationsAdaptive(limit:1000,filter:{datetime_geq:$a,datetime_leq:$b}){sum{requests errors}quantiles{cpuTimeP50 cpuTimeP99}dimensions{scriptName status datetimeHour}}}}}';
+  const r = await fetch('https://api.cloudflare.com/client/v4/graphql', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
+    body: JSON.stringify({ query, variables: { c: conta, a: desde, b: new Date(agora).toISOString() } }), signal: AbortSignal.timeout(8000) });
+  if (!r.ok) throw new Error('analytics ' + r.status);
+  const j = await r.json();
+  if (j.errors && j.errors.length) throw new Error('analytics: ' + j.errors[0].message);
+  const linhas = (((j.data || {}).viewer || {}).accounts || [])[0]?.workersInvocationsAdaptive || [];
+  const porStatus = {}, porHora = {};let cpu50 = 0, cpu99 = 0, peso = 0;
+  for (const l of linhas) {
+    const dm = l.dimensions || {}, n = l.sum.requests || 0, st = dm.status || '?', h = dm.datetimeHour || '';
+    porStatus[st] = (porStatus[st] || 0) + n;
+    const H = porHora[h] || (porHora[h] = { h, pedidos: 0, falhas: 0 });
+    H.pedidos += n; if (st !== 'success') H.falhas += n;
+    const q = l.quantiles || {};
+    if (q.cpuTimeP50 != null) { cpu50 += q.cpuTimeP50 * n; peso += n; cpu99 = Math.max(cpu99, q.cpuTimeP99 || 0); }
+  }
+  return { porStatus, porHora: Object.values(porHora).sort((a, b) => a.h < b.h ? -1 : 1), cpuMedianoMs: peso ? +(cpu50 / peso / 1000).toFixed(1) : null, cpuP99Ms: cpu99 ? +(cpu99 / 1000).toFixed(1) : null };
+}

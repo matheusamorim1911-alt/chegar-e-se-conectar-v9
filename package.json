@@ -4,7 +4,7 @@
   "description": "App web da Cidade Universitária da UFRJ (GitHub Pages).",
   "scripts": {
     "build": "python3 tools/build_site.py",
-    "test": "node tests/teste-nomes.js && node tests/teste-site.js && node tests/teste-feedback.js && node tests/teste-worker.mjs && node tests/teste-tiroteios.js && node tests/teste-saude.js && node tests/teste-previsao.js && node tests/teste-seguir.js && node tests/teste-sem-re.js"
+    "test": "node tests/teste-nomes.js && node tests/teste-site.js && node tests/teste-feedback.js && node tests/teste-worker.mjs && node tests/teste-tiroteios.js && node tests/teste-saude.js && node tests/teste-previsao.js && node tests/teste-seguir.js && node tests/teste-sem-re.js && node tests/teste-carga.js"
   },
   "devDependencies": {
     "playwright": "^1.47.0",

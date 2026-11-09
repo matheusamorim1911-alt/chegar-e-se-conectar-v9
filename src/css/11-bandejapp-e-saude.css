@@ -5,3 +5,15 @@ a.bdj-link{text-decoration:none;display:inline-flex;align-items:center}
 .sd-list .grow2{align-items:center}
 .sd-ms{font-variant-numeric:tabular-nums;color:var(--muted,inherit);font-size:12px;margin-right:6px}
 .sd-sec{margin-top:6px}
+/* falhas dos ônibus ao vivo */
+.sd-fora{border:1px solid var(--bad);background:var(--bad-bg);color:var(--ink);border-radius:14px;padding:10px 14px;margin:8px 0}
+.sd-fora>b{color:var(--bad);display:block;margin-bottom:4px}
+.sd-fora ul,.sd-causas{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:13.5px}
+.sd-causas{margin:6px 0 8px}
+.sd-res{margin:8px 0 4px}
+.sd-horas{display:flex;flex-direction:column;gap:3px;margin:8px 0 4px}
+.sd-hora{display:grid;grid-template-columns:34px minmax(0,1fr) 84px;gap:8px;align-items:center;font-size:12px;font-variant-numeric:tabular-nums}
+.sd-barra{position:relative;height:10px;border-radius:5px;background:var(--surface-2)}
+.sd-barra i{position:absolute;left:0;top:0;bottom:0;border-radius:5px;background:color-mix(in srgb,var(--ink) 28%,transparent)}
+.sd-barra i.f{background:var(--bad)}
+.sd-hn{color:var(--ink-2);text-align:right}

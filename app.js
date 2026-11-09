@@ -2604,6 +2604,7 @@ function bldInner(now){
   if(!BLD[pstate.bld])return head+'<p class="small"><b>'+esc(plantName(plantasDe(pstate.bld)[0]))+'</b></p>'+plantasHTML(pstate.bld);
   var B=BLD[pstate.bld],sel=PL[pstate.pl]&&PL[pstate.pl].bld===pstate.bld&&PL[pstate.pl].b?pstate.pl:null;
   if(pstate.bld==='ct'){
+    if(!CTP)return head+'<p class="muted small">Carregando a planta do CT…</p>';/* a parte da planta (21) ainda não carregou */
     /* no CT, a planta real substitui o esquema de exemplo; uma sala escolhida em outro lugar (glossário, grade) abre no bloco e andar dela */
     var P=PL[pstate.pl];if(pstate.pl!==CTP.lastPl){CTP.lastPl=pstate.pl;if(P&&P.bld==='ct'){if(P.b)CTP.bl=P.b;if(P.f!=null)CTP.pav=P.f<=0?'subsolo':'pav'+P.f;CTP.f={biblio:'estudo',aula:'aula',wc:'wc',lab:'lab'}[P.cat]||'';CTP.vb=null;CTP.sel=null}}
     if(CTP.d&&CTP.bl&&!CTP.d.salas.some(function(s){return s[0]===CTP.bl})){var alt=CTP.d.salas.filter(function(s){return s[0].indexOf(CTP.bl)>=0})[0];CTP.bl=alt?alt[0]:''}
@@ -3321,7 +3322,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261109-1550';
+var APP_VERSION='20261109-1606';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -3540,7 +3541,9 @@ function verCheck(){
     document.body.insertAdjacentHTML('beforeend','<div class="newver" id="newver" role="status"><span>Saiu uma versão nova do app.</span><button type="button" class="copy primary" id="newverGo">Atualizar</button></div>');
   }).catch(function(){});
 }
-document.addEventListener('click',function(e){if(e.target.closest('#newverGo'))location.reload()});
+/* "Atualizar": pede ao service worker a versão nova antes de recarregar (senão podia voltar a versão guardada) */
+document.addEventListener('click',function(e){if(!e.target.closest('#newverGo'))return;var b=e.target.closest('#newverGo');b.disabled=true;b.textContent='Atualizando…';
+  var rec=function(){location.reload()};try{if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration){navigator.serviceWorker.getRegistration().then(function(g){return g&&g.update()}).then(rec,rec);setTimeout(rec,4000);return}}catch(x){}rec()});
 if(ON_SITE&&APP_VERSION!=='dev'){setTimeout(verCheck,4000);setInterval(verCheck,5*60000);document.addEventListener('visibilitychange',function(){if(!document.hidden)verCheck()})}
 /* ======================= gestão: serviços no mapa (posição, referência, esconder, novos) ======================= */
 GKEYS.push('svcmapa');GST.svcmapa={};
@@ -5010,6 +5013,10 @@ var EXT={"fonte":"SMTR / Prefeitura do Rio (GTFS, CC BY 4.0)","ate":"20261231","
 var EXT_G=[['centro','Centro'],['sul','Zona Sul'],['tijuca','Tijuca'],['norte','Zona Norte'],['ilha','Ilha do Governador'],['oeste','Zona Oeste']];
 var EXTS={};Object.keys(EXT.stops).forEach(function(k){var s=EXT.stops[k],p=ll2map(s[1],s[2]);EXTS[k]={name:s[0],p:[p[0],p[1]]}});
 var EXTSEL={g:null,ln:null};
+/* ônibus ao vivo: o estado vem antes de tudo, porque o bloco "Ônibus da cidade" aberto já mostra as contagens ao vivo
+   na carga (extNoTrajeto, mais abaixo). Ele ficava depois: com o bloco aberto, a carga parava com erro e o resto do
+   app (ônibus ao vivo, planta do CT, seguir ônibus…) nem chegava a rodar. */
+var LIVE={url:(window.CSE_GPS_URL||'').replace(/\/$/,''),bus:[],t:0,err:false,timer:null};
 state.layers.ext=(function(){try{return localStorage.getItem('cse-lay-ext')==='1'}catch(e){return false}})();
 function extSvc(d){var w=d.getDay();return w===0?'D':w===6?'S':'U'}
 /* próximas saídas de uma linha numa parada (minutos do dia; inclui viagens da madrugada do dia anterior) */
@@ -5082,15 +5089,18 @@ aoFazer('mapa atualizado',function(){var g=$('#gExt');if(g)g.classList.toggle('o
 })();
 updateMap();
 /* ======================= v28: ônibus da cidade ao vivo (via Worker do Cloudflare) ======================= */
-var LIVE={url:(window.CSE_GPS_URL||'').replace(/\/$/,''),bus:[],t:0,err:false,timer:null};
 function liveWanted(){return !!LIVE.url&&!document.hidden&&(state.layers.ext||(state.sel&&state.sel.kind==='ext')||!!($('#fdExt')&&$('#fdExt').open))}
 function liveFetch(){
   if(!liveWanted())return;
   /* v38: no máximo um pedido a cada 5 s, mesmo quando várias partes do app pedem ao mesmo tempo ao abrir */
   var agora=Date.now();if(LIVE.ult&&agora-LIVE.ult<5000)return;LIVE.ult=agora;
   fetch(LIVE.url,{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
-    LIVE.bus=(d.onibus||[]).filter(function(o){return Date.now()-o.t<6*60e3});LIVE.t=Date.now();LIVE.err=!!d.falhou;liveDraw();liveRefreshText();
-  },function(){LIVE.err=true;liveRefreshText()});
+    var novos=(d.onibus||[]).filter(function(o){return Date.now()-o.t<6*60e3});
+    /* a prefeitura falhou e o Worker não tinha cópia: mantém os ônibus que já estavam no mapa (até 6 min) */
+    if(d.falhou&&!novos.length)novos=LIVE.bus.filter(function(o){return Date.now()-o.t<6*60e3});
+    LIVE.bus=novos;LIVE.t=Date.now();LIVE.err=!!d.falhou;LIVE.falhas=d.falhou?(LIVE.falhas||0)+1:0;liveDraw();liveRefreshText();
+    if(d.falhou)setTimeout(liveFetch,5200);
+  },function(){LIVE.err=true;LIVE.falhas=(LIVE.falhas||0)+1;liveRefreshText();setTimeout(liveFetch,5200)});
 }
 function liveLoop(){clearInterval(LIVE.timer);if(!LIVE.url)return;liveFetch();LIVE.timer=setInterval(function(){liveFetch()},10000)}
 document.addEventListener('visibilitychange',function(){if(!document.hidden)liveFetch()});
@@ -5279,6 +5289,8 @@ if(window.matchMedia){var ctpMQ=matchMedia('(max-width:680px) and (orientation:p
   document.addEventListener('pointermove',function(e){if(!drag)return;var dx=(e.clientX-drag.x)*drag.k,dy=(e.clientY-drag.y)*drag.k;if(Math.abs(e.clientX-drag.x)+Math.abs(e.clientY-drag.y)>6)drag.moved=true;if(!drag.moved)return;CTP.vb=[drag.vb[0]-dx,drag.vb[1]-dy,drag.vb[2]-dx,drag.vb[3]-dy];var s=$('#ctsvg');if(s)s.setAttribute('viewBox',ctpVB(CTP.vb))});
   document.addEventListener('pointerup',function(e){if(drag&&drag.moved){var stop=function(ev){ev.stopPropagation();ev.preventDefault();document.removeEventListener('click',stop,true)};document.addEventListener('click',stop,true);setTimeout(function(){document.removeEventListener('click',stop,true)},50)}drag=null});
 })();
+/* "Prédios por dentro" já aberto na carga foi montado antes desta parte: monta de novo, agora com a planta */
+if(pstate.bldOpen&&pstate.bld==='ct'&&document.querySelector('#fdBld[open]'))renderPredios();
 /* ======================= v31: ônibus da cidade sobre as ruas do mapa ======================= */
 /* ruas:  os traçados das linhas internas (desenhados sobre a planta) + os da prefeitura recalibrados */
 SHP=[];var SHP_INT=[];
@@ -5708,13 +5720,26 @@ var SAUDE_CHECKS=[
     return sdJson('version.json').then(function(v){return v.v===APP_VERSION?{estado:'ok',det:'Versão '+v.v+', a mesma deste aparelho.'}:{estado:'aviso',det:'Publicada: '+v.v+'. Este aparelho: '+APP_VERSION+'. Recarregue para atualizar.'}})}],
   ['worker','Ônibus ao vivo (Worker da Cloudflare)','posições dos ônibus da cidade',function(){
     if(!LIVE.url)return Promise.resolve({estado:'aviso',det:'Endereço do Worker não configurado (config.js).'});
-    return sdJson(LIVE.url).then(function(d){var n=(d.onibus||[]).length;SAUDE.gps=d;if(d.falhou)return {estado:'aviso',det:'O Worker respondeu, mas não conseguiu falar com a prefeitura.'};return {estado:'ok',det:n+' ônibus na região do Fundão agora.'}})}],
+    /* junto, o /saude do Worker: registro das tentativas com a prefeitura e falhas do dia (seção abaixo) */
+    SAUDE.sdP=sdJson(LIVE.url+'/saude').then(function(d){SAUDE.sd=d;return d},function(){SAUDE.sd=null;return null});
+    return fetch(LIVE.url,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('O Worker respondeu HTTP '+r.status+(r.status>=500?' (erro na Cloudflare)':'')+'.');var ant=r.headers.get('x-cache')==='antiga';return r.json().then(function(d){d.antiga=ant;return d})},
+      function(){throw new Error('O Worker não respondeu. Quase sempre é o limite de processamento da Cloudflare (o Worker cai antes de responder); veja as causas em "Falhas de hoje", abaixo.')})
+      .then(function(d){var n=(d.onibus||[]).length;SAUDE.gps=d;
+        if(d.falhou)return {estado:'falha',det:'O Worker está no ar, mas a prefeitura não respondeu e não havia cópia guardada.'};
+        if(d.antiga)return {estado:'aviso',det:'A prefeitura não respondeu agora; o Worker entregou a cópia guardada ('+n+' ônibus, de até 3 min atrás).'};
+        return {estado:'ok',det:n+' ônibus na região do Fundão agora.'}})}],
   ['prefeitura','GPS da prefeitura (dados.mobilidade.rio)','pelo Worker: idade da posição mais nova',function(){
     if(!LIVE.url)return Promise.resolve({estado:'aviso',det:'Depende do Worker.'});
+    var w=SAUDE.res.worker;
+    /* com o Worker caído, não dá para saber da prefeitura: diz isso, com o que o registro do Worker já mostrou */
+    if(!SAUDE.gps&&w&&w.estado==='falha')return Promise.resolve(SAUDE.sdP).then(function(){var R=sdRegistro(),ult=R.falhas[0];
+      return {estado:'aviso',det:'Não dá para conferir agora: o Worker não respondeu.'+(R.n?' Nas últimas '+R.n+' tentativas do Worker, '+(R.n-R.ok)+(R.n-R.ok===1?' falhou':' falharam')+(ult?' (a última às '+sdHora(ult.t)+': '+sdMotivo(ult)+')':'')+'.':'')}});
     var d=SAUDE.gps;var p=d?Promise.resolve(d):sdJson(LIVE.url);
-    return p.then(function(d){var L=d.onibus||[];if(!L.length){var h=new Date().getHours();return {estado:h>=5&&h<23?'aviso':'ok',det:'Nenhum ônibus na região'+(h>=5&&h<23?' em horário de serviço: a prefeitura pode estar sem dados.':' (madrugada).')}}
+    return Promise.all([p,SAUDE.sdP||null]).then(function(a){var d=a[0],R=sdRegistro(),ult=R.falhas[0],extra=R.n?' Nas últimas '+R.n+' tentativas do Worker, '+(R.n-R.ok)+(R.n-R.ok===1?' falhou':' falharam')+(ult?' (a última às '+sdHora(ult.t)+': '+sdMotivo(ult)+')':'')+'.':'';
+      var L=d.onibus||[];if(!L.length){var h=new Date().getHours();return {estado:h>=5&&h<23?'aviso':'ok',det:'Nenhum ônibus na região'+(h>=5&&h<23?' em horário de serviço: a prefeitura pode estar sem dados.':' (madrugada).')+extra}}
       var novo=Math.max.apply(null,L.map(function(o){return o.t||0})),idade=(d.t||Date.now())-novo;
-      return {estado:idade<120000?'ok':idade<600000?'aviso':'falha',det:'Posição mais nova de '+sdIdade(idade)+' atrás.'}})}],
+      var est=idade<120000?'ok':idade<600000?'aviso':'falha';if(est==='ok'&&R.n>=10&&(R.n-R.ok)/R.n>0.2)est='aviso';
+      return {estado:est,det:'Posição mais nova de '+sdIdade(idade)+' atrás.'+extra}})}],
   ['tiroteios','Tiroteios (Fogo Cruzado)','pelo Worker, com a conta do projeto',function(){
     if(!LIVE.url)return Promise.resolve({estado:'aviso',det:'Depende do Worker.'});
     return sdJson(LIVE.url+'/tiroteios').then(function(d){
@@ -5723,7 +5748,7 @@ var SAUDE_CHECKS=[
       return {estado:idade!=null&&idade>24*3600e3?'aviso':'ok',det:(d.ocorrencias||[]).length+' registro(s) nas últimas '+(d.janelaH||6)+' h'+(idade!=null?' · base atualizada há '+sdIdade(idade):'')+'.'}})}],
   ['cota','Cota do Worker (Cloudflare)','pedidos de hoje no plano grátis',function(){
     if(!LIVE.url)return Promise.resolve({estado:'aviso',det:'Depende do Worker.'});
-    return sdJson(LIVE.url+'/saude').then(function(d){
+    return (SAUDE.sdP||sdJson(LIVE.url+'/saude')).then(function(d){if(!d)throw new Error('O Worker não respondeu em /saude.');
       if(!d.cloudflareConfigurado)return {estado:'info',det:'Para ver o uso, configure CF_CONTA e CF_TOKEN no Worker (worker/README.md).'};
       if(!d.cloudflare)return {estado:'aviso',det:'Não deu para ler o uso: '+(d.cloudflareErro||'erro')+'.'};
       var c=d.cloudflare,pct=c.pedidos/c.limite*100,zera=new Date(Date.parse(c.desde)+864e5);
@@ -5746,7 +5771,7 @@ var SAUDE_CHECKS=[
     return fetch('ct-plantas.json',{method:'HEAD',cache:'no-store'}).then(function(r){return r.ok?{estado:'ok',det:'Disponível.'}:{estado:'falha',det:'HTTP '+r.status+'.'}})}]
 ];
 function saudeVerifica(){
-  if(SAUDE.busy)return;SAUDE.busy=true;SAUDE.gps=null;SAUDE.res={};
+  if(SAUDE.busy)return;SAUDE.busy=true;SAUDE.gps=null;SAUDE.res={};SAUDE.sd=null;SAUDE.sdP=null;
   /* o Worker antes da prefeitura, que reaproveita a resposta */
   var ordem=SAUDE_CHECKS.slice();
   (function proxima(i){
@@ -5769,6 +5794,52 @@ function saudeEstatisticas(){
     E.err={n:L.length,dia:L.filter(function(o){return (o.ts||0)>agora-864e5}).length,sem:L.filter(function(o){return (o.ts||0)>agora-7*864e5}).length}},function(){E.err=null}));
   Promise.all(ps).then(fim,fim);
 }
+/* ---------- falhas dos ônibus ao vivo: registro do Worker (tentativas com a prefeitura) e análise da Cloudflare ---------- */
+var SD_STATUS={success:'deram certo',exceededResources:'passaram do limite de processamento da Cloudflare (10 ms de CPU por pedido no plano grátis): o Worker cai antes de responder',
+  exceededCpu:'passaram do limite de processamento da Cloudflare',exceededMemory:'passaram do limite de memória da Cloudflare',scriptThrewException:'deram erro no código do Worker',
+  internalError:'deram erro interno da Cloudflare',clientDisconnected:'o aparelho desistiu antes da resposta (rede ruim ou app fechado); não é falha do Worker',
+  responseStreamDisconnected:'tiveram a resposta cortada no meio',canceled:'foram cancelados',unknown:'falharam sem motivo informado'};
+var SD_NAO_FALHA={success:1,clientDisconnected:1};
+function sdHora(t){return new Date(t).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
+function sdMotivo(e){var F=(e.fontes||[]).filter(function(f){return !f.ok});if(!F.length)return e.r==='ok'?'deu certo':'sem detalhe';
+  return F.map(function(f){return (f.f==='sppo'?'ônibus':f.f==='brt'?'BRT':f.f)+': '+(f.motivo||'falhou')}).join('; ')}
+function sdRegistro(){var L=((SAUDE.sd||{}).registro||[]).slice().reverse();
+  return {n:L.length,ok:L.filter(function(e){return e.r==='ok'}).length,falhas:L.filter(function(e){return e.r!=='ok'}),todas:L}}
+function sdVivoHTML(){
+  if(!LIVE.url)return '';
+  var d=SAUDE.sd,h='<h3 class="gh sd-sec">Ônibus ao vivo: falhas de hoje</h3>';
+  if(!d)return h+'<p class="muted small keep">'+(SAUDE.busy?'Consultando o Worker…':'O Worker não respondeu em /saude: sem detalhes agora.')+'</p>';
+  /* 1) pedidos dos aparelhos ao Worker (análise da Cloudflare) */
+  var c=d.cloudflare,det=d.cloudflareDetalhe;
+  if(!d.cloudflareConfigurado)h+='<p class="muted small keep">Para ver quantos pedidos falharam e por quê, configure CF_CONTA e CF_TOKEN no Worker (worker/README.md).</p>';
+  else if(det&&det.porStatus){
+    var tot=0,fal=0;Object.keys(det.porStatus).forEach(function(k){var n=det.porStatus[k];tot+=n;if(!SD_NAO_FALHA[k])fal+=n});
+    var pct=tot?fal/tot*100:0;
+    h+='<p class="sd-res"><b>'+fal.toLocaleString('pt-BR')+' de '+tot.toLocaleString('pt-BR')+' pedidos ao Worker falharam hoje ('+pct.toFixed(pct<10?1:0).replace('.',',')+'%).</b></p>';
+    var ks=Object.keys(det.porStatus).filter(function(k){return k!=='success'}).sort(function(a,b){return det.porStatus[b]-det.porStatus[a]});
+    if(ks.length)h+='<ul class="sd-causas">'+ks.map(function(k){return '<li><b>'+det.porStatus[k].toLocaleString('pt-BR')+'</b> '+esc(SD_STATUS[k]||('terminaram como "'+k+'"'))+'.</li>'}).join('')+'</ul>';
+    if(det.cpuP99Ms!=null)h+='<p class="muted small keep">Processamento por pedido: mediana de '+String(det.cpuMedianoMs).replace('.',',')+' ms; nos 1% mais pesados, '+String(det.cpuP99Ms).replace('.',',')+' ms (o limite é 10 ms).'+(det.cpuP99Ms>10?' Os mais pesados são as buscas na prefeitura.':'')+'</p>';
+    var H=(det.porHora||[]).filter(function(x){return x.pedidos});
+    if(H.length){var mx=Math.max.apply(null,H.map(function(x){return x.pedidos}));
+      h+='<div class="sd-horas" role="list" aria-label="Pedidos e falhas por hora">'+H.map(function(x){var hr=new Date(x.h).getHours(),w=x.pedidos/mx*100,wf=x.falhas/mx*100;
+        return '<div class="sd-hora" role="listitem"><span class="sd-h">'+hr+'h</span><span class="sd-barra"><i style="width:'+w.toFixed(1)+'%"></i><i class="f" style="width:'+wf.toFixed(1)+'%"></i></span><span class="sd-hn">'+x.falhas+' de '+x.pedidos+'</span></div>'}).join('')+'</div>'+
+        '<p class="muted small keep">Barra clara: pedidos. Barra vermelha: os que falharam.</p>';}
+  }else if(det&&det.erro)h+='<p class="muted small keep">A Cloudflare não deu o detalhe por motivo: '+esc(det.erro)+'.</p>';
+  else if(c&&c.erros)h+='<p class="sd-res"><b>'+c.erros+' de '+c.pedidos+' pedidos ao Worker falharam hoje.</b></p><p class="muted small keep">Publique o Worker de novo para ver o motivo de cada falha.</p>';
+  /* 2) tentativas do Worker com a prefeitura */
+  var R=sdRegistro();
+  if(!d.registro)h+='<p class="muted small keep">Publique o Worker de novo (worker/gps-fundao.js) para ver as tentativas com a prefeitura.</p>';
+  else if(!R.n)h+='<p class="muted small keep">Ainda não há tentativas registradas neste data center da Cloudflare.</p>';
+  else{
+    var ms=R.todas.map(function(e){var f=(e.fontes||[]).filter(function(f){return f.f==='sppo'})[0];return f&&f.ok?f.ms:null}).filter(function(x){return x!=null}).sort(function(a,b){return a-b}),med=ms.length?ms[Math.floor(ms.length/2)]:null;
+    var cont={reserva:0,falhou:0,parcial:0};R.falhas.forEach(function(e){cont[e.r]=(cont[e.r]||0)+1});
+    h+='<p class="sd-res"><b>Prefeitura: '+(R.n-R.ok)+' de '+R.n+' tentativas '+(R.n-R.ok===1?'falhou':'falharam')+'</b> (desde '+sdHora(R.todas[R.todas.length-1].t)+(d.dataCenter?', data center '+esc(d.dataCenter):'')+').</p>'+
+      '<p class="muted small keep">'+(cont.reserva?cont.reserva+' vez(es) o app recebeu a cópia guardada; ':'')+(cont.falhou?cont.falhou+' vez(es) não havia cópia e o app ficou sem dados; ':'')+(cont.parcial?cont.parcial+' vez(es) só uma das fontes respondeu; ':'')+
+      (med!=null?'a prefeitura costuma responder em '+(med/1000).toFixed(1).replace('.',',')+' s.':'')+'</p>';
+    if(R.falhas.length)h+='<ul class="sd-causas">'+R.falhas.slice(0,8).map(function(e){return '<li><b>'+sdHora(e.t)+'</b> '+esc(sdMotivo(e))+(e.r==='reserva'?' (usou a cópia guardada)':e.r==='falhou'?' (sem dados)':'')+'.</li>'}).join('')+'</ul>';
+  }
+  return h;
+}
 function sdPill(e){if(e==='info')return '<span class="pill">Ver</span>';return '<span class="pill '+(e==='ok'?'good':e==='aviso'?'warn':'bad')+'">'+(e==='ok'?'Funcionando':e==='aviso'?'Atenção':'Fora do ar')+'</span>'}
 function gSaude(){
   if(!SAUDE.quando&&!SAUDE.busy)setTimeout(saudeVerifica,0);
@@ -5786,8 +5857,10 @@ function gSaude(){
   return '<h3 class="gh">Saúde e estatísticas</h3>'+
     '<p class="muted small keep">Confere agora, a partir deste aparelho, se cada serviço de que o app depende está respondendo. '+(SAUDE.quando?'Última verificação '+agoTxt(SAUDE.quando)+'.':'')+'</p>'+
     (SAUDE.quando?tiles([[nOk,'funcionando'],[nAv,'com atenção'],[nF,'fora do ar']]):'')+
+    (SAUDE.quando&&nF?'<div class="sd-fora" role="status"><b>Fora do ar agora</b><ul>'+SAUDE_CHECKS.filter(function(c){var r=SAUDE.res[c[0]];return r&&r.estado==='falha'}).map(function(c){return '<li><b>'+esc(c[1])+':</b> '+esc(SAUDE.res[c[0]].det)+'</li>'}).join('')+'</ul></div>':'')+
     '<div class="glist sd-list">'+lista+'</div>'+
     '<div class="row gbtns"><button type="button" class="copy primary" id="sdCheck"'+(SAUDE.busy?' disabled':'')+'>'+(SAUDE.busy?'Verificando…':'Verificar agora')+'</button></div>'+
+    sdVivoHTML()+
     '<h3 class="gh sd-sec">Uso</h3>'+
     (SH.on?tiles([[num(M.length),'pessoas no total'],[num(hoje),'usaram nas últimas 24 h'],[num(sem),'usaram nos últimos 7 dias'],[num(novos),'novas nos últimos 7 dias'],[num(vis),'visitas somadas']])
       :'<p class="muted small keep">Os números de uso aparecem no site com o Firebase.</p>')+

@@ -3,6 +3,10 @@ var EXT=__EXT_ONIBUS__;
 var EXT_G=[['centro','Centro'],['sul','Zona Sul'],['tijuca','Tijuca'],['norte','Zona Norte'],['ilha','Ilha do Governador'],['oeste','Zona Oeste']];
 var EXTS={};Object.keys(EXT.stops).forEach(function(k){var s=EXT.stops[k],p=ll2map(s[1],s[2]);EXTS[k]={name:s[0],p:[p[0],p[1]]}});
 var EXTSEL={g:null,ln:null};
+/* ônibus ao vivo: o estado vem antes de tudo, porque o bloco "Ônibus da cidade" aberto já mostra as contagens ao vivo
+   na carga (extNoTrajeto, mais abaixo). Ele ficava depois: com o bloco aberto, a carga parava com erro e o resto do
+   app (ônibus ao vivo, planta do CT, seguir ônibus…) nem chegava a rodar. */
+var LIVE={url:(window.CSE_GPS_URL||'').replace(/\/$/,''),bus:[],t:0,err:false,timer:null};
 state.layers.ext=(function(){try{return localStorage.getItem('cse-lay-ext')==='1'}catch(e){return false}})();
 function extSvc(d){var w=d.getDay();return w===0?'D':w===6?'S':'U'}
 /* próximas saídas de uma linha numa parada (minutos do dia; inclui viagens da madrugada do dia anterior) */
@@ -75,15 +79,18 @@ aoFazer('mapa atualizado',function(){var g=$('#gExt');if(g)g.classList.toggle('o
 })();
 updateMap();
 /* ======================= v28: ônibus da cidade ao vivo (via Worker do Cloudflare) ======================= */
-var LIVE={url:(window.CSE_GPS_URL||'').replace(/\/$/,''),bus:[],t:0,err:false,timer:null};
 function liveWanted(){return !!LIVE.url&&!document.hidden&&(state.layers.ext||(state.sel&&state.sel.kind==='ext')||!!($('#fdExt')&&$('#fdExt').open))}
 function liveFetch(){
   if(!liveWanted())return;
   /* v38: no máximo um pedido a cada 5 s, mesmo quando várias partes do app pedem ao mesmo tempo ao abrir */
   var agora=Date.now();if(LIVE.ult&&agora-LIVE.ult<5000)return;LIVE.ult=agora;
   fetch(LIVE.url,{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
-    LIVE.bus=(d.onibus||[]).filter(function(o){return Date.now()-o.t<6*60e3});LIVE.t=Date.now();LIVE.err=!!d.falhou;liveDraw();liveRefreshText();
-  },function(){LIVE.err=true;liveRefreshText()});
+    var novos=(d.onibus||[]).filter(function(o){return Date.now()-o.t<6*60e3});
+    /* a prefeitura falhou e o Worker não tinha cópia: mantém os ônibus que já estavam no mapa (até 6 min) */
+    if(d.falhou&&!novos.length)novos=LIVE.bus.filter(function(o){return Date.now()-o.t<6*60e3});
+    LIVE.bus=novos;LIVE.t=Date.now();LIVE.err=!!d.falhou;LIVE.falhas=d.falhou?(LIVE.falhas||0)+1:0;liveDraw();liveRefreshText();
+    if(d.falhou)setTimeout(liveFetch,5200);
+  },function(){LIVE.err=true;LIVE.falhas=(LIVE.falhas||0)+1;liveRefreshText();setTimeout(liveFetch,5200)});
 }
 function liveLoop(){clearInterval(LIVE.timer);if(!LIVE.url)return;liveFetch();LIVE.timer=setInterval(function(){liveFetch()},10000)}
 document.addEventListener('visibilitychange',function(){if(!document.hidden)liveFetch()});
