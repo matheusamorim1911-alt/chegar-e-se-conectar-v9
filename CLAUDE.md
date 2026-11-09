@@ -18,7 +18,7 @@ App web (sem framework) da Cidade Universitária da UFRJ, publicado pelo GitHub 
 ## Regras
 - **Nenhuma parte substitui função de outra** (nada de `var _x=x; x=function(){...}`). Para acrescentar algo a uma tela central, registre uma etapa: `aoFazer('mapa montado', function(){...})`. As etapas existentes: `mapa vai montar`, `mapa montado`, `mapa atualizado`, `vista aplicada`, `trajeto montado`, `detalhe montado`, `ajustes montados`, `gestão montada`, `dados da gestão aplicados`, `tudo reconstruído`, `gestor definido`, `Firebase conectado`, `usuário saiu`. Elas rodam na ordem em que as partes são carregadas.
 - Funcionalidade nova: arquivo novo em `src/js/` (e `src/css/`), com número depois do último, e uma linha em `src/PARTES.md`.
-- Estado e dados usados por funções chamadas logo na carga ficam antes delas (cuidado com a ordem dos arquivos).
+- Estado e dados usados por funções chamadas logo na carga ficam antes delas (cuidado com a ordem dos arquivos). Um erro na carga para o resto do app (as partes seguintes não rodam): `tests/teste-carga.js` abre o app com seções e camadas guardadas abertas.
 - Textos da interface em português do Brasil, frases curtas.
 - Depois de mudar: `npm test`. Para reorganizar código sem mudar nada para quem usa, compare as telas antes e depois:
   `node tests/equivalencia.js <site antes> antes.json`, `node tests/equivalencia.js . depois.json`, `node tests/equivalencia.js --comparar antes.json depois.json`.

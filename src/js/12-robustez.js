@@ -219,5 +219,7 @@ function verCheck(){
     document.body.insertAdjacentHTML('beforeend','<div class="newver" id="newver" role="status"><span>Saiu uma versão nova do app.</span><button type="button" class="copy primary" id="newverGo">Atualizar</button></div>');
   }).catch(function(){});
 }
-document.addEventListener('click',function(e){if(e.target.closest('#newverGo'))location.reload()});
+/* "Atualizar": pede ao service worker a versão nova antes de recarregar (senão podia voltar a versão guardada) */
+document.addEventListener('click',function(e){if(!e.target.closest('#newverGo'))return;var b=e.target.closest('#newverGo');b.disabled=true;b.textContent='Atualizando…';
+  var rec=function(){location.reload()};try{if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration){navigator.serviceWorker.getRegistration().then(function(g){return g&&g.update()}).then(rec,rec);setTimeout(rec,4000);return}}catch(x){}rec()});
 if(ON_SITE&&APP_VERSION!=='dev'){setTimeout(verCheck,4000);setInterval(verCheck,5*60000);document.addEventListener('visibilitychange',function(){if(!document.hidden)verCheck()})}

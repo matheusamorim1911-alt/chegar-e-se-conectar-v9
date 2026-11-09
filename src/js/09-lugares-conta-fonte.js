@@ -69,6 +69,7 @@ function bldInner(now){
   if(!BLD[pstate.bld])return head+'<p class="small"><b>'+esc(plantName(plantasDe(pstate.bld)[0]))+'</b></p>'+plantasHTML(pstate.bld);
   var B=BLD[pstate.bld],sel=PL[pstate.pl]&&PL[pstate.pl].bld===pstate.bld&&PL[pstate.pl].b?pstate.pl:null;
   if(pstate.bld==='ct'){
+    if(!CTP)return head+'<p class="muted small">Carregando a planta do CT…</p>';/* a parte da planta (21) ainda não carregou */
     /* no CT, a planta real substitui o esquema de exemplo; uma sala escolhida em outro lugar (glossário, grade) abre no bloco e andar dela */
     var P=PL[pstate.pl];if(pstate.pl!==CTP.lastPl){CTP.lastPl=pstate.pl;if(P&&P.bld==='ct'){if(P.b)CTP.bl=P.b;if(P.f!=null)CTP.pav=P.f<=0?'subsolo':'pav'+P.f;CTP.f={biblio:'estudo',aula:'aula',wc:'wc',lab:'lab'}[P.cat]||'';CTP.vb=null;CTP.sel=null}}
     if(CTP.d&&CTP.bl&&!CTP.d.salas.some(function(s){return s[0]===CTP.bl})){var alt=CTP.d.salas.filter(function(s){return s[0].indexOf(CTP.bl)>=0})[0];CTP.bl=alt?alt[0]:''}

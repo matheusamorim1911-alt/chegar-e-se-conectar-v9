@@ -82,3 +82,5 @@ if(window.matchMedia){var ctpMQ=matchMedia('(max-width:680px) and (orientation:p
   document.addEventListener('pointermove',function(e){if(!drag)return;var dx=(e.clientX-drag.x)*drag.k,dy=(e.clientY-drag.y)*drag.k;if(Math.abs(e.clientX-drag.x)+Math.abs(e.clientY-drag.y)>6)drag.moved=true;if(!drag.moved)return;CTP.vb=[drag.vb[0]-dx,drag.vb[1]-dy,drag.vb[2]-dx,drag.vb[3]-dy];var s=$('#ctsvg');if(s)s.setAttribute('viewBox',ctpVB(CTP.vb))});
   document.addEventListener('pointerup',function(e){if(drag&&drag.moved){var stop=function(ev){ev.stopPropagation();ev.preventDefault();document.removeEventListener('click',stop,true)};document.addEventListener('click',stop,true);setTimeout(function(){document.removeEventListener('click',stop,true)},50)}drag=null});
 })();
+/* "Prédios por dentro" já aberto na carga foi montado antes desta parte: monta de novo, agora com a planta */
+if(pstate.bldOpen&&pstate.bld==='ct'&&document.querySelector('#fdBld[open]'))renderPredios();

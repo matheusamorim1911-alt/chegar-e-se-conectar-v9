@@ -2604,6 +2604,7 @@ function bldInner(now){
   if(!BLD[pstate.bld])return head+'<p class="small"><b>'+esc(plantName(plantasDe(pstate.bld)[0]))+'</b></p>'+plantasHTML(pstate.bld);
   var B=BLD[pstate.bld],sel=PL[pstate.pl]&&PL[pstate.pl].bld===pstate.bld&&PL[pstate.pl].b?pstate.pl:null;
   if(pstate.bld==='ct'){
+    if(!CTP)return head+'<p class="muted small">Carregando a planta do CT…</p>';/* a parte da planta (21) ainda não carregou */
     /* no CT, a planta real substitui o esquema de exemplo; uma sala escolhida em outro lugar (glossário, grade) abre no bloco e andar dela */
     var P=PL[pstate.pl];if(pstate.pl!==CTP.lastPl){CTP.lastPl=pstate.pl;if(P&&P.bld==='ct'){if(P.b)CTP.bl=P.b;if(P.f!=null)CTP.pav=P.f<=0?'subsolo':'pav'+P.f;CTP.f={biblio:'estudo',aula:'aula',wc:'wc',lab:'lab'}[P.cat]||'';CTP.vb=null;CTP.sel=null}}
     if(CTP.d&&CTP.bl&&!CTP.d.salas.some(function(s){return s[0]===CTP.bl})){var alt=CTP.d.salas.filter(function(s){return s[0].indexOf(CTP.bl)>=0})[0];CTP.bl=alt?alt[0]:''}
@@ -3321,7 +3322,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261109-1600';
+var APP_VERSION='20261109-1606';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -3540,7 +3541,9 @@ function verCheck(){
     document.body.insertAdjacentHTML('beforeend','<div class="newver" id="newver" role="status"><span>Saiu uma versão nova do app.</span><button type="button" class="copy primary" id="newverGo">Atualizar</button></div>');
   }).catch(function(){});
 }
-document.addEventListener('click',function(e){if(e.target.closest('#newverGo'))location.reload()});
+/* "Atualizar": pede ao service worker a versão nova antes de recarregar (senão podia voltar a versão guardada) */
+document.addEventListener('click',function(e){if(!e.target.closest('#newverGo'))return;var b=e.target.closest('#newverGo');b.disabled=true;b.textContent='Atualizando…';
+  var rec=function(){location.reload()};try{if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration){navigator.serviceWorker.getRegistration().then(function(g){return g&&g.update()}).then(rec,rec);setTimeout(rec,4000);return}}catch(x){}rec()});
 if(ON_SITE&&APP_VERSION!=='dev'){setTimeout(verCheck,4000);setInterval(verCheck,5*60000);document.addEventListener('visibilitychange',function(){if(!document.hidden)verCheck()})}
 /* ======================= gestão: serviços no mapa (posição, referência, esconder, novos) ======================= */
 GKEYS.push('svcmapa');GST.svcmapa={};
@@ -5010,6 +5013,10 @@ var EXT={"fonte":"SMTR / Prefeitura do Rio (GTFS, CC BY 4.0)","ate":"20261231","
 var EXT_G=[['centro','Centro'],['sul','Zona Sul'],['tijuca','Tijuca'],['norte','Zona Norte'],['ilha','Ilha do Governador'],['oeste','Zona Oeste']];
 var EXTS={};Object.keys(EXT.stops).forEach(function(k){var s=EXT.stops[k],p=ll2map(s[1],s[2]);EXTS[k]={name:s[0],p:[p[0],p[1]]}});
 var EXTSEL={g:null,ln:null};
+/* ônibus ao vivo: o estado vem antes de tudo, porque o bloco "Ônibus da cidade" aberto já mostra as contagens ao vivo
+   na carga (extNoTrajeto, mais abaixo). Ele ficava depois: com o bloco aberto, a carga parava com erro e o resto do
+   app (ônibus ao vivo, planta do CT, seguir ônibus…) nem chegava a rodar. */
+var LIVE={url:(window.CSE_GPS_URL||'').replace(/\/$/,''),bus:[],t:0,err:false,timer:null};
 state.layers.ext=(function(){try{return localStorage.getItem('cse-lay-ext')==='1'}catch(e){return false}})();
 function extSvc(d){var w=d.getDay();return w===0?'D':w===6?'S':'U'}
 /* próximas saídas de uma linha numa parada (minutos do dia; inclui viagens da madrugada do dia anterior) */
@@ -5082,7 +5089,6 @@ aoFazer('mapa atualizado',function(){var g=$('#gExt');if(g)g.classList.toggle('o
 })();
 updateMap();
 /* ======================= v28: ônibus da cidade ao vivo (via Worker do Cloudflare) ======================= */
-var LIVE={url:(window.CSE_GPS_URL||'').replace(/\/$/,''),bus:[],t:0,err:false,timer:null};
 function liveWanted(){return !!LIVE.url&&!document.hidden&&(state.layers.ext||(state.sel&&state.sel.kind==='ext')||!!($('#fdExt')&&$('#fdExt').open))}
 function liveFetch(){
   if(!liveWanted())return;
@@ -5283,6 +5289,8 @@ if(window.matchMedia){var ctpMQ=matchMedia('(max-width:680px) and (orientation:p
   document.addEventListener('pointermove',function(e){if(!drag)return;var dx=(e.clientX-drag.x)*drag.k,dy=(e.clientY-drag.y)*drag.k;if(Math.abs(e.clientX-drag.x)+Math.abs(e.clientY-drag.y)>6)drag.moved=true;if(!drag.moved)return;CTP.vb=[drag.vb[0]-dx,drag.vb[1]-dy,drag.vb[2]-dx,drag.vb[3]-dy];var s=$('#ctsvg');if(s)s.setAttribute('viewBox',ctpVB(CTP.vb))});
   document.addEventListener('pointerup',function(e){if(drag&&drag.moved){var stop=function(ev){ev.stopPropagation();ev.preventDefault();document.removeEventListener('click',stop,true)};document.addEventListener('click',stop,true);setTimeout(function(){document.removeEventListener('click',stop,true)},50)}drag=null});
 })();
+/* "Prédios por dentro" já aberto na carga foi montado antes desta parte: monta de novo, agora com a planta */
+if(pstate.bldOpen&&pstate.bld==='ct'&&document.querySelector('#fdBld[open]'))renderPredios();
 /* ======================= v31: ônibus da cidade sobre as ruas do mapa ======================= */
 /* ruas:  os traçados das linhas internas (desenhados sobre a planta) + os da prefeitura recalibrados */
 SHP=[];var SHP_INT=[];
