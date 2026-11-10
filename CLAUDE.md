@@ -41,6 +41,9 @@ App web (sem framework) da Cidade Universitária da UFRJ, publicado pelo GitHub 
 - O mapa base é sempre sólido (o controle de transparência saiu; no lugar, "Buscar ônibus").
 - `box()` em `03-mapa.js` guarda a caixa do mapa (renova ao rolar, redimensionar e no começo de cada toque): lê-la a cada quadro forçava o layout.
 
+## Instalar o app
+- `src/js/31-instalar.js`: no celular, com o app aberto no navegador, uma folha com o passo a passo (iPhone: Compartilhar › Adicionar à Tela de Início; Android: botão "Instalar" quando o navegador oferece, senão menu ⋮). Uma vez por sessão, depois de 15 s e com a tela livre; "Agora não" adia 7 dias e "Não mostrar mais" para (`cse-instalar`). Não aparece no computador, no app instalado, nos navegadores internos (WhatsApp, Instagram…) nem no claude.ai. Teste: `tests/teste-instalar.js`.
+
 ## Tiroteios (Fogo Cruzado)
 - Opcional, desligado por padrão (`CFG.tiroteios`). O Worker atende `/tiroteios` com a conta do projeto (segredos `FC_EMAIL` e `FC_SENHA` na Cloudflare; nunca no código). Só registros das últimas 6 h perto das saídas da ilha, com fonte e horário; sem dados, o app diz que não há dados.
 
