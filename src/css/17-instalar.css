@@ -1,0 +1,23 @@
+/* convite para instalar o app: folha de baixo com o passo a passo (iPhone e Android) */
+.inst-fundo{position:fixed;inset:0;z-index:150;background:rgba(5,8,11,.55);opacity:0;transition:opacity .2s}
+.inst-fundo.on{opacity:1}
+.inst-folha{position:fixed;left:50%;bottom:0;z-index:151;width:min(520px,100%);transform:translate(-50%,105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);
+  background:var(--surface);color:var(--ink);border:1px solid var(--line);border-bottom:0;border-radius:24px 24px 0 0;box-shadow:0 -18px 50px rgba(0,0,0,.35);
+  padding:20px 18px calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px;max-height:92vh;overflow:auto}
+.inst-folha.on{transform:translate(-50%,0)}
+.inst-topo{display:flex;gap:14px;align-items:center}
+.inst-topo img{border-radius:13px;flex:none}
+.inst-topo h2{margin:0;font-size:21px}
+.inst-sub{margin:3px 0 0;color:var(--ink-2);font-size:14px}
+.inst-passos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.inst-passos li{display:grid;grid-template-columns:26px 40px minmax(0,1fr);gap:10px;align-items:center;padding:10px 12px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line);font-size:15px;line-height:1.35}
+.inst-n{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--press);color:var(--ink-inv);font:700 13px var(--f-body)}
+.inst-ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--line)}
+.inst-ic svg{width:22px;height:22px;fill:none;stroke:#0A84FF;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.inst-ic svg circle{fill:#0A84FF;stroke:none}
+.inst-dica{margin:0;color:var(--ink-2);font-size:14px}
+.inst-acoes{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.inst-fim{justify-content:space-between}
+.inst-grande{display:inline-flex;align-items:center;gap:8px;min-height:50px;padding:0 22px;font-size:16px;width:100%;justify-content:center}
+.inst-grande svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+@media (prefers-reduced-motion:reduce){.inst-folha,.inst-fundo{transition:none}}
