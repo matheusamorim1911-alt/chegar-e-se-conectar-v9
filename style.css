@@ -1702,6 +1702,26 @@ div.xl-row{cursor:default}
 .tiro-list small{display:block}
 .tiro-ha{flex:0 0 auto;min-width:72px;font-weight:600;font-size:13px;color:var(--warn,#E0A040)}
 .tiro-src{margin-top:4px}
+/* alerta em destaque acima da previsão do tempo: vermelho (últimas 2 h) e amarelo (últimas 5 h) */
+.tiroalerta{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:18px;border:2px solid transparent;box-shadow:0 10px 26px -10px rgba(0,0,0,.45)}
+.tiroalerta.vermelho{background:#C62828;border-color:#FF6B60;color:#fff}
+.tiroalerta.amarelo{background:#F5B700;border-color:#FFD660;color:#1D1600}
+.ta-ic{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:rgba(0,0,0,.18)}
+.ta-ic svg{width:26px;height:26px}
+.ta-ic path{fill:currentColor}
+.ta-ic .ta-x{fill:none;stroke:#C62828;stroke-width:2.6;stroke-linecap:round}
+.tiroalerta.amarelo .ta-ic .ta-x{stroke:#F5B700}
+.ta-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ta-txt b{font-size:16px;line-height:1.25}
+.ta-txt small{font-size:13px;line-height:1.35;opacity:.95}
+.ta-txt .ta-fonte{font-size:11.5px;opacity:.8}
+.ta-acoes{display:flex;align-items:center;gap:4px;flex:none}
+.ta-ver{min-height:38px;padding:0 14px;border-radius:999px;border:1.5px solid currentColor;background:transparent;color:inherit;font:700 13px var(--f-body);cursor:pointer}
+.ta-x-btn{width:38px;height:38px;border:0;border-radius:50%;background:transparent;color:inherit;font:600 22px/1 var(--f-body);cursor:pointer}
+.ta-ver:focus-visible,.ta-x-btn:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.tiroalerta.vermelho .ta-ver:hover,.tiroalerta.vermelho .ta-x-btn:hover{background:rgba(255,255,255,.14)}
+.tiroalerta.amarelo .ta-ver:hover,.tiroalerta.amarelo .ta-x-btn:hover{background:rgba(0,0,0,.08)}
+@media (max-width:480px){.tiroalerta{flex-wrap:wrap}.ta-acoes{width:100%;justify-content:space-between;padding-left:52px}}
 /* atalho para o BandejApp */
 .bdj-row{margin-top:2px}
 a.bdj-link{text-decoration:none;display:inline-flex;align-items:center}
