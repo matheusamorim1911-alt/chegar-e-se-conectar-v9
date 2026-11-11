@@ -20,6 +20,7 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `15-ruas-cidade.css`: esboço das ruas ao redor da ilha e crédito do OpenStreetMap
 - `16-anel-ao-vivo.css`: anel ao redor da bússola com o estado dos ônibus ao vivo
 - `17-instalar.css`: folha do convite para instalar o app
+- `18-avisos-tiroteio.css`: notificações de tiroteio em Ajustes
 
 ## Código (js/)
 - `01-nucleo.js`: pontos de extensão (etapas), modo do site, ajustes salvos e utilidades básicas
@@ -53,4 +54,5 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `29-ruas-cidade.js`: esboço das ruas ao redor da ilha (OpenStreetMap, `ruas-cidade.json`) só com "Ônibus da cidade" ligado, e o mapa arrastável até a área do ao vivo
 - `30-anel-ao-vivo.js`: anel ao redor da bússola: gira verde (ou laranja, com atraso) enquanto chegam posições ao vivo; vermelho e parado quando o Worker para de responder
 - `31-instalar.js`: convite com o passo a passo para instalar o app no iPhone e no Android (uma vez por sessão, adiável)
+- `32-avisos-tiroteio.js`: notificação no celular de tiroteio novo perto das saídas da ilha (Web Push pelo Worker), ligada em Ajustes › Segurança no caminho
 - `99-inicio.js`: abre a aba pedida no endereço (#predios, #grade…) depois que tudo carregou; fica sempre por último

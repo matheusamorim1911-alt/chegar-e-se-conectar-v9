@@ -1,6 +1,6 @@
-/* Chega aí UFRJ · service worker (gerado no empacotamento, versão 20261109-2228) */
-var CACHE='cse-20261109-2228';
-var PRE=["./", "index.html", "style.css?v=20261109-2228", "app.js?v=20261109-2228", "config.js?v=20261109-2228", "manifest.json", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "favicon-32.png", "mapa-blur-claro.jpg?v=a623be208f", "mapa-blur.jpg?v=eeab4c20a0", "mapa-bordas-claro.jpg?v=86153d48d7", "mapa-bordas.jpg?v=c88b82a8e7", "mapa-campus-claro.jpg?v=b307cf89c4", "mapa-campus-claro.svg?v=28ebea3feb", "mapa-campus.jpg?v=b4dc398960", "mapa-campus.svg?v=1e27187281", "mapa-mini-claro.jpg?v=f820802175", "mapa-mini.jpg?v=4d66caafdd"];
+/* Chega aí UFRJ · service worker (gerado no empacotamento, versão 20261111-0902) */
+var CACHE='cse-20261111-0902';
+var PRE=["./", "index.html", "style.css?v=20261111-0902", "app.js?v=20261111-0902", "config.js?v=20261111-0902", "manifest.json", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "favicon-32.png", "mapa-blur-claro.jpg?v=a623be208f", "mapa-blur.jpg?v=eeab4c20a0", "mapa-bordas-claro.jpg?v=86153d48d7", "mapa-bordas.jpg?v=c88b82a8e7", "mapa-campus-claro.jpg?v=b307cf89c4", "mapa-campus-claro.svg?v=28ebea3feb", "mapa-campus.jpg?v=b4dc398960", "mapa-campus.svg?v=1e27187281", "mapa-mini-claro.jpg?v=f820802175", "mapa-mini.jpg?v=4d66caafdd"];
 self.addEventListener('install',function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){return Promise.all(PRE.map(function(u){return c.add(new Request(u,{cache:'reload'})).catch(function(){})}))/* 'reload': não pega cópia velha do cache do navegador */}).then(function(){return self.skipWaiting()}));
 });
@@ -18,5 +18,25 @@ self.addEventListener('fetch',function(e){
   }
   e.respondWith(caches.match(r).then(function(m){/* arquivos: cópia guardada primeiro (têm a versão no nome) */
     return m||fetch(r).then(function(res){if(res.ok){var c=res.clone();caches.open(CACHE).then(function(ca){ca.put(r,c)})}return res});
+  }));
+});
+/* Aviso de tiroteio (Web Push): o Worker manda o aviso sem conteúdo e aqui se busca onde e quando foi */
+var GPS="https://shrill-pond-6c06.matheusamorim1911.workers.dev";
+function tiroTempo(min){if(min<1)return 'agora há pouco';if(min<60)return 'há '+min+' min';var h=Math.floor(min/60),m=min%60;return 'há '+h+' h'+(m?' '+m+' min':'')}
+self.addEventListener('push',function(e){
+  var base={icon:'icon-192.png',tag:'tiroteio',renotify:true,data:{url:'./'}};
+  e.waitUntil((GPS?fetch(GPS.replace(/\/$/,'')+'/tiroteios',{cache:'no-store'}).then(function(r){return r.json()}):Promise.reject()).then(function(d){
+    var agora=Date.now(),L=(d&&d.disponivel&&d.ocorrencias||[]).filter(function(o){return o.t&&agora-o.t<2*3600e3}),o=L[0];
+    if(!o)return self.registration.showNotification('Chega aí UFRJ',Object.assign({},base,{tag:'tiroteio-teste',body:'Avisos de tiroteio ligados. Nenhum registro nas últimas 2 h perto do Fundão.'}));
+    var onde=(o.bairro||'')+(o.local&&o.local!==o.bairro?' ('+o.local+')':'');
+    return self.registration.showNotification('Tiroteio perto do Fundão',Object.assign({},base,{
+      body:'Tiroteio '+tiroTempo(Math.round((agora-o.t)/60000))+(onde?' em '+onde:'')+'.'+(L.length>1?' '+L.length+' registros nas últimas 2 h.':'')+' Evite a região se puder. Fonte: Fogo Cruzado.',timestamp:o.t}));
+  }).catch(function(){return self.registration.showNotification('Aviso de segurança perto do Fundão',Object.assign({},base,{body:'Abra o app para ver os detalhes.'}))}));
+});
+self.addEventListener('notificationclick',function(e){
+  e.notification.close();var url=new URL((e.notification.data&&e.notification.data.url)||'./',self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(function(cs){
+    for(var i=0;i<cs.length;i++)if(cs[i].url.indexOf(self.registration.scope)===0&&'focus' in cs[i])return cs[i].focus();
+    return self.clients.openWindow(url);
   }));
 });

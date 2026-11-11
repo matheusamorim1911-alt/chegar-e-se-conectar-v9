@@ -38,6 +38,7 @@ function tiroFoldHTML(){
   return '<div id="tirobox">'+foldHTML('fdTiro',open,'Tiroteios perto das saídas','<small>'+esc(tiroResumo())+'</small>',open?tiroBodyHTML():'')+'</div>';
 }
 function tiroRepaint(){
+  tiroAlerta();
   var b=$('#tirobox');if(!tiroOn()){if(b)b.remove();return}
   var t=document.createElement('div');t.innerHTML=tiroFoldHTML();
   if(b)b.replaceWith(t.firstChild);else if(plan){var x=$('#extbox');if(x)x.insertAdjacentElement('beforebegin',t.firstChild);else plan.appendChild(t.firstChild)}
@@ -55,4 +56,36 @@ function tiroCfgHTML(){
 aoFazer('ajustes montados',function(){var a=$('#alsec')||$('#accsec');if(a&&!$('#tirosec'))a.insertAdjacentHTML('afterend',tiroCfgHTML())});
 document.addEventListener('change',function(e){if(e.target.id!=='cfgTiro')return;
   CFG.tiroteios=e.target.checked;saveCfg();tiroLoop();tiroRepaint();if(CFG.tiroteios&&!TIRO.url)gToast('Disponível no site do app.',1)});
+/* ---------- alerta em destaque, acima da previsão do tempo ----------
+   Vermelho: tiroteio registrado nas últimas 2 h. Amarelo: nas últimas 5 h. Sem registro nesse tempo, nada aparece.
+   "Ocultar" esconde até aparecer um registro mais novo (cse-tiro-visto). "Ver detalhes" abre a lista em Trajetos. */
+var TIRO_VERMELHO_H=2,TIRO_AMARELO_H=5;
+function tiroNivel(){
+  var d=TIRO.d;if(!tiroOn()||!d||!d.disponivel)return null;
+  var L=(d.ocorrencias||[]).filter(function(o){return o.t&&Date.now()-o.t<TIRO_AMARELO_H*3600e3});if(!L.length)return null;
+  var ult=L[0],rec=L.filter(function(o){return Date.now()-o.t<TIRO_VERMELHO_H*3600e3});
+  return {cor:rec.length?'vermelho':'amarelo',ult:ult,n:L.length,nRec:rec.length};
+}
+function tiroVisto(){try{return +localStorage.getItem('cse-tiro-visto')||0}catch(e){return 0}}
+function tiroAlerta(){
+  var a=$('#tiroAlerta'),N=tiroNivel();
+  if(!N||N.ult.t<=tiroVisto()){if(a)a.remove();return}
+  var o=N.ult,lugar=o.bairro||'perto das saídas do Fundão',
+    tit=N.cor==='vermelho'?'Tiroteio '+tiroHa(o.t)+(o.bairro?' em '+o.bairro:' perto das saídas'):'Teve tiroteio '+tiroHa(o.t)+(o.bairro?' em '+o.bairro:' perto das saídas'),
+    sub=(o.local?o.local+'. ':'')+(N.n>1?N.n+' registros nas últimas '+(N.cor==='vermelho'&&N.nRec===N.n?TIRO_VERMELHO_H:TIRO_AMARELO_H)+' h. ':'')+'Evite a região se puder.',
+    h='<span class="ta-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5L22 20.5H2z"/><path class="ta-x" d="M12 9.5v5.2M12 17.4v.1"/></svg></span>'+
+      '<span class="ta-txt"><b>'+esc(tit)+'</b><small>'+esc(sub)+'</small><small class="ta-fonte">Fonte: Fogo Cruzado. Não é alerta oficial. Emergência: 190.</small></span>'+
+      '<span class="ta-acoes"><button type="button" class="ta-ver" id="tiroVer">Ver detalhes</button><button type="button" class="ta-x-btn" id="tiroOculta" aria-label="Ocultar este alerta">×</button></span>';
+  var chave=N.cor+'|'+o.t+'|'+N.n+'|'+Math.floor((Date.now()-o.t)/60000);
+  /* antes dos avisos de mudança e da previsão do tempo (que entra logo depois de #mudbar), sempre por cima dela */
+  if(!a){var m=$('#mudbar');if(!m)return;m.insertAdjacentHTML('beforebegin','<div class="tiroalerta" id="tiroAlerta" role="alert"></div>');a=$('#tiroAlerta')}
+  if(a.dataset.k===chave)return;a.dataset.k=chave;a.className='tiroalerta '+N.cor;a.innerHTML=h;
+}
+document.addEventListener('click',function(e){var t=e.target;if(!t.closest)return;
+  if(t.closest('#tiroOculta')){var N=tiroNivel();try{if(N)localStorage.setItem('cse-tiro-visto',String(N.ult.t))}catch(x){}tiroAlerta();return}
+  if(t.closest('#tiroVer')){if(typeof setTab==='function')setTab('trajeto');try{localStorage.setItem('cse-fold-tiro','1')}catch(x){}tiroRepaint();
+    var f=$('#fdTiro');if(f){f.open=true;var b=f.querySelector('.fold-b');if(b&&!b.firstChild)b.innerHTML=tiroBodyHTML();f.scrollIntoView({behavior:'smooth',block:'start'})}}
+});
+/* a cor muda com o tempo (vermelho → amarelo → some) mesmo sem busca nova */
+setInterval(function(){if(!document.hidden&&tiroOn())tiroAlerta()},60000);
 tiroLoop();

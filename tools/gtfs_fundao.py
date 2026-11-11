@@ -26,7 +26,8 @@ for t,hs in hit.items():
   tr=T[t];rt=R[tr['route_id']];hd=tr['trip_headsign']
   if re.search('Fundão|Aroldo Melodia',hd):continue
   g=next((v for k,v in G.items() if k in hd),None)
-  if not g:print('sem grupo:',rt['route_short_name'],hd);continue
+  # destino sem grupo conhecido: entra em "Outros destinos" (antes a linha sumia do app e do filtro do Worker)
+  if not g:print('sem grupo (vai para Outros destinos):',rt['route_short_name'],hd);g='outros'
   hs.sort();key=(rt['route_short_name'],g)
   o=L.setdefault(key,{'n':rt['route_short_name'],'nm':rt['route_long_name'],'d':hd,'g':g,'c':('#'+rt['route_color']) if rt['route_color'] else '','brt':rt['route_type']=='702','t':collections.defaultdict(list),'off':collections.defaultdict(list),'hd':collections.Counter()})
   o['hd'][hd]+=1
@@ -111,3 +112,10 @@ out['sh']=sh;out['shp']=[enc(P) for P in lista]
 out['shs']={str(k):list(v.values()) for k,v in spts.items()}  # pontos de parada perto de cada traçado
 open(OUT,'w',encoding='utf-8').write(json.dumps(out,ensure_ascii=False,separators=(',',':')))
 print('traçados:',len(lista),'trechos,',sum(len(p) for p in lista),'pontos; arquivo',len(json.dumps(out,separators=(',',':'))),'bytes')
+# linhas que o Worker não pede à prefeitura (fora de LINHAS em worker/gps-fundao.js): ônibus delas só aparecem
+# ao vivo quando estão dentro da ilha. Acrescente lá e publique o Worker de novo.
+import os
+_w=open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'worker','gps-fundao.js'),encoding='utf-8').read()
+_lw=set(re.findall(r"'([^']+)'",re.search(r"const LINHAS = new Set\(\[(.*?)\]\)",_w).group(1)))
+_fal=sorted({l['n'] for l in out['lines']}-_lw)
+if _fal:print('ATENÇÃO: linhas fora de LINHAS no Worker:',', '.join(_fal))

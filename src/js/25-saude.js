@@ -132,7 +132,28 @@ function sdVivoHTML(){
       (med!=null?'a prefeitura costuma responder em '+(med/1000).toFixed(1).replace('.',',')+' s.':'')+'</p>';
     if(R.falhas.length)h+='<ul class="sd-causas">'+R.falhas.slice(0,8).map(function(e){return '<li><b>'+sdHora(e.t)+'</b> '+esc(sdMotivo(e))+(e.r==='reserva'?' (usou a cópia guardada)':e.r==='falhou'?' (sem dados)':'')+'.</li>'}).join('')+'</ul>';
   }
-  return h;
+  return h+sdForaHTML(d)+sdPushHTML(d);
+}
+/* 4) notificações de tiroteio (src/js/32-avisos-tiroteio.js): aparelhos inscritos e o último envio */
+function sdPushHTML(d){
+  var h='<h3 class="gh sd-sec">Notificações de tiroteio</h3>',P=d.push;
+  if(!P)return h+'<p class="muted small keep">Publique o Worker de novo (worker/gps-fundao.js) para ver as notificações.</p>';
+  if(!P.configurado)return h+'<p class="muted small keep">Desligadas no servidor: ligue um KV com o nome PUSH e o gatilho Cron no Worker (worker/README.md).</p>';
+  if(P.erro)return h+'<p class="muted small keep">Não deu para ler as inscrições: '+esc(P.erro)+'.</p>';
+  var E=P.ultimoEnvio;
+  return h+'<p class="sd-res"><b>'+P.assinantes+(P.maisDe?' ou mais':'')+' aparelho'+(P.assinantes===1?'':'s')+' recebe'+(P.assinantes===1?'':'m')+' os avisos.</b></p>'+
+    '<p class="muted small keep">'+(E?'Último aviso às '+sdHora(E.t)+': '+E.enviados+' entregue'+(E.enviados===1?'':'s')+' ao serviço de notificações'+(E.falhas?', '+E.falhas+' com falha':'')+(E.removidos?', '+E.removidos+' inscrição(ões) vencida(s) apagada(s)':'')+'.':'Nenhum aviso enviado ainda.')+'</p>';
+}
+/* 3) linhas que não estão na lista do app mas tiveram ônibus dentro da ilha hoje (o Worker passou a incluí-las) */
+function sdForaHTML(d){
+  var h='<h3 class="gh sd-sec">Linhas fora da lista vistas na ilha</h3>';
+  if(!('linhasFora' in d))return h+'<p class="muted small keep">Publique o Worker de novo (worker/gps-fundao.js) para ver as linhas que passam na ilha e não estão na lista do app.</p>';
+  var L=(d.linhasFora&&d.linhasFora.linhas)||{},ks=Object.keys(L).sort(function(a,b){return L[b].vezes-L[a].vezes});
+  if(!ks.length)return h+'<p class="muted small keep">Hoje nenhum ônibus de outra linha passou dentro da ilha. Todas as linhas vistas estão na lista do app.</p>';
+  return h+'<p class="sd-res"><b>'+ks.length+' linha'+(ks.length>1?'s':'')+' fora da lista '+(ks.length>1?'tiveram':'teve')+' ônibus dentro da ilha hoje.</b></p>'+
+    '<ul class="sd-causas">'+ks.slice(0,15).map(function(k){var x=L[k];
+      return '<li><b>'+esc(k)+'</b> vista em '+x.vezes+' consulta'+(x.vezes>1?'s':'')+', até '+x.max+' ônibus ao mesmo tempo'+(x.ult?', última às '+sdHora(x.ult):'')+((x.carros||[]).length?' (carro'+(x.carros.length>1?'s ':' ')+x.carros.map(esc).join(', ')+')':'')+'.</li>'}).join('')+'</ul>'+
+    '<p class="muted small keep">Esses ônibus já aparecem no mapa, mas sem horários nem traçado. Para incluir uma linha de vez: rode tools/gtfs_fundao.py com o GTFS novo e acrescente o código em LINHAS no Worker. Uma linha vista poucas vezes pode ser um desvio ou um carro na garagem.</p>';
 }
 function sdPill(e){if(e==='info')return '<span class="pill">Ver</span>';return '<span class="pill '+(e==='ok'?'good':e==='aviso'?'warn':'bad')+'">'+(e==='ok'?'Funcionando':e==='aviso'?'Atenção':'Fora do ar')+'</span>'}
 function gSaude(){
