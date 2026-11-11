@@ -1,6 +1,6 @@
 // Cloudflare Worker: posição ao vivo dos ônibus que atendem o Fundão.
-// Busca a API aberta da prefeitura (dados.mobilidade.rio), filtra só as linhas do app
-// e a região da Ilha do Fundão, e devolve um JSON pequeno com CORS liberado.
+// Busca a API aberta da prefeitura (dados.mobilidade.rio), filtra as linhas do app na região da Ilha do Fundão
+// (e qualquer outra linha com ônibus dentro da ilha), e devolve um JSON pequeno com CORS liberado.
 // O resultado fica guardado por 10 segundos (a prefeitura atualiza cada ônibus a cada ~30 s): todos os usuários usam
 // a mesma cópia, então a prefeitura recebe no máximo 1 pedido a cada 10 s por fonte (por data center da Cloudflare), não importa quantas pessoas usem o app.
 // Se a prefeitura falhar ou demorar, devolve a última resposta boa (até 3 min), marcada com x-cache: antiga.
@@ -10,6 +10,28 @@
 const LINHAS = new Set(['321','323','324','325','326','327','328','329','42','43','485','486','616','634','635','663','696','90','901','910','913','915','922','975','979','SN324','SN328','SN696','SP324','SP328','SP329','SP485','SP635','SPB326','SR328','SV922','SVB901']);
 // Ilha do Fundão e acessos (Linha Vermelha, Av. Brasil e pontes); fica de fora a garagem na Ilha do Governador
 const AREA = { latMin: -22.885, latMax: -22.825, lonMin: -43.27, lonMax: -43.195 };
+// Ônibus de outras linhas também entram quando estão dentro da Ilha do Fundão (contorno do OpenStreetMap,
+// © colaboradores do OpenStreetMap, ODbL, simplificado a 12 m): assim uma linha nova, um desvio ou uma variante
+// (SV, SP…) que ainda não está na lista aparece no mapa. Quem só passa pela Linha Vermelha (a até 40 m dela) fica de fora.
+const ILHA = [[-22.84270,-43.22203],[-22.84143,-43.22233],[-22.84154,-43.22265],[-22.84101,-43.22330],[-22.84022,-43.22335],[-22.83950,-43.22367],[-22.83943,-43.22397],[-22.83972,-43.22511],[-22.83961,-43.22554],[-22.83891,-43.22631],[-22.83770,-43.22684],[-22.83704,-43.22804],[-22.83702,-43.22874],[-22.83730,-43.22926],[-22.83727,-43.23022],[-22.83629,-43.23134],[-22.83622,-43.23183],[-22.83668,-43.23207],[-22.83715,-43.23128],[-22.83746,-43.23118],[-22.83806,-43.23154],[-22.83861,-43.23226],[-22.83870,-43.23273],[-22.83849,-43.23323],[-22.83915,-43.23623],[-22.83927,-43.23764],[-22.83904,-43.23888],[-22.83820,-43.23970],[-22.83795,-43.24057],[-22.83704,-43.24171],[-22.83714,-43.24251],[-22.83843,-43.24335],[-22.83964,-43.24321],[-22.83987,-43.24300],[-22.83975,-43.24229],[-22.83991,-43.24199],[-22.84113,-43.24079],[-22.84219,-43.24020],[-22.84286,-43.24004],[-22.84409,-43.24012],[-22.84571,-43.24092],[-22.84656,-43.24096],[-22.84853,-43.23939],[-22.84908,-43.23918],[-22.84971,-43.23927],[-22.85035,-43.23877],[-22.85453,-43.23671],[-22.85849,-43.23584],[-22.86017,-43.23591],[-22.86112,-43.23624],[-22.86139,-43.23604],[-22.86287,-43.23331],[-22.86304,-43.23229],[-22.86517,-43.23200],[-22.86564,-43.23216],[-22.86620,-43.23190],[-22.86638,-43.23142],[-22.86640,-43.22908],[-22.86669,-43.22816],[-22.86977,-43.22227],[-22.87041,-43.22157],[-22.87022,-43.22081],[-22.86957,-43.21995],[-22.87001,-43.21897],[-22.87051,-43.21575],[-22.87012,-43.21545],[-22.86963,-43.21458],[-22.86778,-43.21412],[-22.86569,-43.21437],[-22.86393,-43.21509],[-22.86368,-43.21504],[-22.86264,-43.21616],[-22.86174,-43.21666],[-22.86190,-43.21703],[-22.86250,-43.21717],[-22.86294,-43.21768],[-22.86344,-43.21784],[-22.86338,-43.21834],[-22.86292,-43.21879],[-22.86211,-43.21940],[-22.86176,-43.21936],[-22.86133,-43.21884],[-22.86106,-43.21762],[-22.85982,-43.21427],[-22.85987,-43.21382],[-22.86069,-43.21276],[-22.86051,-43.21200],[-22.86005,-43.21136],[-22.86020,-43.21123],[-22.85995,-43.21075],[-22.85996,-43.21034],[-22.86041,-43.20950],[-22.86062,-43.20942],[-22.86049,-43.20913],[-22.86006,-43.20849],[-22.85998,-43.20860],[-22.85860,-43.20826],[-22.85826,-43.20841],[-22.85765,-43.20954],[-22.85789,-43.21093],[-22.85838,-43.21169],[-22.85857,-43.21242],[-22.85832,-43.21303],[-22.85747,-43.21418],[-22.85716,-43.21512],[-22.85823,-43.21658],[-22.85881,-43.21775],[-22.85879,-43.21950],[-22.85900,-43.22118],[-22.85885,-43.22261],[-22.85823,-43.22384],[-22.85655,-43.22580],[-22.85614,-43.22666],[-22.85426,-43.22851],[-22.85265,-43.22952],[-22.85170,-43.23048],[-22.84714,-43.23243],[-22.84557,-43.23208],[-22.84453,-43.23157],[-22.84454,-43.23137],[-22.84412,-43.23145],[-22.84392,-43.23130],[-22.84328,-43.23049],[-22.84266,-43.22864],[-22.84139,-43.22638],[-22.84136,-43.22563],[-22.84172,-43.22406],[-22.84266,-43.22277],[-22.84363,-43.22223],[-22.84414,-43.22233],[-22.84438,-43.22294],[-22.84490,-43.22334],[-22.84495,-43.22356],[-22.84473,-43.22360],[-22.84489,-43.22394],[-22.84653,-43.22406],[-22.84761,-43.22332],[-22.84775,-43.22342],[-22.84785,-43.22203],[-22.84809,-43.22167],[-22.84769,-43.22139],[-22.84635,-43.22120],[-22.84571,-43.22092],[-22.84547,-43.22004],[-22.84507,-43.21985],[-22.84376,-43.22039],[-22.84351,-43.22091],[-22.84329,-43.22094],[-22.84329,-43.22163]];
+const LV = [[[-22.84294,-43.23953],[-22.84397,-43.23969]],[[-22.83800,-43.24328],[-22.83816,-43.24311]],[[-22.84042,-43.24077],[-22.84094,-43.24017],[-22.84146,-43.23979],[-22.84208,-43.23957],[-22.84294,-43.23953]],[[-22.84498,-43.23976],[-22.84579,-43.24012],[-22.84694,-43.24080]],[[-22.84503,-43.23964],[-22.84478,-43.23957]],[[-22.84699,-43.24069],[-22.84569,-43.23991],[-22.84503,-43.23964]],[[-22.84416,-43.23948],[-22.84313,-43.23931],[-22.84257,-43.23928],[-22.84206,-43.23933],[-22.84154,-43.23949]],[[-22.83797,-43.24302],[-22.83788,-43.24311]],[[-22.84154,-43.23949],[-22.84083,-43.23995],[-22.83918,-43.24161]],[[-22.83941,-43.24199],[-22.83975,-43.24171],[-22.84007,-43.24125]],[[-22.84294,-43.23953],[-22.84359,-43.23955],[-22.84498,-43.23976]],[[-22.84478,-43.23957],[-22.84416,-43.23948]],[[-22.84007,-43.24125],[-22.84042,-43.24077]],[[-22.83918,-43.24161],[-22.83820,-43.24277]],[[-22.84397,-43.23969],[-22.84513,-43.24006]],[[-22.83816,-43.24311],[-22.83881,-43.24245],[-22.83941,-43.24199]],[[-22.83820,-43.24277],[-22.83797,-43.24302]]];
+const ILHA_CX = { latMin: -22.8706, latMax: -22.8361, lonMin: -43.2435, lonMax: -43.2081 };
+const LV_M = 40, KX_M = 111320 * Math.cos(-22.853 * Math.PI / 180), KY_M = 110574;
+export function naIlha(la, lo) {
+  if (!(la >= ILHA_CX.latMin && la <= ILHA_CX.latMax && lo >= ILHA_CX.lonMin && lo <= ILHA_CX.lonMax)) return false;
+  let c = false;
+  for (let i = 0, j = ILHA.length - 1; i < ILHA.length; j = i++) {
+    const a = ILHA[i], b = ILHA[j];
+    if ((a[0] > la) !== (b[0] > la) && lo < (b[1] - a[1]) * (la - a[0]) / (b[0] - a[0]) + a[1]) c = !c;
+  }
+  if (!c) return false;
+  for (const L of LV) for (let k = 1; k < L.length; k++) {
+    const ax = (L[k - 1][1] - lo) * KX_M, ay = (L[k - 1][0] - la) * KY_M, bx = (L[k][1] - lo) * KX_M, by = (L[k][0] - la) * KY_M;
+    const dx = bx - ax, dy = by - ay, t = Math.max(0, Math.min(1, -(ax * dx + ay * dy) / (dx * dx + dy * dy || 1)));
+    if (Math.hypot(ax + t * dx, ay + t * dy) < LV_M) return false;
+  }
+  return true;
+}
 const FONTES = ['https://dados.mobilidade.rio/gps/sppo', 'https://dados.mobilidade.rio/gps/brt'];
 // JANELA_MIN: período pedido à prefeitura. Os ônibus mandam posição a cada ~30 s e chegam com ~11 s de atraso,
 // então 1,5 min basta para ter todos; um período maior aumenta a resposta (cidade inteira) e o Worker pode
@@ -34,15 +56,15 @@ export function filtrar(lista, agora) {
   const porOnibus = new Map();
   for (const o of lista) {
     const linha = String(pega(o, ['servico', 'linha', 'route_short_name']) ?? '').trim().toUpperCase();
-    if (!LINHAS.has(linha)) continue;
     const la = num(pega(o, ['latitude', 'lat'])), lo = num(pega(o, ['longitude', 'lon', 'lng']));
-    if (!(la >= AREA.latMin && la <= AREA.latMax && lo >= AREA.lonMin && lo <= AREA.lonMax)) continue;
+    const daLista = LINHAS.has(linha);
+    if (daLista ? !(la >= AREA.latMin && la <= AREA.latMax && lo >= AREA.lonMin && lo <= AREA.lonMax) : !(linha && naIlha(la, lo))) continue;
     const t = horaRio(pega(o, ['datetime', 'datahora', 'dataHora', 'timestamp']));
     if (!(t > agora - VELHO_MIN * 60e3)) continue;
     const id = String(pega(o, ['id_veiculo', 'ordem', 'codigo', 'veiculo']) ?? '');
     const atual = porOnibus.get(id);
     if (atual && atual.t >= t) continue;
-    porOnibus.set(id, { v: id, l: linha, s: pega(o, ['sentido']) ?? '', la: +la.toFixed(6), lo: +lo.toFixed(6), vel: Math.round(num(pega(o, ['velocidade'])) || 0), dir: ((Math.round(num(pega(o, ['direcao'])) || 0) % 360) + 360) % 360, t });
+    porOnibus.set(id, { v: id, l: linha, s: pega(o, ['sentido']) ?? '', la: +la.toFixed(6), lo: +lo.toFixed(6), vel: Math.round(num(pega(o, ['velocidade'])) || 0), dir: ((Math.round(num(pega(o, ['direcao'])) || 0) % 360) + 360) % 360, t, ...(daLista ? {} : { f: 1 }) });
   }
   return [...porOnibus.values()];
 }
@@ -55,17 +77,67 @@ export function extrairLinhas(texto) {
   const marca = '"servico":"';
   let i = texto.indexOf(marca);
   if (i < 0) return null;
-  const out = [];
+  const out = [], feitos = new Set();
   while (i >= 0) {
     const a = i + marca.length, b = texto.indexOf('"', a);
     if (b < 0) break;
     if (LINHAS.has(texto.slice(a, b).trim().toUpperCase())) {
       const ini = texto.lastIndexOf('{', i), fim = texto.indexOf('}', b);
-      if (ini >= 0 && fim > b) { try { out.push(JSON.parse(texto.slice(ini, fim + 1))); } catch (e) { /* registro quebrado: pula */ } }
+      if (ini >= 0 && fim > b) { feitos.add(ini); try { out.push(JSON.parse(texto.slice(ini, fim + 1))); } catch (e) { /* registro quebrado: pula */ } }
     }
     i = texto.indexOf(marca, b);
   }
+  // outras linhas: procura só as latitudes que começam com -22.8 (a faixa da ilha), no formato que a resposta usa
+  // ("latitude":-22.85 ou "latitude":"-22,85"), e só vira objeto quem está na caixa da ilha
+  // (procurar o texto curto "-22.8" é bem mais rápido que procurar a chave inteira)
+  const k0 = texto.indexOf('"latitude":');
+  if (k0 >= 0) {
+    let k = k0 + 11; const q = texto.charCodeAt(k) === 34 ? 1 : 0; k += q;
+    const lat = '-22' + (texto.charAt(k + 3) === ',' ? ',' : '.') + '8', chave = '"latitude":' + (q ? '"' : '');
+    for (let j = texto.indexOf(lat); j >= 0; j = texto.indexOf(lat, j + 5)) {
+      const d = texto.charCodeAt(j + 5); if (d < 51 || d > 55) continue; // -22.83… a -22.87…
+      if (!texto.startsWith(chave, j - chave.length)) continue;
+      const v = parseFloat(texto.slice(j, j + 12).replace(',', '.'));
+      if (!(v >= ILHA_CX.latMin && v <= ILHA_CX.latMax)) continue;
+      // a longitude costuma vir logo depois da latitude; se não vier, procura no registro inteiro
+      let lo = valorEm(texto, '"longitude":', j, j + 40);
+      if (lo === lo && !(lo >= ILHA_CX.lonMin && lo <= ILHA_CX.lonMax)) continue;
+      const ini = texto.lastIndexOf('{', j), fim = texto.indexOf('}', j);
+      if (ini < 0 || fim < 0 || feitos.has(ini)) continue;
+      if (lo !== lo) { lo = valorEm(texto, '"longitude":', ini, fim); if (!(lo >= ILHA_CX.lonMin && lo <= ILHA_CX.lonMax)) continue; }
+      feitos.add(ini); try { out.push(JSON.parse(texto.slice(ini, fim + 1))); } catch (e) { /* registro quebrado: pula */ }
+    }
+  }
   return out;
+}
+function valorEm(texto, chave, ini, fim) {
+  let k = texto.indexOf(chave, ini);
+  if (k < 0 || k > fim) return NaN;
+  k += chave.length; if (texto.charCodeAt(k) === 34) k++;
+  return parseFloat(texto.slice(k, k + 14).replace(',', '.'));
+}
+// linhas fora da lista vistas na ilha (para a aba Saúde): por linha, quantos ônibus, quantas vezes e quando por último
+export function contarFora(onibus) {
+  const r = {};
+  for (const o of onibus) if (o.f) { const x = r[o.l] || (r[o.l] = { n: 0, v: [] }); x.n++; if (x.v.length < 5) x.v.push(o.v); }
+  return r;
+}
+const FORA = 'https://cache.local/gps-fora';
+async function registrarFora(fora, agora) {
+  if (!Object.keys(fora).length) return;
+  const cache = caches.default, chave = new Request(FORA), dia = dataRio(agora).slice(0, 10);
+  let d = null;
+  try { const g = await cache.match(chave); if (g) d = await g.json(); } catch (e) { d = null; }
+  if (!d || d.dia !== dia) d = { dia, linhas: {} };
+  for (const [l, x] of Object.entries(fora)) {
+    const y = d.linhas[l] || (d.linhas[l] = { vezes: 0, max: 0, carros: [] });
+    y.vezes++; y.max = Math.max(y.max, x.n); y.ult = agora;
+    for (const v of x.v) if (y.carros.length < 8 && !y.carros.includes(v)) y.carros.push(v);
+  }
+  await cache.put(chave, new Response(JSON.stringify(d), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=172800' } }));
+}
+async function lerFora(agora) {
+  try { const g = await caches.default.match(new Request(FORA)); const d = g ? await g.json() : null; return d && d.dia === dataRio(agora).slice(0, 10) ? d : null; } catch (e) { return null; }
 }
 // motivo de uma falha, em palavras (vai para a aba Saúde)
 function motivoErro(e) {
@@ -211,10 +283,10 @@ async function saude(env, cors, req) {
   const agora = Date.now();let cf = null, erroCf = '', det = null;
   try { cf = await usoCloudflare(env, agora); } catch (e) { erroCf = String(e.message || e).slice(0, 120); }
   if (cf) { try { det = await detalheCloudflare(env, agora); } catch (e) { det = { erro: String(e.message || e).slice(0, 120) }; } }
-  const registro = await lerRegistro();
+  const registro = await lerRegistro(), linhasFora = await lerFora(agora);
   return new Response(JSON.stringify({ t: agora, worker: 'gps-fundao', tiroteiosConfigurado: !!(env.FC_EMAIL && env.FC_SENHA),
     cloudflare: cf, cloudflareErro: erroCf || undefined, cloudflareConfigurado: !!(env.CF_CONTA && env.CF_TOKEN),
-    cloudflareDetalhe: det, dataCenter: (req && req.cf && req.cf.colo) || undefined, registro }), { headers: { ...cors, 'cache-control': 'no-store' } });
+    cloudflareDetalhe: det, dataCenter: (req && req.cf && req.cf.colo) || undefined, registro, linhasFora }), { headers: { ...cors, 'cache-control': 'no-store' } });
 }
 
 export default {
@@ -238,7 +310,9 @@ export default {
       /* sem cópia guardada: responde que falhou (com CORS), em vez de deixar o app sem resposta */
       return new Response(JSON.stringify({ t: agora, fonte: 'SMTR / Prefeitura do Rio (dados.mobilidade.rio)', onibus: [], falhou: true }), { headers: { ...cors, 'cache-control': 'no-store' } });
     }
-    ctx.waitUntil(registrar({ t: agora, r: fontes.every(f => f.ok) ? 'ok' : 'parcial', n: onibus.length, fontes }).catch(() => {}));
+    const fora = contarFora(onibus);
+    ctx.waitUntil(registrar({ t: agora, r: fontes.every(f => f.ok) ? 'ok' : 'parcial', n: onibus.length, fontes, ...(Object.keys(fora).length ? { fora } : {}) }).catch(() => {}));
+    ctx.waitUntil(registrarFora(fora, agora).catch(() => {}));
     const corpo = JSON.stringify({ t: agora, fonte: 'SMTR / Prefeitura do Rio (dados.mobilidade.rio)', onibus });
     const resp = new Response(corpo, { headers: { ...cors, 'cache-control': `public, max-age=${CACHE_S}` } });
     ctx.waitUntil(cache.put(chave, resp.clone()));

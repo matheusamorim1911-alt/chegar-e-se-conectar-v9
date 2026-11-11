@@ -1,7 +1,7 @@
 # Worker "gps-fundao" (ônibus ao vivo)
 
 O navegador não consegue ler a API de GPS da prefeitura direto (bloqueio de CORS), e ela devolve a cidade inteira (~9 MB a cada 5 minutos).
-Este Worker busca a API, filtra só as linhas que atendem o Fundão na região da ilha e devolve ~5 KB, guardando o resultado por 10 segundos. Se a prefeitura falhar, devolve a última resposta boa (até 3 minutos). Cada tentativa fica registrada e aparece em Gestão › Saúde e estatísticas.
+Este Worker busca a API, filtra as linhas que atendem o Fundão na região da ilha (e qualquer outra linha com ônibus dentro da ilha, para nenhuma ficar de fora) e devolve ~5 KB, guardando o resultado por 10 segundos. Se a prefeitura falhar, devolve a última resposta boa (até 3 minutos). Cada tentativa fica registrada e aparece em Gestão › Saúde e estatísticas.
 
 ## Publicar (grátis, ~10 minutos)
 
@@ -15,7 +15,7 @@ Este Worker busca a API, filtra só as linhas que atendem o Fundão na região d
 
 - Plano gratuito: 100 mil acessos por dia. O app só consulta com a camada "Cidade" ligada, o bloco "Ônibus da cidade" aberto ou um ponto selecionado, a cada 10 segundos e com a aba visível. Como a resposta fica guardada 10 s, a prefeitura recebe no máximo ~6 pedidos por minuto de cada data center da Cloudflare, não importa quantas pessoas usem o app.
 - Se o limite for atingido ou a API da prefeitura cair, o app volta sozinho aos horários programados.
-- Para mudar as linhas ou a área, edite `LINHAS` e `AREA` no começo do arquivo.
+- Para mudar as linhas ou a área, edite `LINHAS` e `AREA` no começo do arquivo. As linhas fora de `LINHAS` vistas dentro da ilha no dia aparecem em Gestão › Saúde (`linhasFora` em `/saude`).
 
 ## Testar sem internet
 

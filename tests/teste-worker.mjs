@@ -1,5 +1,5 @@
 // Testa o Worker sem internet: simula a API da prefeitura com uma amostra e confere o filtro.
-import worker, { filtrar, fcFiltrar, extrairLinhas } from '../worker/gps-fundao.js';
+import worker, { filtrar, fcFiltrar, extrairLinhas, naIlha, contarFora } from '../worker/gps-fundao.js';
 let falhou = false; const ok = (c, m) => { console.log((c ? 'ok   ' : 'FALHA') + '  ' + m); if (!c) falhou = true; };
 const agora = Date.parse('2026-11-07T10:15:00-03:00');
 const amostra = [
@@ -76,6 +76,25 @@ const cidade = [];for (let i = 0; i < 3000; i++) cidade.push({ id_veiculo: 'X' +
 const txt = JSON.stringify(cidade);
 ok(JSON.stringify(filtrar(extrairLinhas(txt), agora)) === JSON.stringify(filtrar(JSON.parse(txt), agora)), 'leitura leve: mesmos ônibus que ler a resposta inteira');
 ok(extrairLinhas('{"veiculos":[{"linha":"42"}]}') === null, 'formato sem "servico" (BRT) cai na leitura normal');
+// ---------- outras linhas dentro da ilha ----------
+ok(naIlha(-22.8586, -43.2318) && naIlha(-22.8394, -43.2396), 'ilha: CT e terminal ficam dentro');
+ok(!naIlha(-22.84346, -43.23961) && !naIlha(-22.866, -43.255) && !naIlha(-22.82, -43.22), 'ilha: Linha Vermelha, Av. Brasil e Ilha do Governador ficam de fora');
+const t30 = '2026-11-07T10:14:30Z';
+const outras = [
+  { id_veiculo: 'N1', servico: '474', latitude: -22.8586, longitude: -43.2318, datetime: t30 },            // linha fora da lista, no CT
+  { id_veiculo: 'N2', servico: '474', latitude: -22.84346, longitude: -43.23961, datetime: t30 },          // só passando pela Linha Vermelha
+  { id_veiculo: 'N3', servico: '383', latitude: -22.8650, longitude: -43.2550, datetime: t30 },            // fora da lista, na Av. Brasil
+  { id_veiculo: 'N4', servico: 'SVA485', latitude: '-22,8460', longitude: '-43,2240', datetime: t30 },     // variante nova, perto do HU
+  { id_veiculo: 'N5', servico: '321', latitude: -22.8650, longitude: -43.2550, datetime: t30 }];           // da lista, nos acessos
+const fo = filtrar(outras, agora);
+ok(fo.map(o => o.v).sort().join() === 'N1,N4,N5' && fo.find(o => o.v === 'N1').f === 1 && !('f' in fo.find(o => o.v === 'N5')), 'outras linhas: entram só dentro da ilha, marcadas como fora da lista');
+const cf = contarFora(fo);
+ok(cf['474'].n === 1 && cf['SVA485'].v[0] === 'N4' && !cf['321'], 'outras linhas: contagem por linha para a aba Saúde');
+const ordena = L => JSON.stringify(L.slice().sort((a, b) => a.v < b.v ? -1 : 1));
+for (const [nome, fmt] of [['números', o => ({ ...o, latitude: +String(o.latitude).replace(',', '.'), longitude: +String(o.longitude).replace(',', '.') })], ['texto com vírgula', o => ({ ...o, latitude: String(o.latitude).replace('.', ','), longitude: String(o.longitude).replace('.', ',') })]]) {
+  const T = JSON.stringify([...outras, ...cidade.slice(0, 50).map((o, i) => ({ ...o, latitude: -22.80 - i / 1000, longitude: -43.30 + i / 500 }))].map(fmt));
+  ok(ordena(filtrar(extrairLinhas(T), agora)) === ordena(filtrar(JSON.parse(T), agora)), 'leitura leve acha as outras linhas da ilha (' + nome + ')');
+}
 // ---------- registro das tentativas com a prefeitura (aba Saúde) ----------
 const g2 = new Map();
 globalThis.caches = { default: { match: async r => g2.get(r.url)?.clone() ?? null, put: async (r, v) => { g2.set(r.url, v); } } };
@@ -91,6 +110,10 @@ const R = rs.registro || [];
 ok(R.length === 3 && R[0].r === 'parcial' && /HTTP 503 \(erro no servidor dela\)/.test(R[0].fontes.find(f => f.f === 'sppo').motivo), 'registro: HTTP 503 da prefeitura com o motivo em palavras');
 ok(R[1].r === 'reserva' && /não respondeu em 8 s/.test(R[1].fontes[0].motivo), 'registro: tempo esgotado, e o app recebeu a cópia guardada');
 ok(R[2].r === 'ok' && R[2].fontes.every(f => f.ok && f.ms >= 0 && f.kb >= 0), 'registro: tentativa boa com tempo e tamanho');
+globalThis.fetch = async u => new Response(JSON.stringify(u.includes('sppo') ? outras.map(o => ({ ...o, latitude: +String(o.latitude).replace(',', '.'), longitude: +String(o.longitude).replace(',', '.'), datetime: new Date(Date.now() - 3 * 3600e3 - 30e3).toISOString().slice(0, 19) + 'Z' })) : { veiculos: [] }));
+await roda(); await roda();
+const rf = await (await worker.fetch(new Request('https://x.workers.dev/saude'), {}, { waitUntil() {} })).json();
+ok(rf.linhasFora && rf.linhasFora.linhas['474'].vezes === 2 && rf.linhasFora.linhas['474'].carros.join() === 'N1' && rf.linhasFora.linhas['SVA485'] && !rf.linhasFora.linhas['321'], 'saúde: linhas fora da lista vistas na ilha hoje');
 // detalhe da Cloudflare: por que os pedidos falharam
 globalThis.fetch = async (u, o) => { const b = JSON.parse(o.body);
   if (/status/.test(b.query)) return new Response(JSON.stringify({ data: { viewer: { accounts: [{ workersInvocationsAdaptive: [

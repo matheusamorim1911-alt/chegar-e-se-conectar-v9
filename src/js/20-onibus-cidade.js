@@ -1,6 +1,6 @@
 /* ======================= v27: ônibus da cidade (GTFS da SMTR) que saem do Fundão ======================= */
 var EXT=__EXT_ONIBUS__;
-var EXT_G=[['centro','Centro'],['sul','Zona Sul'],['tijuca','Tijuca'],['norte','Zona Norte'],['ilha','Ilha do Governador'],['oeste','Zona Oeste']];
+var EXT_G=[['centro','Centro'],['sul','Zona Sul'],['tijuca','Tijuca'],['norte','Zona Norte'],['ilha','Ilha do Governador'],['oeste','Zona Oeste'],['outros','Outros destinos']].filter(function(G){return G[0]!=='outros'||EXT.lines.some(function(L){return L.g==='outros'})});
 var EXTS={};Object.keys(EXT.stops).forEach(function(k){var s=EXT.stops[k],p=ll2map(s[1],s[2]);EXTS[k]={name:s[0],p:[p[0],p[1]]}});
 var EXTSEL={g:null,ln:null};
 /* ônibus ao vivo: o estado vem antes de tudo, porque o bloco "Ônibus da cidade" aberto já mostra as contagens ao vivo

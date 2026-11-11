@@ -65,7 +65,7 @@ function segLista(){
   if(!A.length){box.innerHTML='<p class="seg-msg">'+(Q?'Nenhum ônibus com “'+esc(q.value.trim())+'” ao vivo agora.':'Nenhum ônibus ao vivo na região agora.')+'</p>';return}
   var top=box.scrollTop;
   box.innerHTML='<p class="seg-msg">'+A.length+' ônibus ao vivo'+(Q?' com “'+esc(q.value.trim())+'”':'')+'</p><ul>'+A.slice(0,40).map(function(o){var L=segLinha(o.l);
-    return '<li><button type="button" class="seg-row'+(o.v===SEG.v?' on':'')+'" data-segv="'+esc(o.v)+'">'+extBadge(L)+'<span class="grow"><b>'+esc(L.nm||('Linha '+o.l))+'</b><small>Carro '+esc(o.v)+' · '+(o.vel>2?Math.round(o.vel)+' km/h':'parado')+' · há '+segIdade(Math.max(0,Math.round((agora-o.t)/1000)))+(LV2.st[o.v]&&!segNoMapa(LV2.st[o.v])?' · fora do mapa':'')+'</small></span></button></li>'}).join('')+'</ul>'+
+    return '<li><button type="button" class="seg-row'+(o.v===SEG.v?' on':'')+'" data-segv="'+esc(o.v)+'">'+extBadge(L)+'<span class="grow"><b>'+esc(L.nm||('Linha '+o.l))+'</b><small>'+(L.nm?'':'Sem horários no app · ')+'Carro '+esc(o.v)+' · '+(o.vel>2?Math.round(o.vel)+' km/h':'parado')+' · há '+segIdade(Math.max(0,Math.round((agora-o.t)/1000)))+(LV2.st[o.v]&&!segNoMapa(LV2.st[o.v])?' · fora do mapa':'')+'</small></span></button></li>'}).join('')+'</ul>'+
     (A.length>40?'<p class="seg-msg">Digite a linha para ver os outros.</p>':'');
   box.scrollTop=top;
 }
@@ -179,9 +179,10 @@ function segCard(){
   else if(!o||!S)h='<p>Sem posição deste ônibus agora. Ele pode ter saído da região do Fundão ou parado de enviar sinal.</p>';
   else{
     h=(segNoMapa(S)?'':'<p><b>Fora da área do mapa</b>, a '+segM(segLonge(S))+' do centro da Cidade Universitária. A seta na borda mostra para onde.</p>')+'<p>'+(o.vel>2?Math.round(o.vel)+' km/h':'Parado')+' · posição de '+segIdade(Math.max(0,Math.round((Date.now()-o.t)/1000)))+' atrás, ajustada pela velocidade</p>';
+    if(!L.nm)h+='<p class="seg-nota">Linha fora da lista do app (sem horários nem traçado). Ela aparece porque o ônibus está dentro da ilha.</p>';
     var nx=segProximo(S);
     if(nx)h+='<p><b>Próximo ponto'+(nx.nome?': '+esc(nx.nome):'')+'</b> · '+segM(nx.m)+' · '+segQuando(nx.t,nx.m)+'</p>'+(nx.g?'<button type="button" class="linkbtn seg-pt" data-segpt="'+esc(nx.g)+'">Horários deste ponto</button>':'');
-    else if(S.i==null)h+='<p class="seg-nota">Fora do traçado da linha: sem estimativa de chegada.</p>';
+    else if(S.i==null&&L.nm)h+='<p class="seg-nota">Fora do traçado da linha: sem estimativa de chegada.</p>';
   }
   var inf=$('#segInfo');if(inf.innerHTML!==h)inf.innerHTML=h;
   $('#segVolta').hidden=SEG.auto;
