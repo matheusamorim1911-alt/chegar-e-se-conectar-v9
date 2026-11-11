@@ -1,5 +1,5 @@
 // Testa o Worker sem internet: simula a API da prefeitura com uma amostra e confere o filtro.
-import worker, { filtrar, fcFiltrar, extrairLinhas, naIlha, contarFora, endpointValido, jwtVapid, vapid, avisaTiroteios } from '../worker/gps-fundao.js';
+import worker, { filtrar, fcFiltrar, fcHora, extrairLinhas, naIlha, contarFora, endpointValido, jwtVapid, vapid, avisaTiroteios } from '../worker/gps-fundao.js';
 let falhou = false; const ok = (c, m) => { console.log((c ? 'ok   ' : 'FALHA') + '  ' + m); if (!c) falhou = true; };
 const agora = Date.parse('2026-11-07T10:15:00-03:00');
 const amostra = [
@@ -35,7 +35,8 @@ globalThis.caches = semCache;
 const r3 = await worker.fetch(new Request('https://x.workers.dev/tiroteios'), {}, { waitUntil() {} });
 const j3 = await r3.json();
 ok(j3.disponivel === false && j3.motivo === 'sem-conta', 'tiroteios: sem a conta configurada, avisa em vez de inventar dados');
-const agoraFc = Date.now(), iso = ms => new Date(ms - 3 * 3600e3).toISOString().slice(0, 19) + '-03:00';
+// como a API escreve: relógio de Brasília com "Z" no fim
+const agoraFc = Date.now(), iso = ms => new Date(ms - 3 * 3600e3).toISOString();
 const occ = [
   { id: 'a', date: iso(agoraFc - 40 * 60e3), latitude: '-22.8601', longitude: '-43.2433', address: 'Av. Brasil, Maré', neighborhood: { name: 'Maré' }, policeAction: true, victims: [{ situation: 'Ferido' }] },
   { id: 'b', date: iso(agoraFc - 9 * 3600e3), latitude: '-22.8601', longitude: '-43.2433', address: 'antigo', neighborhood: { name: 'Maré' }, victims: [] },
@@ -48,12 +49,13 @@ globalThis.fetch = async (u, o) => { pedidos.push(String(u));
   if (!o || !o.headers || o.headers.authorization !== 'Bearer tok') return new Response('{}', { status: 401 });
   if (u.endsWith('/states')) return new Response(JSON.stringify({ data: [{ id: 'PE', name: 'Pernambuco' }, { id: 'RJ', name: 'Rio de Janeiro' }] }));
   if (u.includes('/cities?stateId=RJ')) return new Response(JSON.stringify({ data: [{ id: 'NIT', name: 'Niterói' }, { id: 'RIO', name: 'Rio de Janeiro' }] }));
-  if (u.includes('/occurrences?idState=RJ&idCities=RIO')) return new Response(JSON.stringify({ data: occ, pageMeta: { hasNextPage: false } }), { headers: { 'x-last-update': '2026-11-07T17:00:00-03:00' } });
+  if (u.includes('/occurrences?idState=RJ&idCities=RIO')) return new Response(JSON.stringify({ data: occ, pageMeta: { hasNextPage: false } }), { headers: { 'x-last-update': '2026-11-07T17:00:00.000Z' } });
   return new Response('{}', { status: 404 }); };
 const env = { FC_EMAIL: 'proj@ufrj.br', FC_SENHA: 's3gredo' };
 const r4 = await worker.fetch(new Request('https://x.workers.dev/tiroteios'), env, { waitUntil() {} });
 const j4 = await r4.json();
 ok(j4.disponivel === true && j4.ocorrencias.length === 1 && j4.ocorrencias[0].id === 'a' && r4.headers.get('access-control-allow-origin') === '*', 'tiroteios: entra com a conta do projeto, acha o Rio pelo nome e devolve o resumo');
+ok(j4.atualizado === '2026-11-07T17:00:00-03:00' && Math.abs(Date.now() - j4.ocorrencias[0].t - 40 * 60e3) < 5000, 'tiroteios: horário do registro e da base no fuso certo (40 min, base às 17h)');
 ok(!JSON.stringify(j4).includes('s3gredo') && !JSON.stringify(j4).includes('tok'), 'tiroteios: senha e chave da API nunca vão para o app');
 globalThis.fetch = async () => { throw new Error('fora do ar'); };
 const r5 = await worker.fetch(new Request('https://x.workers.dev/tiroteios'), env, { waitUntil() {} });
@@ -76,6 +78,12 @@ const cidade = [];for (let i = 0; i < 3000; i++) cidade.push({ id_veiculo: 'X' +
 const txt = JSON.stringify(cidade);
 ok(JSON.stringify(filtrar(extrairLinhas(txt), agora)) === JSON.stringify(filtrar(JSON.parse(txt), agora)), 'leitura leve: mesmos ônibus que ler a resposta inteira');
 ok(extrairLinhas('{"veiculos":[{"linha":"42"}]}') === null, 'formato sem "servico" (BRT) cai na leitura normal');
+// ---------- fuso das datas do Fogo Cruzado ----------
+const t0 = Date.parse('2026-11-11T08:30:00-03:00');
+ok(fcHora('2026-11-11T08:30:00.000Z') === t0 && fcHora('2026-11-11 08:30:00') === t0 && fcHora('2026-11-11T08:30:00-03:00') === t0 && fcHora('2026-11-11T11:30:00+00:00') !== t0 && fcHora('2026-11-11T08:30:00+00:00') === t0,
+  'Fogo Cruzado: o relógio escrito vale como horário de Brasília, mesmo com "Z"');
+const recente = fcFiltrar([{ id: 'z', date: new Date(Date.now() - 3 * 3600e3 - 10 * 60e3).toISOString(), latitude: '-22.8601', longitude: '-43.2433' }], Date.now());
+ok(recente.length === 1 && Math.abs(Date.now() - recente[0].t - 10 * 60e3) < 2000, 'Fogo Cruzado: tiroteio de 10 min atrás aparece como 10 min, não 3 h 10 min');
 // ---------- outras linhas dentro da ilha ----------
 ok(naIlha(-22.8586, -43.2318) && naIlha(-22.8394, -43.2396), 'ilha: CT e terminal ficam dentro');
 ok(!naIlha(-22.84346, -43.23961) && !naIlha(-22.866, -43.255) && !naIlha(-22.82, -43.22), 'ilha: Linha Vermelha, Av. Brasil e Ilha do Governador ficam de fora');

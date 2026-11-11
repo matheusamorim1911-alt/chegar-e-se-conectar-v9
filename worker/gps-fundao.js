@@ -215,8 +215,18 @@ async function fcIds(env) {
   if (!cid) throw new Error('cidade do Rio não encontrada');
   return (fcLocal = { estado: est.id, cidade: cid.id });
 }
-// datas da API: horário de Brasília (com ou sem o -03:00 escrito)
-const fcHora = v => { const s = String(v || ''); return Date.parse(/[+-]\d\d:?\d\d$|Z$/.test(s) ? s : s.replace(' ', 'T') + '-03:00'); };
+// Datas da API: a documentação do Fogo Cruzado diz que são horário de Brasília, mas elas vêm escritas como UTC
+// ("2026-11-11T08:30:00.000Z" quer dizer 8h30 no Rio). Ler o "Z" ao pé da letra punha cada tiroteio 3 h no passado
+// (aparecia como "há 3 h" logo que entrava, saía da janela 3 h antes e não gerava notificação).
+// Por isso vale sempre o relógio escrito, como horário de Brasília; só um fuso diferente de zero escrito é respeitado.
+export const fcHora = v => {
+  const s = String(v || '').trim().replace(' ', 'T');
+  if (!s) return NaN;
+  if (/[+-](?!00:?00$)\d\d:?\d\d$/.test(s)) return Date.parse(s);
+  return Date.parse(s.replace(/(Z|[+-]00:?00)$/, '') + '-03:00');
+};
+// "atualizado" vai para o app já com o fuso certo
+const fcIso = v => { const t = fcHora(v); return t > 0 ? dataRio(t).replace('+', 'T') + '-03:00' : ''; };
 export function fcFiltrar(lista, agora) {
   return lista.map(o => ({ o, t: fcHora(o.date), la: parseFloat(o.latitude), lo: parseFloat(o.longitude) }))
     .filter(x => x.t > agora - FC_JANELA_H * 3600e3 && x.t <= agora + 600e3 && x.la >= FC_AREA.latMin && x.la <= FC_AREA.latMax && x.lo >= FC_AREA.lonMin && x.lo <= FC_AREA.lonMax)
@@ -235,7 +245,7 @@ async function fcBuscar(env, agora) {
     if (!(r.d.pageMeta && r.d.pageMeta.hasNextPage)) break;
     pagina++;
   }
-  return { ocorrencias: fcFiltrar(todas, agora), atualizado };
+  return { ocorrencias: fcFiltrar(todas, agora), atualizado: fcIso(atualizado) };
 }
 async function tiroteios(env, ctx, cors) {
   const cache = caches.default, chave = new Request('https://cache.local/tiroteios'), reserva = new Request('https://cache.local/tiroteios-reserva');
