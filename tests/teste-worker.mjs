@@ -1,5 +1,5 @@
 // Testa o Worker sem internet: simula a API da prefeitura com uma amostra e confere o filtro.
-import worker, { filtrar, fcFiltrar, extrairLinhas, naIlha, contarFora } from '../worker/gps-fundao.js';
+import worker, { filtrar, fcFiltrar, extrairLinhas, naIlha, contarFora, endpointValido, jwtVapid, vapid, avisaTiroteios } from '../worker/gps-fundao.js';
 let falhou = false; const ok = (c, m) => { console.log((c ? 'ok   ' : 'FALHA') + '  ' + m); if (!c) falhou = true; };
 const agora = Date.parse('2026-11-07T10:15:00-03:00');
 const amostra = [
@@ -123,4 +123,60 @@ globalThis.fetch = async (u, o) => { const b = JSON.parse(o.body);
 const rd = await (await worker.fetch(new Request('https://x.workers.dev/saude'), { CF_CONTA: 'c', CF_TOKEN: 't' }, { waitUntil() {} })).json();
 const D = rd.cloudflareDetalhe;
 ok(D && D.porStatus.exceededResources === 120 && D.porHora[0].falhas === 120 && D.porHora[0].pedidos === 620 && D.cpuP99Ms === 16, 'saúde: falhas por motivo e por hora, e o tempo de processamento');
+// ---------- notificações de tiroteio (Web Push) ----------
+function kvFalso() { const m = new Map(); return { m,
+  async get(k, t) { const x = m.get(k); return x ? (t === 'json' ? JSON.parse(x.v) : x.v) : null; },
+  async getWithMetadata(k) { const x = m.get(k); return x ? { value: x.v, metadata: x.md || null } : null; },
+  async put(k, v, o) { m.set(k, { v, md: o && o.metadata }); }, async delete(k) { m.delete(k); },
+  async list({ prefix, limit, cursor }) { const ks = [...m.keys()].filter(k => k.startsWith(prefix) && (!cursor || k > cursor)).sort(), sl = ks.slice(0, limit);
+    return { keys: sl.map(k => ({ name: k, metadata: m.get(k).md })), list_complete: limit >= ks.length, cursor: sl[sl.length - 1] }; } }; }
+globalThis.caches = semCache;
+const r9 = await worker.fetch(new Request('https://x.workers.dev/push/chave'), {}, { waitUntil() {} });
+ok(r9.status === 503 && (await r9.json()).motivo === 'sem-kv', 'push: sem o KV ligado, avisa em vez de quebrar');
+const KV = kvFalso(), envP = { PUSH: KV, FC_EMAIL: 'proj@ufrj.br', FC_SENHA: 's3gredo' };
+const ch = await (await worker.fetch(new Request('https://x.workers.dev/push/chave'), envP, { waitUntil() {} })).json();
+const ch2 = await (await worker.fetch(new Request('https://x.workers.dev/push/chave'), envP, { waitUntil() {} })).json();
+ok(ch.disponivel && /^[A-Za-z0-9_-]{87}$/.test(ch.chave) && ch2.chave === ch.chave, 'push: chave pública criada uma vez e guardada no KV');
+ok(!JSON.stringify(ch).includes('"d"'), 'push: a chave privada não sai do Worker');
+ok(endpointValido('https://fcm.googleapis.com/fcm/send/abc') && endpointValido('https://web.push.apple.com/QK') && !endpointValido('https://exemplo.com/x') && !endpointValido('http://fcm.googleapis.com/x'), 'push: só aceita serviços de notificação conhecidos');
+// o JWT VAPID é assinado com a chave guardada e confere com a pública
+const jv = await vapid(envP), jwt = await jwtVapid(jv, 'https://fcm.googleapis.com', Date.now());
+const [h64, c64, s64] = jwt.split('.'), dec = t => Uint8Array.from(atob(t.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+const pubK = await crypto.subtle.importKey('raw', dec(jv.pub), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
+const claims = JSON.parse(new TextDecoder().decode(dec(c64)));
+ok(await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, pubK, dec(s64), new TextEncoder().encode(h64 + '.' + c64)) && claims.aud === 'https://fcm.googleapis.com' && /^https:/.test(claims.sub) && claims.exp > Date.now() / 1000, 'push: JWT VAPID assinado e válido');
+const assina = e => worker.fetch(new Request('https://x.workers.dev/push/assinar', { method: 'POST', body: JSON.stringify({ endpoint: e }) }), envP, { waitUntil() {} });
+ok((await assina('https://exemplo.com/roubo')).status === 400, 'push: recusa endereço que não é de serviço de notificação');
+for (let i = 0; i < 45; i++) await assina('https://fcm.googleapis.com/fcm/send/c' + i);
+await assina('https://web.push.apple.com/morto');
+ok([...KV.m.keys()].filter(k => k.startsWith('sub:')).length === 46, 'push: guarda as assinaturas');
+// cron: tiroteio novo há 40 min → avisa todos, em lotes; registro velho (9 h) não avisa
+const enviados = [];
+globalThis.fetch = async (u, o) => { u = String(u);
+  if (u.endsWith('/auth/login')) return new Response(JSON.stringify({ data: { accessToken: 'tok', expiresIn: 3600 } }), { status: 201 });
+  if (u.endsWith('/states')) return new Response(JSON.stringify({ data: [{ id: 'RJ', name: 'Rio de Janeiro' }] }));
+  if (u.includes('/cities?stateId=RJ')) return new Response(JSON.stringify({ data: [{ id: 'RIO', name: 'Rio de Janeiro' }] }));
+  if (u.includes('/occurrences')) return new Response(JSON.stringify({ data: occ, pageMeta: { hasNextPage: false } }));
+  if (/fcm\.googleapis|web\.push\.apple/.test(u)) { enviados.push({ u, a: o.headers.authorization, ttl: o.headers.ttl, corpo: o.body });
+    return new Response('', { status: u.endsWith('morto') ? 410 : 201 }); }
+  return new Response('{}', { status: 404 }); };
+const cx = { esperas: [], waitUntil(p) { this.esperas.push(p); } };
+const a1 = await avisaTiroteios(envP, cx, Date.now());
+ok(a1.r === 'avisou' && a1.novos === 1 && enviados.length === 40, 'push: tiroteio novo avisa o primeiro lote (40)');
+ok(enviados.every(x => /^vapid t=[\w-]+\.[\w-]+\.[\w-]+, k=[\w-]{87}$/.test(x.a) && x.ttl === '7200' && x.corpo == null), 'push: aviso sem conteúdo, com VAPID e validade de 2 h');
+const a2 = await avisaTiroteios(envP, cx, Date.now());
+ok(enviados.length === 46 && !KV.m.has([...KV.m.keys()].find(k => k.startsWith('sub:') && KV.m.get(k).md.e.endsWith('morto'))), 'push: o resto vai no lote seguinte e assinatura vencida (410) sai');
+const a3 = await avisaTiroteios(envP, cx, Date.now());
+ok(a3.r === 'nada' && enviados.length === 46, 'push: o mesmo tiroteio não é avisado de novo');
+const est = JSON.parse(KV.m.get('estado').v);
+ok(est.envio.enviados === 45 && est.envio.removidos === 1, 'push: guarda o resultado do envio para a aba Saúde');
+const rsP = await (await worker.fetch(new Request('https://x.workers.dev/saude'), envP, { waitUntil() {} })).json();
+ok(rsP.push && rsP.push.assinantes === 45 && rsP.push.ultimoEnvio.enviados === 45, 'saúde: assinantes e último envio de notificações');
+const sai = await worker.fetch(new Request('https://x.workers.dev/push/sair', { method: 'POST', body: JSON.stringify({ endpoint: 'https://fcm.googleapis.com/fcm/send/c0' }) }), envP, { waitUntil() {} });
+ok(sai.status === 200 && [...KV.m.keys()].filter(k => k.startsWith('sub:')).length === 44, 'push: desligar no app apaga a assinatura');
+const teste = () => worker.fetch(new Request('https://x.workers.dev/push/teste', { method: 'POST', body: JSON.stringify({ endpoint: 'https://fcm.googleapis.com/fcm/send/c1' }) }), envP, { waitUntil() {} });
+const t1 = await (await teste()).json(), t2 = await teste();
+ok(t1.ok === true && t2.status === 429, 'push: aviso de teste para quem assinou, no máximo um por minuto');
+const t3 = await worker.fetch(new Request('https://x.workers.dev/push/teste', { method: 'POST', body: JSON.stringify({ endpoint: 'https://fcm.googleapis.com/fcm/send/naoassinou' }) }), envP, { waitUntil() {} });
+ok(t3.status === 404, 'push: teste só para quem assinou');
 process.exit(falhou ? 1 : 0);

@@ -20,3 +20,23 @@ self.addEventListener('fetch',function(e){
     return m||fetch(r).then(function(res){if(res.ok){var c=res.clone();caches.open(CACHE).then(function(ca){ca.put(r,c)})}return res});
   }));
 });
+/* Aviso de tiroteio (Web Push): o Worker manda o aviso sem conteúdo e aqui se busca onde e quando foi */
+var GPS=__GPS__;
+function tiroTempo(min){if(min<1)return 'agora há pouco';if(min<60)return 'há '+min+' min';var h=Math.floor(min/60),m=min%60;return 'há '+h+' h'+(m?' '+m+' min':'')}
+self.addEventListener('push',function(e){
+  var base={icon:'icon-192.png',tag:'tiroteio',renotify:true,data:{url:'./'}};
+  e.waitUntil((GPS?fetch(GPS.replace(/\/$/,'')+'/tiroteios',{cache:'no-store'}).then(function(r){return r.json()}):Promise.reject()).then(function(d){
+    var agora=Date.now(),L=(d&&d.disponivel&&d.ocorrencias||[]).filter(function(o){return o.t&&agora-o.t<2*3600e3}),o=L[0];
+    if(!o)return self.registration.showNotification('Chega aí UFRJ',Object.assign({},base,{tag:'tiroteio-teste',body:'Avisos de tiroteio ligados. Nenhum registro nas últimas 2 h perto do Fundão.'}));
+    var onde=(o.bairro||'')+(o.local&&o.local!==o.bairro?' ('+o.local+')':'');
+    return self.registration.showNotification('Tiroteio perto do Fundão',Object.assign({},base,{
+      body:'Tiroteio '+tiroTempo(Math.round((agora-o.t)/60000))+(onde?' em '+onde:'')+'.'+(L.length>1?' '+L.length+' registros nas últimas 2 h.':'')+' Evite a região se puder. Fonte: Fogo Cruzado.',timestamp:o.t}));
+  }).catch(function(){return self.registration.showNotification('Aviso de segurança perto do Fundão',Object.assign({},base,{body:'Abra o app para ver os detalhes.'}))}));
+});
+self.addEventListener('notificationclick',function(e){
+  e.notification.close();var url=new URL((e.notification.data&&e.notification.data.url)||'./',self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(function(cs){
+    for(var i=0;i<cs.length;i++)if(cs[i].url.indexOf(self.registration.scope)===0&&'focus' in cs[i])return cs[i].focus();
+    return self.clients.openWindow(url);
+  }));
+});

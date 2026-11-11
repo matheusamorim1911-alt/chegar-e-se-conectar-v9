@@ -6,6 +6,7 @@
 // Se a prefeitura falhar ou demorar, devolve a última resposta boa (até 3 min), marcada com x-cache: antiga.
 // Cada tentativa fica registrada (resultado, tempo, tamanho e motivo da falha) e aparece na aba Saúde do app (/saude).
 // Em /tiroteios, entrega os tiroteios recentes perto das saídas do Fundão (Fogo Cruzado), para quem ligou o aviso no app.
+// Em /push/…, guarda quem quer ser notificado de tiroteios novos; o gatilho Cron (a cada 5 min) manda os avisos.
 
 const LINHAS = new Set(['321','323','324','325','326','327','328','329','42','43','485','486','616','634','635','663','696','90','901','910','913','915','922','975','979','SN324','SN328','SN696','SP324','SP328','SP329','SP485','SP635','SPB326','SR328','SV922','SVB901']);
 // Ilha do Fundão e acessos (Linha Vermelha, Av. Brasil e pontes); fica de fora a garagem na Ilha do Governador
@@ -283,16 +284,111 @@ async function saude(env, cors, req) {
   const agora = Date.now();let cf = null, erroCf = '', det = null;
   try { cf = await usoCloudflare(env, agora); } catch (e) { erroCf = String(e.message || e).slice(0, 120); }
   if (cf) { try { det = await detalheCloudflare(env, agora); } catch (e) { det = { erro: String(e.message || e).slice(0, 120) }; } }
-  const registro = await lerRegistro(), linhasFora = await lerFora(agora);
+  const registro = await lerRegistro(), linhasFora = await lerFora(agora), push = await saudePush(env);
   return new Response(JSON.stringify({ t: agora, worker: 'gps-fundao', tiroteiosConfigurado: !!(env.FC_EMAIL && env.FC_SENHA),
     cloudflare: cf, cloudflareErro: erroCf || undefined, cloudflareConfigurado: !!(env.CF_CONTA && env.CF_TOKEN),
-    cloudflareDetalhe: det, dataCenter: (req && req.cf && req.cf.colo) || undefined, registro, linhasFora }), { headers: { ...cors, 'cache-control': 'no-store' } });
+    cloudflareDetalhe: det, dataCenter: (req && req.cf && req.cf.colo) || undefined, registro, linhasFora, push }), { headers: { ...cors, 'cache-control': 'no-store' } });
+}
+
+
+// ---------- Notificações de tiroteio (Web Push) ----------
+// Quem liga "Notificar tiroteios" no app assina aqui (/push/assinar). A cada 5 min (gatilho Cron do Worker), o Worker
+// confere os tiroteios (a mesma consulta de /tiroteios) e, quando aparece um registro novo das últimas 2 h, manda um
+// aviso a quem assinou. O aviso vai sem conteúdo: o app instalado busca /tiroteios e mostra onde e quando foi.
+// Precisa de um namespace KV ligado ao Worker com o nome PUSH. As chaves VAPID (que identificam o Worker para os
+// serviços de notificação) são criadas aqui na primeira vez e ficam só no KV: não vão para o código nem para o app.
+const PUSH_JANELA_H = 2, PUSH_LOTE = 40, PUSH_SITE = 'https://matheusamorim1911-alt.github.io/chegar-e-se-conectar-v9/';
+// só serviços de notificação conhecidos (Chrome/Android, Firefox, Safari/iPhone, Edge)
+const PUSH_HOSTS = /^(fcm\.googleapis\.com|android\.googleapis\.com|updates\.push\.services\.mozilla\.com|web\.push\.apple\.com|[a-z0-9-]+\.notify\.windows\.com)$/;
+const b64u = buf => { let t = ''; for (const c of new Uint8Array(buf)) t += String.fromCharCode(c); return btoa(t).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+export function endpointValido(e) {
+  try { const u = new URL(String(e || '')); return u.protocol === 'https:' && PUSH_HOSTS.test(u.hostname) && String(e).length <= 800; } catch (x) { return false; }
+}
+async function chavePush(e) { return 'sub:' + b64u(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(e))).slice(0, 32); }
+export async function vapid(env) {
+  let j = await env.PUSH.get('vapid', 'json');
+  if (!j) {
+    const k = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+    j = { priv: await crypto.subtle.exportKey('jwk', k.privateKey), pub: b64u(await crypto.subtle.exportKey('raw', k.publicKey)) };
+    await env.PUSH.put('vapid', JSON.stringify(j));
+  }
+  return j;
+}
+export async function jwtVapid(j, aud, agora) {
+  const key = await crypto.subtle.importKey('jwk', j.priv, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+  const enc = o => b64u(new TextEncoder().encode(JSON.stringify(o)));
+  const corpo = enc({ typ: 'JWT', alg: 'ES256' }) + '.' + enc({ aud, exp: Math.floor(agora / 1000) + 12 * 3600, sub: PUSH_SITE });
+  return corpo + '.' + b64u(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key, new TextEncoder().encode(corpo)));
+}
+async function enviaPush(endpoint, j, jwts, agora) {
+  const aud = new URL(endpoint).origin;
+  const t = jwts[aud] || (jwts[aud] = await jwtVapid(j, aud, agora));
+  const r = await fetch(endpoint, { method: 'POST', headers: { authorization: `vapid t=${t}, k=${j.pub}`, ttl: String(PUSH_JANELA_H * 3600), urgency: 'high', topic: 'tiroteio', 'content-length': '0' }, signal: AbortSignal.timeout(8000) });
+  return r.status;
+}
+async function lerCorpo(req) { try { return JSON.parse(await req.text()); } catch (e) { return {}; } }
+async function rotaPush(caminho, req, env, cors) {
+  const resp = (o, st) => new Response(JSON.stringify(o), { status: st || 200, headers: { ...cors, 'cache-control': 'no-store' } });
+  if (!env.PUSH) return resp({ disponivel: false, motivo: 'sem-kv' }, 503);
+  if (caminho === '/push/chave') return resp({ disponivel: true, chave: (await vapid(env)).pub });
+  if (req.method !== 'POST') return resp({ erro: 'use POST' }, 405);
+  const b = await lerCorpo(req), e = b.endpoint;
+  if (!endpointValido(e)) return resp({ erro: 'endereço de notificação inválido' }, 400);
+  const k = await chavePush(e);
+  if (caminho === '/push/assinar') { await env.PUSH.put(k, '1', { metadata: { e, t: Date.now() } }); return resp({ ok: true }); }
+  if (caminho === '/push/sair') { await env.PUSH.delete(k); return resp({ ok: true }); }
+  if (caminho === '/push/teste') {
+    // um aviso de teste só para quem já assinou, no máximo um por minuto
+    const m = await env.PUSH.getWithMetadata(k);
+    if (!m || !m.metadata) return resp({ erro: 'não assinado' }, 404);
+    if (m.metadata.teste && Date.now() - m.metadata.teste < 60e3) return resp({ erro: 'espere um minuto' }, 429);
+    await env.PUSH.put(k, '1', { metadata: { ...m.metadata, teste: Date.now() } });
+    const st = await enviaPush(e, await vapid(env), {}, Date.now());
+    if (st === 404 || st === 410) await env.PUSH.delete(k);
+    return resp({ ok: st >= 200 && st < 300, status: st });
+  }
+  return resp({ erro: 'rota desconhecida' }, 404);
+}
+// roda pelo gatilho Cron (a cada 5 min): avisa tiroteios novos e envia em lotes de PUSH_LOTE (limite de pedidos por vez do plano grátis)
+export async function avisaTiroteios(env, ctx, agora) {
+  if (!env.PUSH || !env.FC_EMAIL || !env.FC_SENHA) return { r: 'sem-config' };
+  const est = (await env.PUSH.get('estado', 'json')) || { avisados: [] };
+  let mudou = false;
+  let occ = [];
+  try { const d = await (await tiroteios(env, ctx, {})).json(); occ = d.disponivel ? d.ocorrencias || [] : []; } catch (e) { occ = []; }
+  const novos = occ.filter(o => o.id && o.t && agora - o.t < PUSH_JANELA_H * 3600e3 && !est.avisados.includes(o.id));
+  if (novos.length) { est.avisados = novos.map(o => o.id).concat(est.avisados).slice(0, 300); est.fila = { t: agora, cursor: '' }; est.envio = { t: agora, enviados: 0, falhas: 0, removidos: 0 }; mudou = true; }
+  if (est.fila) {
+    const lista = await env.PUSH.list({ prefix: 'sub:', limit: PUSH_LOTE, ...(est.fila.cursor ? { cursor: est.fila.cursor } : {}) });
+    const j = await vapid(env), jwts = {}, ev = est.envio || (est.envio = { t: agora, enviados: 0, falhas: 0, removidos: 0 });
+    await Promise.all(lista.keys.map(async k => {
+      const e = k.metadata && k.metadata.e;
+      if (!endpointValido(e)) return;
+      let st = 0; try { st = await enviaPush(e, j, jwts, agora); } catch (x) { st = 0; }
+      if (st >= 200 && st < 300) ev.enviados++;
+      else if (st === 404 || st === 410) { ev.removidos++; await env.PUSH.delete(k.name); }
+      else ev.falhas++;
+    }));
+    est.fila = lista.list_complete ? null : { t: est.fila.t, cursor: lista.cursor };
+    mudou = true;
+  }
+  if (mudou) await env.PUSH.put('estado', JSON.stringify(est));
+  return { r: novos.length ? 'avisou' : est.fila ? 'enviando' : 'nada', novos: novos.length };
+}
+async function saudePush(env) {
+  if (!env.PUSH) return { configurado: false };
+  try {
+    const est = (await env.PUSH.get('estado', 'json')) || {}, l = await env.PUSH.list({ prefix: 'sub:', limit: 1000 });
+    return { configurado: true, assinantes: l.keys.length, maisDe: !l.list_complete || undefined, ultimoEnvio: est.envio || null };
+  } catch (e) { return { configurado: true, erro: String(e.message || e).slice(0, 80) }; }
 }
 
 export default {
   async fetch(req, env, ctx) {
-    const cors = { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET', 'content-type': 'application/json; charset=utf-8' };
+    const cors = { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET, POST', 'access-control-allow-headers': 'content-type', 'content-type': 'application/json; charset=utf-8' };
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
+    const caminho = new URL(req.url).pathname.replace(/\/$/, '');
+    if (caminho.startsWith('/push/')) return rotaPush(caminho, req, env, cors);
     if (new URL(req.url).pathname.replace(/\/$/, '') === '/tiroteios') return tiroteios(env, ctx, cors);
     if (new URL(req.url).pathname.replace(/\/$/, '') === '/saude') return saude(env, cors, req);
     const chave = new Request('https://cache.local/gps-fundao');
@@ -318,7 +414,9 @@ export default {
     ctx.waitUntil(cache.put(chave, resp.clone()));
     if (!falhou) ctx.waitUntil(cache.put(reserva, new Response(corpo, { headers: { 'content-type': 'application/json', 'cache-control': `public, max-age=${RESERVA_S}` } })));
     return resp;
-  }
+  },
+  // gatilho Cron (Settings › Triggers › Cron Triggers: */5 * * * *): avisos de tiroteio
+  async scheduled(evento, env, ctx) { ctx.waitUntil(avisaTiroteios(env, ctx, Date.now()).catch(() => {})); }
 };
 // Por que os pedidos falharam hoje (status da Cloudflare: success, exceededResources = passou do limite de
 // processamento, scriptThrewException = erro no código…), pedidos e erros por hora e o tempo de processamento.

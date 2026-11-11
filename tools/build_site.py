@@ -32,6 +32,10 @@ open(os.path.join(out,'style.css'),'w',encoding='utf-8').write(css.strip('\n')+'
 open(os.path.join(out,'version.json'),'w',encoding='utf-8').write(json.dumps({'v':ver})+'\n')
 # service worker: guarda o app para abrir sem internet; o nome do cache muda a cada versão
 pre=['./','index.html','style.css?v='+ver,'app.js?v='+ver,'config.js?v='+ver,'manifest.json','icon-192.png','icon-512.png','apple-touch-icon.png','favicon-32.png']+[f+'?v='+marca[f] for f in imgs]
-sw=open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'sw_template.js'),encoding='utf-8').read().replace('__VER__',ver).replace('__PRE__',json.dumps(pre))
+# endereço do Worker (config.js) para o aviso de tiroteio: a notificação chega sem conteúdo e o service worker busca os detalhes
+import re as _re
+_cfg=open(os.path.join(out,'config.js'),encoding='utf-8').read() if os.path.exists(os.path.join(out,'config.js')) else ''
+_gps=(_re.search(r'CSE_GPS_URL\s*=\s*["\']([^"\']*)["\']',_cfg) or [None,''])[1]
+sw=open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'sw_template.js'),encoding='utf-8').read().replace('__VER__',ver).replace('__PRE__',json.dumps(pre)).replace('__GPS__',json.dumps(_gps))
 open(os.path.join(out,'sw.js'),'w',encoding='utf-8').write(sw)
 print('versão',ver)

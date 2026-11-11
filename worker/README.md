@@ -42,3 +42,21 @@ Para a gestão ver, em Gestão › Saúde e estatísticas, quantos dos 100 mil p
 3. No Worker › **Settings** › **Variables and Secrets**, crie dois segredos: `CF_CONTA` (o Account ID) e `CF_TOKEN` (o token).
 
 O Worker responde em `/saude` só os números; o token não sai da Cloudflare.
+
+## Notificações de tiroteio (opcional)
+
+Quem liga **Ajustes › Segurança no caminho › Notificar tiroteios novos** recebe um aviso no celular quando o Fogo Cruzado
+registra tiroteio novo (últimas 2 horas) perto das saídas da ilha, mesmo com o app fechado. Precisa dos segredos do
+Fogo Cruzado (acima) e de dois ajustes no painel da Cloudflare:
+
+1. **Storage & Databases › KV › Create**: crie um namespace (por exemplo `cse-push`).
+2. No Worker › **Settings › Bindings › Add › KV namespace**: nome da variável `PUSH`, escolha o namespace criado.
+3. No Worker › **Settings › Triggers › Cron Triggers › Add**: `*/5 * * * *` (a cada 5 minutos).
+4. Cole o `gps-fundao.js` novo e clique em **Deploy**.
+
+As chaves que identificam o Worker para os serviços de notificação (VAPID) são criadas sozinhas na primeira vez e
+ficam só no KV. O KV guarda só o endereço de notificação de cada aparelho (nada de nome, e-mail ou localização).
+Os avisos vão em lotes de 40 a cada 5 minutos (limite de pedidos do plano grátis). Sem o KV, o app avisa que as
+notificações ainda não foram ativadas. Em Gestão › Saúde aparecem quantos aparelhos assinaram e o último envio.
+
+No iPhone, as notificações só funcionam com o app instalado na Tela de Início (iOS 16.4 ou mais novo).

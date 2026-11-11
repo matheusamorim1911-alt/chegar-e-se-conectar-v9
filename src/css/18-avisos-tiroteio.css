@@ -1,0 +1,9 @@
+/* notificações de tiroteio (Ajustes › Segurança no caminho) */
+#pushBox{margin-top:6px}
+#pushBox .tgls{margin:0}
+.push-ios{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:16px;border:1px solid var(--lg-rim2)}
+.push-ios .grow{min-width:0}
+.push-ios small{display:block;color:var(--ink-2);font-size:13px}
+.push-ios .copy{flex:none}
+.push-msg:empty{display:none}
+#pushBox .gbtns{margin:4px 0 0}
