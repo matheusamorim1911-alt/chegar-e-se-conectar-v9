@@ -79,7 +79,7 @@ aoFazer('mapa atualizado',function(){var g=$('#gExt');if(g)g.classList.toggle('o
 })();
 updateMap();
 /* ======================= v28: ônibus da cidade ao vivo (via Worker do Cloudflare) ======================= */
-function liveWanted(){return !!LIVE.url&&!document.hidden&&(state.layers.ext||(state.sel&&state.sel.kind==='ext')||!!($('#fdExt')&&$('#fdExt').open))}
+function liveWanted(){return !!LIVE.url&&!document.hidden&&(state.layers.ext||(state.sel&&state.sel.kind==='ext')||!!($('#fdExt')&&$('#fdExt').open)||alvQuerVivo())}
 function liveFetch(){
   if(!liveWanted()){if(LIVE.timer)liveAgenda(10000);return}
   /* no máximo um pedido a cada 2 s, mesmo quando várias partes do app pedem ao mesmo tempo ao abrir */

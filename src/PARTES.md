@@ -25,6 +25,7 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `20-perfil-de-uso.css`: folha do perfil de uso
 - `21-capa-avisos.css`: avisos na capa
 - `22-idioma.css`: botões de idioma
+- `23-alertas-onibus.css`: alertas de ônibus
 
 ## Código (js/)
 - `01-nucleo.js`: pontos de extensão (etapas), modo do site, ajustes salvos e utilidades básicas
@@ -65,4 +66,5 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `36-idioma.js`: escolha do idioma (Português, English, Español) em Ajustes e na capa; troca os textos fixos da tela por uma tabela e por padrões
 - `37-idioma-textos.js`: segunda parte da tabela de tradução e padrões (datas, Ajustes, Lugares, Grade, Calendário, Wi-Fi, eduroam)
 - `38-idioma-frases.js`: terceira parte da tradução: mensagens, estados e pedaços de frase trocados dentro de textos montados
+- `39-alertas-onibus.js`: alertas de ônibus escolhidos pelo usuário (linha ou carro, ponto, antecedência, dias e horário), com o app aberto e, pelo Worker, com o app fechado
 - `99-inicio.js`: abre a aba pedida no endereço (#predios, #grade…) depois que tudo carregou; fica sempre por último

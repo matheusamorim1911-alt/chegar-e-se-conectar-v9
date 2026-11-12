@@ -452,10 +452,10 @@ export async function jwtVapid(j, aud, agora) {
   const corpo = enc({ typ: 'JWT', alg: 'ES256' }) + '.' + enc({ aud, exp: Math.floor(agora / 1000) + 12 * 3600, sub: PUSH_SITE });
   return corpo + '.' + b64u(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key, new TextEncoder().encode(corpo)));
 }
-async function enviaPush(endpoint, j, jwts, agora) {
+async function enviaPush(endpoint, j, jwts, agora, topico) {
   const aud = new URL(endpoint).origin;
   const t = jwts[aud] || (jwts[aud] = await jwtVapid(j, aud, agora));
-  const r = await fetch(endpoint, { method: 'POST', headers: { authorization: `vapid t=${t}, k=${j.pub}`, ttl: String(PUSH_JANELA_H * 3600), urgency: 'high', topic: 'tiroteio', 'content-length': '0' }, signal: AbortSignal.timeout(8000) });
+  const r = await fetch(endpoint, { method: 'POST', headers: { authorization: `vapid t=${t}, k=${j.pub}`, ttl: String(PUSH_JANELA_H * 3600), urgency: 'high', topic: topico || 'tiroteio', 'content-length': '0' }, signal: AbortSignal.timeout(8000) });
   return r.status;
 }
 async function lerCorpo(req) { try { return JSON.parse(await req.text()); } catch (e) { return {}; } }
@@ -467,6 +467,12 @@ async function rotaPush(caminho, req, env, cors) {
   const b = await lerCorpo(req), e = b.endpoint;
   if (!endpointValido(e)) return resp({ erro: 'endereço de notificação inválido' }, 400);
   const k = await chavePush(e);
+  if (caminho === '/push/alertas') return resp(await guardaAlertas(env, k, e, b.alertas));
+  if (caminho === '/push/aviso') {
+    // o service worker pergunta o que mostrar no aviso que acabou de chegar (o aviso vai sem conteúdo)
+    const st = (await env.PUSH.get('alst', 'json')) || {}, m = st.msgs && st.msgs[k];
+    return resp(m && m.exp > Date.now() ? { titulo: m.t, corpo: m.c, tag: m.tag } : { nada: true });
+  }
   if (caminho === '/push/assinar') { await env.PUSH.put(k, '1', { metadata: { e, t: Date.now() } }); return resp({ ok: true }); }
   if (caminho === '/push/sair') { await env.PUSH.delete(k); return resp({ ok: true }); }
   if (caminho === '/push/teste') {
@@ -507,11 +513,128 @@ export async function avisaTiroteios(env, ctx, agora) {
   if (mudou) await env.PUSH.put('estado', JSON.stringify(est));
   return { r: novos.length ? 'avisou' : est.fila ? 'enviando' : 'nada', novos: novos.length };
 }
+// ---------- Alertas de ônibus (Web Push) ----------
+// Cada aparelho guarda aqui até AL_MAX alertas ("avise quando o 485 estiver a 5 min do ponto X"). O gatilho Cron
+// (de preferência a cada minuto) confere:
+// - ônibus da cidade ("c"): o app manda o trecho do traçado que chega ao ponto (corredor); o Worker acha os ônibus
+//   ao vivo da linha sobre o corredor, indo no sentido do ponto, e estima o tempo pela distância e velocidade;
+// - linhas internas da UFRJ ("i"), que não têm GPS: o app manda os horários estimados no ponto.
+// Tudo fica num documento só do KV ("alertas"), lido uma vez por minuto; "alst" guarda o que já foi avisado e o
+// texto de cada aviso, que o service worker busca em /push/aviso.
+const AL_MAX = 5, AL_COR = 6, AL_PTS = 80, AL_PERTO_M = 70;
+const inteiro = (v, a, b) => { v = Math.round(+v); return v >= a && v <= b ? v : null; };
+export function alertaValido(a) {
+  if (!a || typeof a !== 'object') return null;
+  const tipo = a.tipo === 'i' ? 'i' : a.tipo === 'c' ? 'c' : null, min = inteiro(a.min, 1, 30), id = String(a.id || '').slice(0, 24);
+  if (!tipo || !min || !id) return null;
+  const o = { id, tipo, min, nome: String(a.nome || '').slice(0, 60) };
+  if (Array.isArray(a.dias)) o.dias = a.dias.map(d => inteiro(d, 0, 6)).filter(d => d != null).slice(0, 7);
+  const de = inteiro(a.de, 0, 1439), ate = inteiro(a.ate, 0, 1439); if (de != null && ate != null) { o.de = de; o.ate = ate; }
+  const fim = +a.fim; if (fim > 0) o.fim = Math.min(fim, Date.now() + 12 * 3600e3);
+  if (a.uma) o.uma = 1;
+  if (tipo === 'c') {
+    o.l = (Array.isArray(a.l) ? a.l : []).map(x => String(x).toUpperCase().slice(0, 8)).filter(linhaDeVerdade).slice(0, 12);
+    if (a.v) o.v = String(a.v).slice(0, 12);
+    o.cor = (Array.isArray(a.cor) ? a.cor : []).slice(0, AL_COR).map(c => (Array.isArray(c) ? c : []).slice(0, AL_PTS * 2).map(x => Math.round(+x))).filter(c => c.length >= 4 && c.length % 2 === 0 && c.every(Number.isFinite));
+    if (!o.cor.length) return null;
+  } else {
+    o.txt = String(a.txt || '').slice(0, 60);
+    o.horas = (Array.isArray(a.horas) ? a.horas : []).map(h => inteiro(h, 0, 1439)).filter(h => h != null).slice(0, 200);
+    if (!o.horas.length) return null;
+  }
+  return o;
+}
+async function guardaAlertas(env, k, e, lista) {
+  const L = (Array.isArray(lista) ? lista : []).map(alertaValido).filter(Boolean).slice(0, AL_MAX);
+  const d = (await env.PUSH.get('alertas', 'json')) || {};
+  if (L.length) d[k] = { e, a: L, t: Date.now() }; else delete d[k];
+  await env.PUSH.put('alertas', JSON.stringify(d));
+  return { ok: true, n: L.length };
+}
+// distância (m) que falta até o fim do corredor para um ônibus sobre ele indo no sentido certo; null se não está nele
+export function faltaNoCorredor(o, cor) {
+  const kx = KX_M / 1e5, ky = KY_M / 1e5, px = o.lo * 1e5 * kx, py = o.la * 1e5 * ky;
+  let melhor = null, acum = 0; const comp = [];
+  for (let i = 2; i < cor.length; i += 2) comp.push(Math.hypot((cor[i + 1] - cor[i - 1]) * kx, (cor[i] - cor[i - 2]) * ky));
+  const total = comp.reduce((a, b) => a + b, 0);
+  for (let i = 2, j = 0; i < cor.length; i += 2, j++) {
+    const ax = cor[i - 1] * kx, ay = cor[i - 2] * ky, bx = cor[i + 1] * kx, by = cor[i] * ky, dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy || 1e-9;
+    const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L2)), d = Math.hypot(px - ax - t * dx, py - ay - t * dy);
+    if (d < AL_PERTO_M && (!melhor || d < melhor.d)) melhor = { d, m: total - acum - t * comp[j], rumo: (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360 };
+    acum += comp[j];
+  }
+  if (!melhor) return null;
+  // andando no sentido contrário ao do corredor (outra pista da mesma rua): não vale
+  if (o.vel > 5) { const dif = Math.abs(((o.dir - melhor.rumo) % 360 + 540) % 360 - 180); if (dif > 100) return null; }
+  return melhor.m;
+}
+// tempo (s) até o ponto: velocidade do ônibus puxada para uma média de cidade, mais ~12 s de parada a cada 400 m
+export function etaOnibus(o, m, agora) {
+  const v = Math.max(12, 0.5 * (o.vel || 0) + 10) / 3.6;
+  return Math.max(0, m / v + 12 * Math.floor(m / 400) - Math.max(0, Math.min(90, (agora - o.t) / 1000)));
+}
+export function alertaNaHora(a, agora) {
+  if (a.fim && agora > a.fim) return false;
+  const d = new Date(agora - 3 * 3600e3), dia = d.getUTCDay(), m = d.getUTCHours() * 60 + d.getUTCMinutes();
+  if (a.dias && a.dias.length && !a.dias.includes(dia)) return false;
+  if (a.de != null && a.ate != null && !(a.de <= a.ate ? m >= a.de && m <= a.ate : m >= a.de || m <= a.ate)) return false;
+  return true;
+}
+const distTxt = m => m < 950 ? Math.max(50, Math.round(m / 50) * 50) + ' m' : (m / 1000).toFixed(1).replace('.', ',') + ' km';
+// decide o que avisar agora: devolve [{chave, t, c}] para um alerta
+export function conferirAlerta(a, onibus, agora) {
+  const out = [], d = new Date(agora - 3 * 3600e3), dia = d.toISOString().slice(0, 10), m = d.getUTCHours() * 60 + d.getUTCMinutes();
+  if (!alertaNaHora(a, agora)) return out;
+  if (a.tipo === 'i') {
+    for (const h of a.horas) { const f = h - m; if (f >= 0 && f <= a.min) { out.push({ chave: a.id + '|' + dia + '|' + h, t: (a.txt || 'Ônibus da UFRJ') + ' passa em ' + (f ? '~' + f + ' min' : 'instantes'), c: 'Em ' + a.nome + '. Horário estimado.' }); break; } }
+    return out;
+  }
+  let melhor = null;
+  for (const o of onibus) {
+    if (a.v ? o.v !== a.v : (a.l.length && !a.l.includes(o.l))) continue;
+    for (const cor of a.cor) { const falta = faltaNoCorredor(o, cor); if (falta == null || falta < 25) continue;
+      const s = etaOnibus(o, falta, agora); if (s <= a.min * 60 && (!melhor || s < melhor.s)) melhor = { o, s, falta }; }
+  }
+  if (melhor) { const min = Math.round(melhor.s / 60);
+    out.push({ chave: a.id + '|' + melhor.o.v, t: melhor.o.l + ' chega em ' + (min ? '~' + min + ' min' : 'instantes'), c: 'Em ' + a.nome + ', a ' + distTxt(melhor.falta) + '. Carro ' + melhor.o.v + '. Estimativa pela posição ao vivo.' }); }
+  return out;
+}
+export async function avisaOnibus(env, ctx, agora) {
+  if (!env.PUSH) return { r: 'sem-config' };
+  const D = (await env.PUSH.get('alertas', 'json')) || {}, subs = Object.keys(D);
+  if (!subs.length) return { r: 'nada', n: 0 };
+  // só busca as posições se algum alerta de ônibus da cidade vale agora
+  const precisa = subs.some(k => D[k].a.some(a => a.tipo === 'c' && alertaNaHora(a, agora)));
+  let onibus = [];
+  if (precisa) { try { onibus = (await buscar(agora)).onibus; } catch (e) { onibus = []; } }
+  const st = (await env.PUSH.get('alst', 'json')) || {}; st.av = st.av || {}; st.msgs = st.msgs || {};
+  for (const k of Object.keys(st.av)) if (st.av[k] < agora) delete st.av[k];
+  for (const k of Object.keys(st.msgs)) if (st.msgs[k].exp < agora) delete st.msgs[k];
+  const enviar = []; let mudouD = false;
+  for (const k of subs) {
+    const vivos = D[k].a.filter(a => !(a.fim && agora > a.fim));
+    if (vivos.length !== D[k].a.length) { mudouD = true; if (vivos.length) D[k].a = vivos; else { delete D[k]; continue; } }
+    for (const a of D[k].a) for (const x of conferirAlerta(a, onibus, agora)) {
+      const ch = k + '|' + x.chave; if (st.av[ch] || (a.uma && st.av[k + '|' + a.id + '|uma'])) continue;
+      st.av[ch] = agora + (a.tipo === 'i' ? 40 : 25) * 60e3; if (a.uma) st.av[k + '|' + a.id + '|uma'] = agora + 12 * 3600e3;
+      if (!enviar.some(y => y.k === k)) { st.msgs[k] = { t: x.t, c: x.c, tag: 'onibus-' + a.id, exp: agora + 10 * 60e3 }; enviar.push({ k, e: D[k].e }); }
+    }
+  }
+  if (enviar.length) {
+    await env.PUSH.put('alst', JSON.stringify(st));
+    const j = await vapid(env), jwts = {};
+    await Promise.all(enviar.slice(0, PUSH_LOTE).map(async x => { let s = 0; try { s = await enviaPush(x.e, j, jwts, agora, 'onibus'); } catch (e) { s = 0; }
+      if (s === 404 || s === 410) { delete D[x.k]; mudouD = true; } }));
+  }
+  if (mudouD) await env.PUSH.put('alertas', JSON.stringify(D));
+  return { r: enviar.length ? 'avisou' : 'nada', n: enviar.length, aparelhos: subs.length };
+}
 async function saudePush(env) {
   if (!env.PUSH) return { configurado: false };
   try {
     const est = (await env.PUSH.get('estado', 'json')) || {}, l = await env.PUSH.list({ prefix: 'sub:', limit: 1000 });
-    return { configurado: true, assinantes: l.keys.length, maisDe: !l.list_complete || undefined, ultimoEnvio: est.envio || null };
+    const al = (await env.PUSH.get('alertas', 'json')) || {};
+    return { configurado: true, alertasOnibus: { aparelhos: Object.keys(al).length, alertas: Object.values(al).reduce((n, x) => n + x.a.length, 0) }, assinantes: l.keys.length, maisDe: !l.list_complete || undefined, ultimoEnvio: est.envio || null };
   } catch (e) { return { configurado: true, erro: String(e.message || e).slice(0, 80) }; }
 }
 
@@ -558,7 +681,12 @@ export default {
     return resp;
   },
   // gatilho Cron (Settings › Triggers › Cron Triggers: */5 * * * *): avisos de tiroteio
-  async scheduled(evento, env, ctx) { ctx.waitUntil(avisaTiroteios(env, ctx, Date.now()).catch(() => {})); }
+  // Com o gatilho a cada minuto (* * * * *), os alertas de ônibus são conferidos a cada minuto e os tiroteios a cada 5.
+  async scheduled(evento, env, ctx) {
+    const agora = Date.now();
+    ctx.waitUntil(avisaOnibus(env, ctx, agora).catch(() => {}));
+    if (new Date(evento && evento.scheduledTime || agora).getUTCMinutes() % 5 === 0) ctx.waitUntil(avisaTiroteios(env, ctx, agora).catch(() => {}));
+  }
 };
 // Por que os pedidos falharam hoje (status da Cloudflare: success, exceededResources = passou do limite de
 // processamento, scriptThrewException = erro no código…), pedidos e erros por hora e o tempo de processamento.

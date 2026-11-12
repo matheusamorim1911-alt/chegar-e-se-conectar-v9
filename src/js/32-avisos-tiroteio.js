@@ -39,7 +39,8 @@ function pushLiga(){
 function pushDesliga(){
   if(PUSH.busy)return;PUSH.busy=true;pushPinta();var g=pushGuardado();
   navigator.serviceWorker.ready.then(function(reg){return reg.pushManager.getSubscription()}).then(function(s){var e=(s&&s.endpoint)||(g&&g.e);
-    return Promise.all([s?s.unsubscribe():null,e?pushPost('sair',e).catch(function(){}):null])}).catch(function(){})
+    /* com alertas de ônibus criados, a assinatura do aparelho continua (só sai da lista dos tiroteios) */
+    return Promise.all([s&&!alvTem()?s.unsubscribe():null,e?pushPost('sair',e).catch(function(){}):null])}).catch(function(){})
   .then(function(){pushGuarda(null);PUSH.busy=false;PUSH.msg='Notificações de tiroteio desligadas.';pushPinta()});
 }
 function pushTeste(){var g=pushGuardado();if(!g||PUSH.busy)return;PUSH.busy=true;pushPinta();
