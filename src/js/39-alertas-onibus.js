@@ -69,17 +69,41 @@ function alvParaServidor(a){
 }
 /* manda a lista ao Worker (assinando as notificações se preciso); sem permissão, os alertas valem só com o app aberto */
 function alvSincroniza(pedir){
-  if(!pushSuportado()||pushIosSemInstalar())return Promise.resolve(false);
-  if(pushPermissao()!=='granted'&&!pedir)return Promise.resolve(false);
+  ALV.motivo='';
+  if(!ON_SITE){ALV.motivo='prototipo';return Promise.resolve(false)}
+  if(pushIosSemInstalar()){ALV.motivo='iphone';return Promise.resolve(false)}
+  if(!pushSuportado()){ALV.motivo='navegador';return Promise.resolve(false)}
+  if(pushPermissao()==='denied'){ALV.motivo='bloqueado';return Promise.resolve(false)}
+  if(pushPermissao()!=='granted'&&!pedir){ALV.motivo='permissao';return Promise.resolve(false)}
   var L=alvVivos().map(alvParaServidor).filter(Boolean),chave;
-  return Promise.resolve(pushPermissao()==='granted'?'granted':Notification.requestPermission()).then(function(p){if(p!=='granted')throw new Error('negado');return pushChave()})
-  .then(function(c){chave=c;return navigator.serviceWorker.ready})
+  if(!L.length&&alvVivos().length)ALV.motivo='tracado';
+  return Promise.resolve(pushPermissao()==='granted'?'granted':Notification.requestPermission()).then(function(p){if(p!=='granted')throw new Error(p==='denied'?'bloqueado':'permissao');
+    return fetch(PUSH.url+'/chave',{cache:'no-store'}).then(function(r){return r.json().catch(function(){return {}})},function(){throw new Error('rede')})})
+  .then(function(j){if(!j||!j.disponivel||!j.chave)throw new Error('kv');chave=j.chave;
+    /* o service worker pode demorar (ou não existir, se o site ainda não instalou a versão nova): espera até 8 s */
+    return Promise.race([navigator.serviceWorker.ready,new Promise(function(_,nao){setTimeout(function(){nao(new Error('sw'))},8000)})])})
   .then(function(reg){return reg.pushManager.getSubscription().then(function(s){
     if(s&&!pushMesmaChave(s,chave))return s.unsubscribe().then(function(){return null});return s})
-    .then(function(s){if(s||!L.length)return s;return reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:pushBytes(chave)})})})
+    .then(function(s){if(s||!L.length)return s;return reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:pushBytes(chave)}).catch(function(){throw new Error('assinatura')})})})
   .then(function(s){if(!s)return false;
-    return fetch(PUSH.url+'/alertas',{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({endpoint:s.endpoint,alertas:L})}).then(function(r){return r.json()}).then(function(j){ALV.push=!!(j&&j.ok)&&L.length>0;ALV.sinc=Date.now();return ALV.push})})
-  .catch(function(){ALV.push=false;return false});
+    return fetch(PUSH.url+'/alertas',{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({endpoint:s.endpoint,alertas:L})}).then(function(r){return r.json().catch(function(){return {}})},function(){throw new Error('rede')})
+      .then(function(j){if(!j||!j.ok)throw new Error('worker');ALV.push=L.length>0;ALV.sinc=Date.now();return ALV.push})})
+  .catch(function(e){ALV.push=false;ALV.motivo=String(e&&e.message||'rede');if(!/^(bloqueado|permissao|rede|kv|sw|assinatura|worker)$/.test(ALV.motivo))ALV.motivo='rede';return false});
+}
+/* por que o aviso com o app fechado não está valendo, em palavras */
+function alvMotivoTxt(){
+  var M={prototipo:'No protótipo do claude.ai as notificações não funcionam. Abra o app pelo site.',
+    iphone:'No iPhone, instale o app na Tela de Início para receber com o app fechado.',
+    navegador:'Este navegador não recebe notificações de sites.',
+    bloqueado:'As notificações estão bloqueadas para este site. Libere nos ajustes do navegador e toque em Tentar de novo.',
+    permissao:'Falta permitir as notificações. Toque em Tentar de novo e aceite o pedido.',
+    kv:'As notificações ainda não foram ativadas no servidor do app (falta o KV PUSH no Worker).',
+    worker:'O servidor do app ainda não aceita alertas de ônibus: o Worker precisa ser publicado de novo na Cloudflare.',
+    sw:'O app ainda não terminou de se instalar neste navegador. Recarregue a página e toque em Tentar de novo.',
+    assinatura:'O navegador não conseguiu assinar as notificações. Confira a conexão e toque em Tentar de novo.',
+    tracado:'Não achei o traçado da linha neste ponto: este alerta só avisa com o app aberto.',
+    rede:'Sem conexão com o servidor do app. Toque em Tentar de novo.'};
+  return M[ALV.motivo]||'';
 }
 function alvTem(){return ALV.lista.length>0}
 /* ---------- conferência com o app aberto ---------- */
@@ -113,7 +137,7 @@ function alvCria(a){
   a.id=alvNovoId();a.on=true;a.criado=Date.now();if(a.quando!=='sempre')a.fim=Date.now()+3*3600e3;
   ALV.lista.push(a);try{localStorage.setItem('cse-alertas-onibus',JSON.stringify(ALV.lista))}catch(e){}
   alvSincroniza(true).then(function(ok){
-    gToast(ok?'Alerta criado. Você recebe o aviso mesmo com o app fechado.':pushIosSemInstalar()?'Alerta criado. No iPhone, ele avisa com o app aberto; para receber com o app fechado, instale o app na Tela de Início.':'Alerta criado. Ele avisa enquanto o app estiver aberto.');alvPinta()});
+    gToast(ok?'Alerta criado. Você recebe o aviso mesmo com o app fechado.':'Alerta criado. Por enquanto ele avisa só com o app aberto. '+alvMotivoTxt());alvPinta()});
   if(a.tipo==='c'&&LIVE.url)liveLoop();alvPinta();setTimeout(alvConfere,1500);return true;
 }
 function alvFolhaHTML(F){
@@ -149,6 +173,7 @@ document.addEventListener('click',function(e){var t=e.target;if(!t.closest)retur
   if(t.closest('#alvCancela')||t.closest('#alvFundo')){alvFecha();return}
   if(t.closest('#alvOk')){alvLeFolha();var F=ALV.folha,a={tipo:F.tipo,linhas:F.linha?[F.linha]:[],min:F.min,quando:F.quando,dias:F.dias,hDe:F.hDe,hAte:F.hAte};
     if(F.tipo==='c')a.ponto=F.ponto;else{a.de=F.de;a.para=F.para}alvFecha();alvCria(a);return}
+  if(t.closest('[data-alvtenta]')){alvSincroniza(true).then(function(ok){gToast(ok?'Pronto. Os avisos chegam mesmo com o app fechado.':alvMotivoTxt()||'Ainda não deu. Tente de novo mais tarde.');alvPinta()});return}
   if((b=t.closest('[data-alvdel]'))){ALV.lista=ALV.lista.filter(function(a){return a.id!==b.dataset.alvdel});alvSalva();gToast('Alerta apagado.');return}
   if((b=t.closest('[data-alvnovo]'))){var id=$('#alvNovoPonto')&&$('#alvNovoPonto').value;if(id==='~trajeto')alvAbreTrajeto();else alvAbrePonto(id);return}
 });
@@ -173,7 +198,8 @@ aoFazer('trajeto montado',alvBotaoTrajeto);alvBotaoTrajeto();/* o trajeto já fo
 /* Ajustes › Alertas: a lista, com liga/desliga e apagar, e a criação de um alerta novo */
 function alvAjustesHTML(){
   alvLimpa();
-  var h='<h3 class="la-h3">Meus alertas de ônibus</h3><p class="muted small keep">Escolha o ônibus, o ponto, a antecedência e quando vale. '+(ALV.push?'Os avisos chegam mesmo com o app fechado.':pushIosSemInstalar()?'No iPhone, instale o app na Tela de Início para receber com o app fechado.':pushSuportado()?'Ao criar o primeiro, o app pede permissão para avisar com o app fechado.':'Neste navegador, os avisos aparecem com o app aberto.')+'</p>';
+  var h='<h3 class="la-h3">Meus alertas de ônibus</h3><p class="muted small keep">Escolha o ônibus, o ponto, a antecedência e quando vale. '+(ALV.push?'Os avisos chegam mesmo com o app fechado.':!ALV.lista.length&&pushSuportado()&&!pushIosSemInstalar()?'Ao criar o primeiro, o app pede permissão para avisar com o app fechado.':'')+'</p>';
+  if(!ALV.push&&(ALV.lista.length||ALV.motivo)&&alvMotivoTxt())h+='<p class="alv-aviso" role="status"><b>Por enquanto, só com o app aberto.</b> '+esc(alvMotivoTxt())+(/^(bloqueado|permissao|rede|sw|assinatura|worker|kv)$/.test(ALV.motivo)?' <button type="button" class="linkbtn" data-alvtenta>Tentar de novo</button>':'')+'</p>';
   if(ALV.lista.length)h+='<ul class="alv-lista">'+ALV.lista.map(function(a){var r=alvResumo(a);
     return '<li class="alv-item"><span class="grow"><b>'+esc(r.t)+'</b><small>'+esc(r.s)+'</small></span>'+
       '<label class="alv-sw"><input type="checkbox" role="switch" data-alvon="'+esc(a.id)+'"'+(a.on!==false?' checked':'')+' aria-label="Alerta ligado"></label>'+
