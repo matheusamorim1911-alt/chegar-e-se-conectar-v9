@@ -1,5 +1,5 @@
 // Testa o Worker sem internet: simula a API da prefeitura com uma amostra e confere o filtro.
-import worker, { validade, lerGtfsRt, ajustarRt, linhaDaRota, filtrar, fcFiltrar, fcHora, extrairLinhas, naIlha, contarFora, linhaDeVerdade, completar, endpointValido, jwtVapid, vapid, avisaTiroteios } from '../worker/gps-fundao.js';
+import worker, { alertaValido, faltaNoCorredor, etaOnibus, conferirAlerta, avisaOnibus, alertaNaHora, validade, lerGtfsRt, ajustarRt, linhaDaRota, filtrar, fcFiltrar, fcHora, extrairLinhas, naIlha, contarFora, linhaDeVerdade, completar, endpointValido, jwtVapid, vapid, avisaTiroteios } from '../worker/gps-fundao.js';
 // A maior parte dos testes simula a API antiga (JSON): o GTFS Realtime responde 404 e o Worker volta a ela.
 // Os testes do GTFS Realtime (no fim) ligam RT_MODO.
 let RT_MODO = false, _f;
@@ -286,6 +286,52 @@ ok(linhaDaRota('O0321AAA0A') === '321' && linhaDaRota('O0803AAP0A') === 'SP803' 
   const s2 = await worker.fetch(new Request('https://x.workers.dev/'), {}, { waitUntil() {} });
   const p2 = +s2.headers.get('x-prox');
   ok(p1 > 5000 && p1 <= 7000 && s2.headers.get('x-cache') === 'hit' && p2 <= p1 && p2 > p1 - 1000 && /x-prox/.test(s1.headers.get('access-control-expose-headers')), 'Worker diz ao app quando sai a próxima posição (x-prox), também na cópia guardada');
+  RT_MODO = false;
+}
+// ---------- alertas de ônibus ----------
+{ // corredor: rua reta de 2 km indo para o norte até o ponto (lat/lon × 1e5)
+  const pontoLa = -22.8500, pontoLo = -43.2300, cor = []; for (let k = 20; k >= 0; k--) cor.push(Math.round((pontoLa - k * 0.0009) * 1e5), Math.round(pontoLo * 1e5));
+  const ag = Date.now(), bus = (v, l, la, lo, vel, dir) => ({ v, l, la, lo, vel, dir, t: ag - 20e3 });
+  const f1 = faltaNoCorredor(bus('B1', '485', pontoLa - 0.009, pontoLo, 30, 0), cor);
+  ok(Math.abs(f1 - 995) < 15, 'alerta: distância que falta pelo traçado até o ponto (' + Math.round(f1) + ' m)');
+  ok(faltaNoCorredor(bus('B2', '485', pontoLa - 0.009, pontoLo, 30, 180), cor) === null && faltaNoCorredor(bus('B3', '485', pontoLa - 0.009, pontoLo + 0.002, 30, 0), cor) === null, 'alerta: ônibus no sentido contrário ou fora da rua não conta');
+  const e1 = etaOnibus(bus('B1', '485', 0, 0, 30, 0), 995, ag);
+  ok(e1 > 120 && e1 < 200, 'alerta: tempo estimado até o ponto (' + Math.round(e1) + ' s para 1 km a 30 km/h)');
+  const A = alertaValido({ id: 'a1', tipo: 'c', min: 5, nome: 'CCMN - Geografia', l: ['485'], cor: [cor], uma: 1, fim: ag + 3600e3 });
+  ok(A && A.cor[0].length === 42 && alertaValido({ id: 'x', tipo: 'c', min: 5, cor: [] }) === null && alertaValido({ id: 'x', tipo: 'i', min: 99, horas: [600] }) === null, 'alerta: confere o que o app manda');
+  const c1 = conferirAlerta(A, [bus('B9', '321', pontoLa - 0.004, pontoLo, 30, 0), bus('B1', '485', pontoLa - 0.009, pontoLo, 30, 0), bus('B7', '485', pontoLa - 0.017, pontoLo, 30, 0)], ag);
+  ok(c1.length === 1 && /^485 chega em ~2 min$/.test(c1[0].t) && /Em CCMN - Geografia, a 1,0 km\. Carro B1\./.test(c1[0].c), 'alerta: avisa o ônibus da linha escolhida que está a menos de 5 min: ' + c1[0]?.t);
+  ok(conferirAlerta({ ...A, l: ['913'] }, [bus('B1', '485', pontoLa - 0.009, pontoLo, 30, 0)], ag).length === 0 && conferirAlerta({ ...A, l: [] }, [bus('B1', '485', pontoLa - 0.009, pontoLo, 30, 0)], ag).length === 1 && conferirAlerta({ ...A, v: 'B7' }, [bus('B1', '485', pontoLa - 0.009, pontoLo, 30, 0)], ag).length === 0, 'alerta: outra linha não avisa; "qualquer linha" avisa; carro escolhido só ele');
+  // dias e horário (horário do Rio)
+  const seg10 = Date.parse('2026-11-09T10:00:00-03:00'), sab10 = Date.parse('2026-11-14T10:00:00-03:00');
+  const sempre = { id: 's', tipo: 'i', min: 5, nome: 'CT', txt: 'Linha 1', horas: [604, 640], dias: [1, 2, 3, 4, 5], de: 420, ate: 1140 };
+  ok(alertaNaHora(sempre, seg10) && !alertaNaHora(sempre, sab10) && !alertaNaHora(sempre, Date.parse('2026-11-09T20:00:00-03:00')) && !alertaNaHora({ ...A, fim: ag - 1 }, ag), 'alerta: vale só nos dias e horários escolhidos e até expirar');
+  const ci = conferirAlerta(sempre, [], seg10);
+  ok(ci.length === 1 && ci[0].t === 'Linha 1 passa em ~4 min' && conferirAlerta(sempre, [], seg10 + 10 * 60e3).length === 0, 'alerta das linhas internas: pelo horário estimado');
+  // pelo Worker: guardar, conferir no gatilho, avisar uma vez, entregar o texto
+  const KV2 = kvFalso(), env2 = { PUSH: KV2 }, EP = 'https://fcm.googleapis.com/fcm/send/onibus1';
+  const post = (rota, corpo) => worker.fetch(new Request('https://x.workers.dev/push/' + rota, { method: 'POST', body: JSON.stringify(corpo) }), env2, { waitUntil() {} });
+  const g1 = await (await post('alertas', { endpoint: EP, alertas: [{ id: 'a1', tipo: 'c', min: 5, nome: 'CCMN - Geografia', l: ['485'], cor: [cor], uma: 1, fim: Date.now() + 3600e3 }, { id: 'ruim', tipo: 'c', min: 5 }] })).json();
+  ok(g1.ok && g1.n === 1 && Object.keys(JSON.parse(KV2.m.get('alertas').v)).length === 1, 'alerta: o Worker guarda os alertas válidos do aparelho');
+  RT_MODO = true; const tsA = Math.floor((Date.now() - 20e3) / 1000), pushes = [];
+  // 485 a ~1 km do ponto (dentro da região do Fundão), a 30 km/h rumo norte
+  globalThis.fetch = async (u, o) => { u = String(u); if (/fcm\.googleapis/.test(u)) { pushes.push({ u, topic: o.headers.topic, corpo: o.body }); return new Response('', { status: 201 }); }
+    return /realtime\/onibus/.test(u) ? new Response(feed([veiculo('B1', 'O0485AAA0A', pontoLa - 0.009, pontoLo, 30, 0, tsA)], tsA)) : new Response(feed([], tsA)); };
+  globalThis.caches = { default: { match: async () => null, put: async () => {} } };
+  const r1 = await avisaOnibus(env2, { waitUntil() {} }, Date.now());
+  ok(r1.r === 'avisou' && pushes.length === 1 && pushes[0].u === EP && pushes[0].topic === 'onibus' && pushes[0].corpo == null, 'alerta: o gatilho acha o ônibus chegando e manda o aviso ao aparelho');
+  const av = await (await post('aviso', { endpoint: EP })).json();
+  ok(/^485 chega em ~\d min$/.test(av.titulo) && /CCMN - Geografia/.test(av.corpo) && av.tag === 'onibus-a1', 'alerta: o service worker recebe o texto do aviso (' + av.titulo + ')');
+  const r2 = await avisaOnibus(env2, { waitUntil() {} }, Date.now() + 60e3);
+  ok(r2.r === 'nada' && pushes.length === 1, 'alerta "só o próximo": não avisa de novo');
+  const outro = await (await post('aviso', { endpoint: 'https://fcm.googleapis.com/fcm/send/outro' })).json();
+  ok(outro.nada === true, 'alerta: o texto de um aparelho não vai para outro');
+  let buscou = 0; globalThis.fetch = async u => { buscou++; return new Response(feed([], tsA)); };
+  await post('alertas', { endpoint: EP, alertas: [{ id: 'a2', tipo: 'c', min: 5, nome: 'X', l: [], cor: [cor], dias: [1], de: 0, ate: 1 }] });
+  await avisaOnibus(env2, { waitUntil() {} }, Date.parse('2026-11-11T15:00:00-03:00'));
+  ok(buscou === 0, 'alerta fora do horário: o Worker nem busca as posições');
+  await post('alertas', { endpoint: EP, alertas: [] });
+  ok(Object.keys(JSON.parse(KV2.m.get('alertas').v)).length === 0 && (await avisaOnibus(env2, { waitUntil() {} }, Date.now())).r === 'nada', 'alerta: apagar no app tira o aparelho do Worker');
   RT_MODO = false;
 }
 process.exit(falhou ? 1 : 0);

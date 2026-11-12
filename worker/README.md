@@ -67,3 +67,13 @@ Desde 11/2026 o Worker lê o GTFS Realtime da prefeitura do Rio (`dados.mobilida
 e `.../brt/vehicle-positions`, licença CC BY 4.0, sem chave). As APIs antigas em JSON (`/gps/sppo` e `/gps/brt`) saem do ar
 até 30/11/2026; até lá, o Worker volta a elas se o GTFS Realtime falhar. Em Gestão › Saúde › "Fonte das posições" aparece
 qual está sendo usada. Se aparecer "API antiga" com exemplos de route_id, mande esses exemplos para quem cuida do app.
+
+## Alertas de ônibus (opcional)
+
+O usuário cria alertas ("avise quando o 485 estiver a 5 min do ponto X") e recebe a notificação mesmo com o app
+fechado. Usa o mesmo KV `PUSH` das notificações de tiroteio. Para o aviso sair na hora certa, troque o Cron Trigger
+do Worker de `*/5 * * * *` para **`* * * * *`** (a cada minuto); os tiroteios continuam sendo conferidos de 5 em 5 min.
+Com o gatilho de 5 em 5 min os alertas ainda funcionam, mas podem chegar com até 5 min de atraso.
+
+Custo no plano grátis: uma leitura do KV por minuto e, só quando há alerta valendo naquele horário, uma busca das
+posições. Cada aviso enviado gasta uma gravação no KV (limite de 1.000 por dia).

@@ -1,6 +1,6 @@
-/* Chega aí UFRJ · service worker (gerado no empacotamento, versão 20261112-1636) */
-var CACHE='cse-20261112-1636';
-var PRE=["./", "index.html", "style.css?v=20261112-1636", "app.js?v=20261112-1636", "config.js?v=20261112-1636", "manifest.json", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "favicon-32.png", "mapa-blur-claro.jpg?v=a623be208f", "mapa-blur.jpg?v=eeab4c20a0", "mapa-bordas-claro.jpg?v=86153d48d7", "mapa-bordas.jpg?v=c88b82a8e7", "mapa-campus-claro.jpg?v=b307cf89c4", "mapa-campus-claro.svg?v=28ebea3feb", "mapa-campus.jpg?v=b4dc398960", "mapa-campus.svg?v=1e27187281", "mapa-mini-claro.jpg?v=f820802175", "mapa-mini.jpg?v=4d66caafdd"];
+/* Chega aí UFRJ · service worker (gerado no empacotamento, versão 20261112-1738) */
+var CACHE='cse-20261112-1738';
+var PRE=["./", "index.html", "style.css?v=20261112-1738", "app.js?v=20261112-1738", "config.js?v=20261112-1738", "manifest.json", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "favicon-32.png", "mapa-blur-claro.jpg?v=a623be208f", "mapa-blur.jpg?v=eeab4c20a0", "mapa-bordas-claro.jpg?v=86153d48d7", "mapa-bordas.jpg?v=c88b82a8e7", "mapa-campus-claro.jpg?v=b307cf89c4", "mapa-campus-claro.svg?v=28ebea3feb", "mapa-campus.jpg?v=b4dc398960", "mapa-campus.svg?v=1e27187281", "mapa-mini-claro.jpg?v=f820802175", "mapa-mini.jpg?v=4d66caafdd"];
 self.addEventListener('install',function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){return Promise.all(PRE.map(function(u){return c.add(new Request(u,{cache:'reload'})).catch(function(){})}))/* 'reload': não pega cópia velha do cache do navegador */}).then(function(){return self.skipWaiting()}));
 });
@@ -23,15 +23,25 @@ self.addEventListener('fetch',function(e){
 /* Aviso de tiroteio (Web Push): o Worker manda o aviso sem conteúdo e aqui se busca onde e quando foi */
 var GPS="https://shrill-pond-6c06.matheusamorim1911.workers.dev";
 function tiroTempo(min){if(min<1)return 'agora há pouco';if(min<60)return 'há '+min+' min';var h=Math.floor(min/60),m=min%60;return 'há '+h+' h'+(m?' '+m+' min':'')}
+/* alerta de ônibus: o Worker guarda o texto do aviso deste aparelho; se não houver, é aviso de tiroteio */
+function avisoOnibus(){
+  if(!GPS)return Promise.resolve(null);
+  var pede=function(){return self.registration.pushManager.getSubscription().then(function(s){if(!s)return null;
+    return fetch(GPS.replace(/\/$/,'')+'/push/aviso',{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({endpoint:s.endpoint}),cache:'no-store'}).then(function(r){return r.json()}).then(function(j){return j&&j.titulo?j:null})})};
+  /* o texto pode levar um instante para aparecer no servidor: tenta de novo uma vez */
+  return Promise.resolve().then(pede).then(function(j){return j||new Promise(function(ok){setTimeout(ok,1500)}).then(pede)}).catch(function(){return null});
+}
 self.addEventListener('push',function(e){
   var base={icon:'icon-192.png',tag:'tiroteio',renotify:true,data:{url:'./'}};
-  e.waitUntil((GPS?fetch(GPS.replace(/\/$/,'')+'/tiroteios',{cache:'no-store'}).then(function(r){return r.json()}):Promise.reject()).then(function(d){
+  e.waitUntil(avisoOnibus().then(function(a){
+    if(a)return self.registration.showNotification(a.titulo,Object.assign({},base,{tag:a.tag||'onibus',body:a.corpo||''}));
+    return (GPS?fetch(GPS.replace(/\/$/,'')+'/tiroteios',{cache:'no-store'}).then(function(r){return r.json()}):Promise.reject()).then(function(d){
     var agora=Date.now(),L=(d&&d.disponivel&&d.ocorrencias||[]).filter(function(o){return o.t&&agora-o.t<2*3600e3}),o=L[0];
     if(!o)return self.registration.showNotification('Chega aí UFRJ',Object.assign({},base,{tag:'tiroteio-teste',body:'Avisos de tiroteio ligados. Nenhum registro nas últimas 2 h perto do Fundão.'}));
     var onde=(o.bairro||'')+(o.local&&o.local!==o.bairro?' ('+o.local+')':'');
     return self.registration.showNotification('Tiroteio perto do Fundão',Object.assign({},base,{
       body:'Tiroteio '+tiroTempo(Math.round((agora-o.t)/60000))+(onde?' em '+onde:'')+'.'+(L.length>1?' '+L.length+' registros nas últimas 2 h.':'')+' Evite a região se puder. Fonte: Fogo Cruzado.',timestamp:o.t}));
-  }).catch(function(){return self.registration.showNotification('Aviso de segurança perto do Fundão',Object.assign({},base,{body:'Abra o app para ver os detalhes.'}))}));
+  }).catch(function(){return self.registration.showNotification('Aviso do Chega aí UFRJ',Object.assign({},base,{body:'Abra o app para ver os detalhes.'}))})}));
 });
 self.addEventListener('notificationclick',function(e){
   e.notification.close();var url=new URL((e.notification.data&&e.notification.data.url)||'./',self.registration.scope).href;

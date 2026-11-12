@@ -23,15 +23,25 @@ self.addEventListener('fetch',function(e){
 /* Aviso de tiroteio (Web Push): o Worker manda o aviso sem conteúdo e aqui se busca onde e quando foi */
 var GPS=__GPS__;
 function tiroTempo(min){if(min<1)return 'agora há pouco';if(min<60)return 'há '+min+' min';var h=Math.floor(min/60),m=min%60;return 'há '+h+' h'+(m?' '+m+' min':'')}
+/* alerta de ônibus: o Worker guarda o texto do aviso deste aparelho; se não houver, é aviso de tiroteio */
+function avisoOnibus(){
+  if(!GPS)return Promise.resolve(null);
+  var pede=function(){return self.registration.pushManager.getSubscription().then(function(s){if(!s)return null;
+    return fetch(GPS.replace(/\/$/,'')+'/push/aviso',{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({endpoint:s.endpoint}),cache:'no-store'}).then(function(r){return r.json()}).then(function(j){return j&&j.titulo?j:null})})};
+  /* o texto pode levar um instante para aparecer no servidor: tenta de novo uma vez */
+  return Promise.resolve().then(pede).then(function(j){return j||new Promise(function(ok){setTimeout(ok,1500)}).then(pede)}).catch(function(){return null});
+}
 self.addEventListener('push',function(e){
   var base={icon:'icon-192.png',tag:'tiroteio',renotify:true,data:{url:'./'}};
-  e.waitUntil((GPS?fetch(GPS.replace(/\/$/,'')+'/tiroteios',{cache:'no-store'}).then(function(r){return r.json()}):Promise.reject()).then(function(d){
+  e.waitUntil(avisoOnibus().then(function(a){
+    if(a)return self.registration.showNotification(a.titulo,Object.assign({},base,{tag:a.tag||'onibus',body:a.corpo||''}));
+    return (GPS?fetch(GPS.replace(/\/$/,'')+'/tiroteios',{cache:'no-store'}).then(function(r){return r.json()}):Promise.reject()).then(function(d){
     var agora=Date.now(),L=(d&&d.disponivel&&d.ocorrencias||[]).filter(function(o){return o.t&&agora-o.t<2*3600e3}),o=L[0];
     if(!o)return self.registration.showNotification('Chega aí UFRJ',Object.assign({},base,{tag:'tiroteio-teste',body:'Avisos de tiroteio ligados. Nenhum registro nas últimas 2 h perto do Fundão.'}));
     var onde=(o.bairro||'')+(o.local&&o.local!==o.bairro?' ('+o.local+')':'');
     return self.registration.showNotification('Tiroteio perto do Fundão',Object.assign({},base,{
       body:'Tiroteio '+tiroTempo(Math.round((agora-o.t)/60000))+(onde?' em '+onde:'')+'.'+(L.length>1?' '+L.length+' registros nas últimas 2 h.':'')+' Evite a região se puder. Fonte: Fogo Cruzado.',timestamp:o.t}));
-  }).catch(function(){return self.registration.showNotification('Aviso de segurança perto do Fundão',Object.assign({},base,{body:'Abra o app para ver os detalhes.'}))}));
+  }).catch(function(){return self.registration.showNotification('Aviso do Chega aí UFRJ',Object.assign({},base,{body:'Abra o app para ver os detalhes.'}))})}));
 });
 self.addEventListener('notificationclick',function(e){
   e.notification.close();var url=new URL((e.notification.data&&e.notification.data.url)||'./',self.registration.scope).href;

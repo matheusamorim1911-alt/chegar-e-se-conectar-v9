@@ -507,6 +507,45 @@ Parada ¦ Stop ¦ Parada
 , segurança ¦ , security ¦ , seguridad
 Wi-Fi aberto: ¦ Open Wi-Fi: ¦ Wi-Fi abierto:
 Estação BRT ¦ BRT Station ¦ Estación BRT
+Avisar quando o ônibus estiver chegando ¦ Alert me when the bus is arriving ¦ Avisar cuando el autobús esté llegando
+Avisar quando um ônibus estiver chegando ¦ Alert me when a bus is arriving ¦ Avisar cuando un autobús esté llegando
+Meus alertas de ônibus ¦ My bus alerts ¦ Mis alertas de autobús
+Escolha o ônibus, o ponto, a antecedência e quando vale. ¦ Choose the bus, the stop, how far ahead and when it applies. ¦ Elige el autobús, la parada, la antelación y cuándo aplica.
+Os avisos chegam mesmo com o app fechado. ¦ Alerts arrive even with the app closed. ¦ Los avisos llegan incluso con la app cerrada.
+No iPhone, instale o app na Tela de Início para receber com o app fechado. ¦ On iPhone, add the app to the Home Screen to get them with the app closed. ¦ En iPhone, instala la app en la pantalla de inicio para recibirlos con la app cerrada.
+Ao criar o primeiro, o app pede permissão para avisar com o app fechado. ¦ When you create the first one, the app asks permission to alert you with the app closed. ¦ Al crear la primera, la app pide permiso para avisar con la app cerrada.
+Neste navegador, os avisos aparecem com o app aberto. ¦ In this browser, alerts appear while the app is open. ¦ En este navegador, los avisos aparecen con la app abierta.
+Nenhum alerta criado. ¦ No alerts created. ¦ Ninguna alerta creada.
+Novo alerta em ¦ New alert at ¦ Nueva alerta en
+Linhas internas: meu trajeto ( ¦ Campus lines: my route ( ¦ Líneas internas: mi trayecto (
+Criar alerta ¦ Create alert ¦ Crear alerta
+Limite de 5 alertas. Apague um para criar outro. ¦ Limit of 5 alerts. Delete one to create another. ¦ Límite de 5 alertas. Borra una para crear otra.
+Qual ônibus ¦ Which bus ¦ Qué autobús
+Qualquer linha interna ¦ Any campus line ¦ Cualquier línea interna
+Qualquer linha ¦ Any line ¦ Cualquier línea
+Só o próximo ¦ Next one only ¦ Solo el próximo
+só o próximo ¦ next one only ¦ solo el próximo
+Sempre ¦ Always ¦ Siempre
+Quando ¦ When ¦ Cuándo
+Dias úteis ¦ Weekdays ¦ Días hábiles
+dias úteis ¦ weekdays ¦ días hábiles
+Todos os dias ¦ Every day ¦ Todos los días
+todos os dias ¦ every day ¦ todos los días
+Vale para o próximo ônibus, nas próximas 3 horas. ¦ Applies to the next bus, in the next 3 hours. ¦ Vale para el próximo autobús, en las próximas 3 horas.
+· ônibus da cidade, pela posição ao vivo ¦ · city buses, by live position ¦ · autobuses de la ciudad, por la posición en vivo
+· linhas internas, pelo horário estimado ¦ · campus lines, by estimated time ¦ · líneas internas, por el horario estimado
+No ponto ¦ At the stop ¦ En la parada
+min antes ¦ min before ¦ min antes
+Alerta criado. Você recebe o aviso mesmo com o app fechado. ¦ Alert created. You will be notified even with the app closed. ¦ Alerta creada. Recibirás el aviso incluso con la app cerrada.
+Alerta criado. Ele avisa enquanto o app estiver aberto. ¦ Alert created. It notifies you while the app is open. ¦ Alerta creada. Avisa mientras la app esté abierta.
+Alerta criado. No iPhone, ele avisa com o app aberto; para receber com o app fechado, instale o app na Tela de Início. ¦ Alert created. On iPhone, it notifies you with the app open; to get it with the app closed, add the app to the Home Screen. ¦ Alerta creada. En iPhone, avisa con la app abierta; para recibirla con la app cerrada, instala la app en la pantalla de inicio.
+Alerta apagado. ¦ Alert deleted. ¦ Alerta borrada.
+Apagar este alerta ¦ Delete this alert ¦ Borrar esta alerta
+Alerta ligado ¦ Alert on ¦ Alerta activada
+Escolha a origem e o destino em Seu trajeto. ¦ Choose the origin and destination in Your route. ¦ Elige el origen y el destino en Tu trayecto.
+Ônibus da cidade: ¦ City buses: ¦ Autobuses de la ciudad:
+chega em ¦ arrives in ¦ llega en
+Horário estimado. ¦ Estimated time. ¦ Horario estimado.
 Vá agora: ¦ Go now: ¦ Ve ahora:
 e chega ¦ and arrives ¦ y llega
 , chega às ¦ , arrives at ¦ , llega a las

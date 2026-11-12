@@ -32,7 +32,7 @@ const NOMES=/Linha (Vermelha|Amarela)|Restaurante Universitário Edson|Prédio d
    await cl('#usoDepois');await p.waitForTimeout(300);await p.evaluate(()=>document.querySelectorAll('.cfgmodal details').forEach(d=>d.open=true));await p.waitForTimeout(300);
    const aj=await p.evaluate(()=>{const o=[];const r=[...document.querySelectorAll('.cfgmodal')].find(x=>!x.hidden);if(!r)return ['(Ajustes não abriu)'];const w=document.createTreeWalker(r,NodeFilter.SHOW_TEXT);let n;while(n=w.nextNode()){if(n.parentElement.closest('[data-idi-nao]'))continue;const t=n.nodeValue.replace(/\s+/g,' ').trim();if(t.length>1)o.push(t)}return o});
    const ptAj=L==='en'?/[ãõçêâô]| (de|da|em|para|com|não|você|seu|sua|ou|na) /i:/[ãõçêâ]| (do|em|com|não|você|seu|sua|ou|na) /i;
-   const sobAj=aj.filter(t=>ptAj.test(t)&&!/Fundão|Maré|Ilha do Governador|Atkinson|São|Estação|Residência|Conexão|Tecnológico|Xistoquímica|Física|Gráfica|Jaé|Pôr|Calendário|Calendario/.test(t));
+   const sobAj=aj.filter(t=>ptAj.test(t)&&!/Faculdade|Clube dos|Fundão|Maré|Ilha do Governador|Atkinson|São|Estação|Residência|Conexão|Tecnológico|Xistoquímica|Física|Gráfica|Jaé|Pôr|Calendário|Calendario/.test(t));
    ok(sobAj.length===0,L+': Ajustes inteiro traduzido'+(sobAj.length?' ('+sobAj.length+'): '+sobAj.slice(0,12).map(x=>x.slice(0,80)).join(' | '):''));
    ok(sobras.size===0,L+': nenhuma frase de interface sobrou em português'+(sobras.size?' ('+sobras.size+'): '+[...sobras].slice(0,25).map(x=>'['+x[1]+'] '+x[0].slice(0,90)).join(' | '):''));
    ok(e.length===0,L+': sem erros de JavaScript '+JSON.stringify(e));await c.close()}

@@ -8,4 +8,4 @@
 .uso-g{background:transparent}
 .uso-cfg{margin-top:8px}
 @media (max-width:420px){.uso-opc{grid-template-columns:1fr}}
-#usoOk{background:var(--press);color:var(--ink-inv);border-color:var(--press);min-height:46px;padding:0 24px;font-weight:700}
+#usoOk{background:var(--ink)!important;color:var(--bg,#0B1117)!important;border-color:var(--ink)!important;opacity:1;min-height:46px;padding:0 24px;font-weight:700}

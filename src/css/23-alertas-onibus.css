@@ -1,0 +1,24 @@
+/* alertas de ônibus: sino em "Chegando agora", folha de criação e lista em Ajustes */
+.alv-ic{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.alv-ponto,.alv-traj{display:inline-flex;align-items:center;gap:8px;margin-top:10px;min-height:40px}
+.alv-traj{margin:10px 0 2px}
+.alv-sino{flex:none;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--ink);display:grid;place-items:center;cursor:pointer;padding:0}
+.alv-sino.on{background:var(--press);color:var(--ink-inv);border-color:var(--press);opacity:1}
+.alv-sino:focus-visible,.alv-x:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.alv-f{margin:0}
+.alv-f select,.alv-h input{width:100%;min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font:inherit;padding:0 12px;margin-top:4px}
+.alv-f .seg{margin-top:6px}
+.alv-h{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+#alvOk{background:var(--ink)!important;color:var(--bg,#0B1117)!important;border-color:var(--ink)!important;min-height:46px;padding:0 22px;font-weight:700;opacity:1}
+.alv-cfg{margin-top:14px}
+.alv-lista{list-style:none;margin:8px 0;padding:0;display:grid;gap:8px}
+.alv-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2)}
+.alv-item .grow{flex:1;min-width:0}
+.alv-item b{display:block;font-size:15px;line-height:1.3}
+.alv-item small{display:block;color:var(--ink-2);font-size:13px;line-height:1.3}
+.alv-sw{display:inline-flex;align-items:center;flex:none;padding:6px}
+.alv-sw input{width:22px;height:22px;accent-color:var(--press);cursor:pointer;margin:0}
+.alv-x{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:transparent;color:var(--ink);font:600 20px/1 var(--f-body);cursor:pointer}
+.alv-novo{display:grid;gap:8px;margin-top:10px}
+.alv-novo select{width:100%;min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font:inherit;padding:0 12px;margin-top:4px}
+.alv-novo .copy{justify-self:start}

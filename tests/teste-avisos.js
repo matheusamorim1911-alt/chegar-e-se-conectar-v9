@@ -68,9 +68,11 @@ const { chromium } = require('playwright');const servir=require('./servidor');co
 
  // ---------- o aviso no service worker ----------
  const sw=fs.readFileSync(path.join(__dirname,'..','sw.js'),'utf8');
+ let avisoBus=null;const pedAviso=[];
  async function chega(resp,falha){const h={},mostradas=[];
    const self={addEventListener:(t,f)=>{h[t]=f},registration:{scope:'https://site/app/',showNotification:async(t,o)=>{mostradas.push({t,o})}},clients:{matchAll:async()=>[],openWindow:async u=>{mostradas.push({abriu:u})}},skipWaiting(){}};
-   const fetch=async u=>{if(falha)throw new Error('sem rede');if(!/\/tiroteios$/.test(u))throw new Error('url '+u);return {json:async()=>resp}};
+   self.registration.pushManager={getSubscription:async()=>({endpoint:'https://fcm.googleapis.com/fcm/send/ap1'})};
+   const fetch=async(u,o)=>{if(falha)throw new Error('sem rede');if(/\/push\/aviso$/.test(u)){pedAviso.push(JSON.parse(o.body).endpoint);return {json:async()=>avisoBus||{nada:true}}}if(!/\/tiroteios$/.test(u))throw new Error('url '+u);return {json:async()=>resp}};
    new Function('self','fetch','caches','location',sw)(self,fetch,{},{origin:'https://site'});
    let espera;h.push({waitUntil:p=>{espera=p}});await espera;return {mostradas,h}}
  const agora=Date.now();
@@ -79,7 +81,10 @@ const { chromium } = require('playwright');const servir=require('./servidor');co
  r=await chega({disponivel:true,ocorrencias:[{id:'c',t:agora-4*3600e3,bairro:'Penha'}]});
  ok(/Nenhum registro nas últimas 2 h/.test(r.mostradas[0].o.body),'aviso de teste (sem tiroteio recente): diz que está ligado');
  r=await chega(null,true);
- ok(r.mostradas[0].t==='Aviso de segurança perto do Fundão'&&/Abra o app/.test(r.mostradas[0].o.body),'sem internet para os detalhes: aviso genérico, sem inventar');
+ ok(r.mostradas[0].t==='Aviso do Chega aí UFRJ'&&/Abra o app/.test(r.mostradas[0].o.body),'sem internet para os detalhes: aviso genérico, sem inventar');
  let foco=0;r.h.notificationclick&&await new Promise(res=>{r.h.notificationclick({notification:{close(){},data:{url:'./'}},waitUntil:p=>p.then(res)})});
  ok(r.mostradas.some(x=>x.abriu==='https://site/app/'),'tocar no aviso abre o app');
+ avisoBus={titulo:'485 chega em ~4 min',corpo:'Em CCMN - Geografia, a 900 m. Carro B1.',tag:'onibus-a1'};
+ r=await chega({disponivel:true,ocorrencias:[{id:'a',t:agora-12*60e3,bairro:'Maré'}]});
+ ok(r.mostradas[0].t==='485 chega em ~4 min'&&/a 900 m/.test(r.mostradas[0].o.body)&&r.mostradas[0].o.tag==='onibus-a1'&&pedAviso.includes('https://fcm.googleapis.com/fcm/send/ap1'),'aviso de ônibus: o texto vem do Worker (/push/aviso) e tem prioridade');
  process.exit(falhou?1:0)})();
