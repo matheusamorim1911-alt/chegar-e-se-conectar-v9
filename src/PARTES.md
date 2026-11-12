@@ -64,4 +64,5 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `35-capa-avisos.js`: na capa, o alerta de tiroteio e o botão para ligar as notificações do celular
 - `36-idioma.js`: escolha do idioma (Português, English, Español) em Ajustes e na capa; troca os textos fixos da tela por uma tabela e por padrões
 - `37-idioma-textos.js`: segunda parte da tabela de tradução e padrões (datas, Ajustes, Lugares, Grade, Calendário, Wi-Fi, eduroam)
+- `38-idioma-frases.js`: terceira parte da tradução: mensagens, estados e pedaços de frase trocados dentro de textos montados
 - `99-inicio.js`: abre a aba pedida no endereço (#predios, #grade…) depois que tudo carregou; fica sempre por último

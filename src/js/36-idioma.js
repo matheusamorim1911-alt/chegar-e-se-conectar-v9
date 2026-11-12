@@ -318,7 +318,7 @@ function idiMapa(){
 function idiTraduz(t){
   var k=idiAtual()==='en'?0:1,r=idiMapa().get(t);if(r)return r[k];
   for(var i=0;i<IDI_PAD.length;i++){var P=IDI_PAD[i];if(P[0].test(t))return t.replace(P[0],P[1+k])}
-  return null;
+  return typeof IDI_FRAG==='string'?idiPorPedacos(t):null;/* pedaços de frase: 38-idioma-frases.js */
 }
 function idiTexto(n){
   var v=n.nodeValue,f=IDI.feito.get(n);
