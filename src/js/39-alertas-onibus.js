@@ -34,11 +34,13 @@ function alvResumo(a){
 }
 /* ---------- o que vai para o Worker ---------- */
 /* trecho de até 3,5 km do traçado que chega ao ponto (lat/lon × 1e5), para cada traçado das linhas escolhidas */
-function alvCorredores(a){
-  var G=EXT.stops[a.ponto];if(!G)return [];
-  var linhas=a.linhas.length?a.linhas:alvLinhasDoPonto(a.ponto),vistos={},out=[],kx=1.1132*Math.cos(G[1]*Math.PI/180),ky=1.10574;
+function alvCorredores(a,todas){
+  /* o ponto do app pode juntar várias paradas do GTFS (ids em EXTS[ponto].ids): cada uma conta */
+  var ids=((EXTS[a.ponto]||{}).ids||[a.ponto]).filter(function(i){return EXT.stops[i]}),out=[],vistos={};
+  var linhas=a.linhas.length&&!todas?a.linhas:alvLinhasDoPonto(a.ponto);
+  ids.forEach(function(sid){var G=EXT.stops[sid],kx=1.1132*Math.cos(G[1]*Math.PI/180),ky=1.10574;
   linhas.forEach(function(n){((EXT.sh||{})[n]||[]).forEach(function(i){
-    if(vistos[i]||out.length>=6)return;vistos[i]=1;var d=EXT.shp[i],la=-2280000,lo=-4320000,P=[];
+    var ch=sid+'|'+i;if(vistos[ch]||out.length>=6)return;vistos[ch]=1;var d=EXT.shp[i],la=-2280000,lo=-4320000,P=[];
     for(var k=0;k<d.length;k+=2){la+=d[k];lo+=d[k+1];P.push([la,lo])}
     /* ponto do traçado mais perto da parada (os traçados têm poucos vértices: vale a projeção no segmento) */
     var bi=-1,bd=1e9,bq=null,gx=G[2]*1e5*kx,gy=G[1]*1e5*ky;
@@ -48,7 +50,9 @@ function alvCorredores(a){
     var C=[bq],ac=0,ant=bq;for(k=bi-1;k>=0&&ac<3500;k--){ac+=Math.hypot((ant[1]-P[k][1])*kx,(ant[0]-P[k][0])*ky);C.unshift(P[k]);ant=P[k]}
     if(C.length<2)return;
     while(C.length>80){var R=[];for(k=0;k<C.length;k+=2)R.push(C[k]);if(R[R.length-1]!==C[C.length-1])R.push(C[C.length-1]);C=R}
-    var flat=[];C.forEach(function(p){flat.push(p[0],p[1])});out.push(flat)})});
+    var flat=[];C.forEach(function(p){flat.push(p[0],p[1])});out.push(flat)})})});
+  /* linha sem traçado guardado (linha de fora da lista, por exemplo): vale o traçado de qualquer linha que passa no ponto */
+  if(!out.length&&!todas&&a.linhas.length)return alvCorredores(a,true);
   return out;
 }
 /* horários estimados (minuto do dia) em que as linhas internas escolhidas passam em "de" indo para "para" */
@@ -76,7 +80,7 @@ function alvSincroniza(pedir){
   if(pushPermissao()==='denied'){ALV.motivo='bloqueado';return Promise.resolve(false)}
   if(pushPermissao()!=='granted'&&!pedir){ALV.motivo='permissao';return Promise.resolve(false)}
   var L=alvVivos().map(alvParaServidor).filter(Boolean),chave;
-  if(!L.length&&alvVivos().length)ALV.motivo='tracado';
+  if(!L.length&&alvVivos().length){var tc=alvVivos().some(function(a){return a.tipo==='c'});ALV.motivo=tc?'tracado':'horarios'}
   return Promise.resolve(pushPermissao()==='granted'?'granted':Notification.requestPermission()).then(function(p){if(p!=='granted')throw new Error(p==='denied'?'bloqueado':'permissao');
     return fetch(PUSH.url+'/chave',{cache:'no-store'}).then(function(r){return r.json().catch(function(){return {}})},function(){throw new Error('rede')})})
   .then(function(j){if(!j||!j.disponivel||!j.chave)throw new Error('kv');chave=j.chave;
@@ -101,6 +105,7 @@ function alvMotivoTxt(){
     worker:'O servidor do app ainda não aceita alertas de ônibus: o Worker precisa ser publicado de novo na Cloudflare.',
     sw:'O app ainda não terminou de se instalar neste navegador. Recarregue a página e toque em Tentar de novo.',
     assinatura:'O navegador não conseguiu assinar as notificações. Confira a conexão e toque em Tentar de novo.',
+    horarios:'Não há horário de linha interna ligando esses dois pontos hoje: este alerta só avisa com o app aberto.',
     tracado:'Não achei o traçado da linha neste ponto: este alerta só avisa com o app aberto.',
     rede:'Sem conexão com o servidor do app. Toque em Tentar de novo.'};
   return M[ALV.motivo]||'';
