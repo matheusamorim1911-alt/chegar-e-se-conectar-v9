@@ -45,11 +45,11 @@ var CONT={nome:'',tel:''};try{var _ct=JSON.parse(localStorage.getItem('cse-conta
 function saveCont(){try{localStorage.setItem('cse-contato',JSON.stringify(CONT))}catch(e){}if(contaOk())accQueue()}
 function telDig(t){var d=String(t||'').replace(/\D/g,'');if(d.length===10||d.length===11)d='55'+d;return d.length>=12?d:''}
 function nightMsg(kind,from,now){
-  var hi=CONT.nome?'Oi, '+CONT.nome+'! ':'';
-  if(kind==='cheguei')return hi+'Cheguei bem na Estação BRT. (Chega aí UFRJ)';
-  if(from==='est')return hi+'Estou na Estação BRT do Fundão saindo agora. Te aviso quando chegar. (Chega aí UFRJ)';
-  var o=options(from,'est',now)[0]||lastTo(from,'est')[0];
-  return hi+'Estou saindo de '+STOPS[from].name+' agora'+(o?'. Vou pegar a Linha '+o.lid+' ('+LINES[o.lid].name+') por volta de '+hm(Math.round(o.dep))+' e devo chegar na Estação BRT perto de '+hm(Math.round(o.arr)):'')+'. Te aviso quando chegar. (Chega aí UFRJ)';
+  var hi=CONT.nome?'Oi, '+CONT.nome+'! ':'',dest=nightDest(),vila=dest!=='est',onde=vila?'na Vila Residencial':'na Estação BRT';
+  if(kind==='cheguei')return hi+'Cheguei bem '+onde+'. (Chega aí UFRJ)';
+  if(from===dest)return hi+(vila?'Estou no ponto '+(STOPS[dest].short||STOPS[dest].name)+', indo a pé para a Vila Residencial agora':'Estou na Estação BRT do Fundão saindo agora')+'. Te aviso quando chegar. (Chega aí UFRJ)';
+  var o=options(from,dest,now)[0]||lastTo(from,dest)[0];
+  return hi+'Estou saindo de '+STOPS[from].name+' agora'+(o?'. Vou pegar a Linha '+o.lid+' ('+LINES[o.lid].name+') por volta de '+hm(Math.round(o.dep))+' e devo chegar '+(vila?'no ponto '+(STOPS[dest].short||STOPS[dest].name)+', perto da Vila Residencial,':'na Estação BRT')+' perto de '+hm(Math.round(o.arr)):'')+'. Te aviso quando chegar. (Chega aí UFRJ)';
 }
 function hm(m){m=((m%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')}
 function nightSend(kind){

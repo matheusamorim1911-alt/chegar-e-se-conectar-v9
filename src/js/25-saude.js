@@ -14,23 +14,23 @@ var SAUDE_CHECKS=[
     return sdJson('version.json').then(function(v){return v.v===APP_VERSION?{estado:'ok',det:'Versão '+v.v+', a mesma deste aparelho.'}:{estado:'aviso',det:'Publicada: '+v.v+'. Este aparelho: '+APP_VERSION+'. Recarregue para atualizar.'}})}],
   ['worker','Ônibus ao vivo (Worker da Cloudflare)','posições dos ônibus da cidade',function(){
     if(!LIVE.url)return Promise.resolve({estado:'aviso',det:'Endereço do Worker não configurado (config.js).'});
-    /* junto, o /saude do Worker: registro das tentativas com a prefeitura e falhas do dia (seção abaixo) */
+    /* junto, o /saude do Worker: registro das tentativas com a prefeitura do Rio e falhas do dia (seção abaixo) */
     SAUDE.sdP=sdJson(LIVE.url+'/saude').then(function(d){SAUDE.sd=d;return d},function(){SAUDE.sd=null;return null});
     return fetch(LIVE.url,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('O Worker respondeu HTTP '+r.status+(r.status>=500?' (erro na Cloudflare)':'')+'.');var ant=r.headers.get('x-cache')==='antiga';return r.json().then(function(d){d.antiga=ant;return d})},
       function(){throw new Error('O Worker não respondeu. Quase sempre é o limite de processamento da Cloudflare (o Worker cai antes de responder); veja as causas em "Falhas de hoje", abaixo.')})
       .then(function(d){var n=(d.onibus||[]).length;SAUDE.gps=d;
-        if(d.falhou)return {estado:'falha',det:'O Worker está no ar, mas a prefeitura não respondeu e não havia cópia guardada.'};
-        if(d.antiga)return {estado:'aviso',det:'A prefeitura não respondeu agora; o Worker entregou a cópia guardada ('+n+' ônibus, de até 3 min atrás).'};
+        if(d.falhou)return {estado:'falha',det:'O Worker está no ar, mas a prefeitura do Rio não respondeu e não havia cópia guardada.'};
+        if(d.antiga)return {estado:'aviso',det:'A prefeitura do Rio não respondeu agora; o Worker entregou a cópia guardada ('+n+' ônibus, de até 3 min atrás).'};
         return {estado:'ok',det:n+' ônibus na região do Fundão agora.'}})}],
-  ['prefeitura','GPS da prefeitura (dados.mobilidade.rio)','pelo Worker: idade da posição mais nova',function(){
+  ['prefeitura','GPS da prefeitura do Rio (dados.mobilidade.rio)','pelo Worker: idade da posição mais nova',function(){
     if(!LIVE.url)return Promise.resolve({estado:'aviso',det:'Depende do Worker.'});
     var w=SAUDE.res.worker;
-    /* com o Worker caído, não dá para saber da prefeitura: diz isso, com o que o registro do Worker já mostrou */
+    /* com o Worker caído, não dá para saber da prefeitura do Rio: diz isso, com o que o registro do Worker já mostrou */
     if(!SAUDE.gps&&w&&w.estado==='falha')return Promise.resolve(SAUDE.sdP).then(function(){var R=sdRegistro(),ult=R.falhas[0];
       return {estado:'aviso',det:'Não dá para conferir agora: o Worker não respondeu.'+(R.n?' Nas últimas '+R.n+' tentativas do Worker, '+(R.n-R.ok)+(R.n-R.ok===1?' falhou':' falharam')+(ult?' (a última às '+sdHora(ult.t)+': '+sdMotivo(ult)+')':'')+'.':'')}});
     var d=SAUDE.gps;var p=d?Promise.resolve(d):sdJson(LIVE.url);
     return Promise.all([p,SAUDE.sdP||null]).then(function(a){var d=a[0],R=sdRegistro(),ult=R.falhas[0],extra=R.n?' Nas últimas '+R.n+' tentativas do Worker, '+(R.n-R.ok)+(R.n-R.ok===1?' falhou':' falharam')+(ult?' (a última às '+sdHora(ult.t)+': '+sdMotivo(ult)+')':'')+'.':'';
-      var L=d.onibus||[];if(!L.length){var h=new Date().getHours();return {estado:h>=5&&h<23?'aviso':'ok',det:'Nenhum ônibus na região'+(h>=5&&h<23?' em horário de serviço: a prefeitura pode estar sem dados.':' (madrugada).')+extra}}
+      var L=d.onibus||[];if(!L.length){var h=new Date().getHours();return {estado:h>=5&&h<23?'aviso':'ok',det:'Nenhum ônibus na região'+(h>=5&&h<23?' em horário de serviço: a prefeitura do Rio pode estar sem dados.':' (madrugada).')+extra}}
       var novo=Math.max.apply(null,L.map(function(o){return o.t||0})),idade=(d.t||Date.now())-novo;
       var est=idade<120000?'ok':idade<600000?'aviso':'falha';if(est==='ok'&&R.n>=10&&(R.n-R.ok)/R.n>0.2)est='aviso';
       return {estado:est,det:'Posição mais nova de '+sdIdade(idade)+' atrás.'+extra}})}],
@@ -56,7 +56,7 @@ var SAUDE_CHECKS=[
     return sdJson('https://api.open-meteo.com/v1/forecast?latitude=-22.86&longitude=-43.23&current=temperature_2m&timezone=America%2FSao_Paulo').then(function(d){var t=d.current&&d.current.temperature_2m;return {estado:'ok',det:t!=null?String(t).replace('.',',')+' °C agora.':'Respondendo.'}})}],
   ['rede','Diagnóstico de rede (ipify)','descobre se o aparelho está na rede da UFRJ',function(){
     return sdJson('https://api.ipify.org?format=json').then(function(j){return {estado:'ok',det:'Respondendo.'}})}],
-  ['gtfs','Horários da prefeitura (GTFS)','dados embutidos no app',function(){
+  ['gtfs','Horários da prefeitura do Rio (GTFS)','dados embutidos no app',function(){
     var a=String(EXT.ate||''),fim=a.length===8?Date.parse(a.slice(0,4)+'-'+a.slice(4,6)+'-'+a.slice(6,8)+'T23:59:59-03:00'):NaN;
     if(!(fim>0))return Promise.resolve({estado:'aviso',det:'Validade não informada.'});
     var dias=Math.floor((fim-Date.now())/864e5),dt=new Date(fim).toLocaleDateString('pt-BR');
@@ -66,7 +66,7 @@ var SAUDE_CHECKS=[
 ];
 function saudeVerifica(){
   if(SAUDE.busy)return;SAUDE.busy=true;SAUDE.gps=null;SAUDE.res={};SAUDE.sd=null;SAUDE.sdP=null;
-  /* o Worker antes da prefeitura, que reaproveita a resposta */
+  /* o Worker antes da prefeitura do Rio, que reaproveita a resposta */
   var ordem=SAUDE_CHECKS.slice();
   (function proxima(i){
     if(i>=ordem.length){SAUDE.busy=false;SAUDE.quando=Date.now();if(gTab==='saude')renderGest();return}
@@ -88,7 +88,7 @@ function saudeEstatisticas(){
     E.err={n:L.length,dia:L.filter(function(o){return (o.ts||0)>agora-864e5}).length,sem:L.filter(function(o){return (o.ts||0)>agora-7*864e5}).length}},function(){E.err=null}));
   Promise.all(ps).then(fim,fim);
 }
-/* ---------- falhas dos ônibus ao vivo: registro do Worker (tentativas com a prefeitura) e análise da Cloudflare ---------- */
+/* ---------- falhas dos ônibus ao vivo: registro do Worker (tentativas com a prefeitura do Rio) e análise da Cloudflare ---------- */
 var SD_STATUS={success:'deram certo',exceededResources:'passaram do limite de processamento da Cloudflare (10 ms de CPU por pedido no plano grátis): o Worker cai antes de responder',
   exceededCpu:'passaram do limite de processamento da Cloudflare',exceededMemory:'passaram do limite de memória da Cloudflare',scriptThrewException:'deram erro no código do Worker',
   internalError:'deram erro interno da Cloudflare',clientDisconnected:'o aparelho desistiu antes da resposta (rede ruim ou app fechado); não é falha do Worker',
@@ -112,7 +112,7 @@ function sdVivoHTML(){
     h+='<p class="sd-res"><b>'+fal.toLocaleString('pt-BR')+' de '+tot.toLocaleString('pt-BR')+' pedidos ao Worker falharam hoje ('+pct.toFixed(pct<10?1:0).replace('.',',')+'%).</b></p>';
     var ks=Object.keys(det.porStatus).filter(function(k){return k!=='success'}).sort(function(a,b){return det.porStatus[b]-det.porStatus[a]});
     if(ks.length)h+='<ul class="sd-causas">'+ks.map(function(k){return '<li><b>'+det.porStatus[k].toLocaleString('pt-BR')+'</b> '+esc(SD_STATUS[k]||('terminaram como "'+k+'"'))+'.</li>'}).join('')+'</ul>';
-    if(det.cpuP99Ms!=null)h+='<p class="muted small keep">Processamento por pedido: mediana de '+String(det.cpuMedianoMs).replace('.',',')+' ms; nos 1% mais pesados, '+String(det.cpuP99Ms).replace('.',',')+' ms (o limite é 10 ms).'+(det.cpuP99Ms>10?' Os mais pesados são as buscas na prefeitura.':'')+'</p>';
+    if(det.cpuP99Ms!=null)h+='<p class="muted small keep">Processamento por pedido: mediana de '+String(det.cpuMedianoMs).replace('.',',')+' ms; nos 1% mais pesados, '+String(det.cpuP99Ms).replace('.',',')+' ms (o limite é 10 ms).'+(det.cpuP99Ms>10?' Os mais pesados são as buscas na prefeitura do Rio.':'')+'</p>';
     var H=(det.porHora||[]).filter(function(x){return x.pedidos});
     if(H.length){var mx=Math.max.apply(null,H.map(function(x){return x.pedidos}));
       h+='<div class="sd-horas" role="list" aria-label="Pedidos e falhas por hora">'+H.map(function(x){var hr=new Date(x.h).getHours(),w=x.pedidos/mx*100,wf=x.falhas/mx*100;
@@ -120,16 +120,16 @@ function sdVivoHTML(){
         '<p class="muted small keep">Barra clara: pedidos. Barra vermelha: os que falharam.</p>';}
   }else if(det&&det.erro)h+='<p class="muted small keep">A Cloudflare não deu o detalhe por motivo: '+esc(det.erro)+'.</p>';
   else if(c&&c.erros)h+='<p class="sd-res"><b>'+c.erros+' de '+c.pedidos+' pedidos ao Worker falharam hoje.</b></p><p class="muted small keep">Publique o Worker de novo para ver o motivo de cada falha.</p>';
-  /* 2) tentativas do Worker com a prefeitura */
+  /* 2) tentativas do Worker com a prefeitura do Rio */
   var R=sdRegistro();
-  if(!d.registro)h+='<p class="muted small keep">Publique o Worker de novo (worker/gps-fundao.js) para ver as tentativas com a prefeitura.</p>';
+  if(!d.registro)h+='<p class="muted small keep">Publique o Worker de novo (worker/gps-fundao.js) para ver as tentativas com a prefeitura do Rio.</p>';
   else if(!R.n)h+='<p class="muted small keep">Ainda não há tentativas registradas neste data center da Cloudflare.</p>';
   else{
     var ms=R.todas.map(function(e){var f=(e.fontes||[]).filter(function(f){return f.f==='sppo'})[0];return f&&f.ok?f.ms:null}).filter(function(x){return x!=null}).sort(function(a,b){return a-b}),med=ms.length?ms[Math.floor(ms.length/2)]:null;
     var cont={reserva:0,falhou:0,parcial:0};R.falhas.forEach(function(e){cont[e.r]=(cont[e.r]||0)+1});
-    h+='<p class="sd-res"><b>Prefeitura: '+(R.n-R.ok)+' de '+R.n+' tentativas '+(R.n-R.ok===1?'falhou':'falharam')+'</b> (desde '+sdHora(R.todas[R.todas.length-1].t)+(d.dataCenter?', data center '+esc(d.dataCenter):'')+').</p>'+
+    h+='<p class="sd-res"><b>Prefeitura do Rio: '+(R.n-R.ok)+' de '+R.n+' tentativas '+(R.n-R.ok===1?'falhou':'falharam')+'</b> (desde '+sdHora(R.todas[R.todas.length-1].t)+(d.dataCenter?', data center '+esc(d.dataCenter):'')+').</p>'+
       '<p class="muted small keep">'+(cont.reserva?cont.reserva+' vez(es) o app recebeu a cópia guardada; ':'')+(cont.falhou?cont.falhou+' vez(es) não havia cópia e o app ficou sem dados; ':'')+(cont.parcial?cont.parcial+' vez(es) só uma das fontes respondeu; ':'')+
-      (med!=null?'a prefeitura costuma responder em '+(med/1000).toFixed(1).replace('.',',')+' s.':'')+'</p>';
+      (med!=null?'a prefeitura do Rio costuma responder em '+(med/1000).toFixed(1).replace('.',',')+' s.':'')+'</p>';
     if(R.falhas.length)h+='<ul class="sd-causas">'+R.falhas.slice(0,8).map(function(e){return '<li><b>'+sdHora(e.t)+'</b> '+esc(sdMotivo(e))+(e.r==='reserva'?' (usou a cópia guardada)':e.r==='falhou'?' (sem dados)':'')+'.</li>'}).join('')+'</ul>';
   }
   return h+sdForaHTML(d)+sdPushHTML(d);

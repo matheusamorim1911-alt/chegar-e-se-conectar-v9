@@ -35,7 +35,7 @@ function extPanelHTML(now){
     var k=L.n+'|'+L.d,open=EXTSEL.ln===k,first=L.st[0][0];
     return '<li><button type="button" class="xl-row" data-xln="'+esc(k)+'" aria-expanded="'+open+'">'+extBadge(L)+'<span class="grow"><b>'+esc(L.d)+'</b><small>'+extWhen(L,first,now)+' · '+esc(EXTS[first]?EXTS[first].name:'')+'</small></span></button>'+
       (open?'<div class="xl-more"><p class="small keep">'+esc(L.nm)+'. Passa por: '+extStopsOf(L).map(function(n,i){return '<button type="button" class="linkbtn" data-kind="ext" data-id="'+L.st[i][0]+'">'+esc(n)+'</button>'}).join(', ')+'.</p><p class="small keep">Hoje: '+extToday(L)+' saídas'+(extToday(L)?', da primeira às '+fmt((L.t[extSvc(new Date())]||[0])[0])+' à última às '+fmt((L.t[extSvc(new Date())]||[0]).slice(-1)[0]):'')+'.</p></div>':'')+'</li>'}).join('')+'</ul>';
-  return liveStatusHTML()+chips+list+(fora?'<p class="muted small keep">'+fora+' linha'+(fora>1?'s':'')+' deste destino não circula'+(fora>1?'m':'')+' hoje.</p>':'')+'<p class="muted small keep xsrc">Horários programados pela prefeitura ('+esc(EXT.fonte)+'). O trânsito pode atrasar o ônibus.'+
+  return liveStatusHTML()+chips+list+(fora?'<p class="muted small keep">'+fora+' linha'+(fora>1?'s':'')+' deste destino não circula'+(fora>1?'m':'')+' hoje.</p>':'')+'<p class="muted small keep xsrc">Horários programados pela prefeitura do Rio ('+esc(EXT.fonte)+'). O trânsito pode atrasar o ônibus.'+
     (REDUT&&REDUT.ajuste?' A posição ao vivo considera os semáforos mapeados pela UFRJ e pelo OpenStreetMap (© colaboradores do OpenStreetMap).':'')+'</p>';
 }
 function extFoldHTML(now){
@@ -59,7 +59,7 @@ function extStopHTML(id,now){
   var S=EXTS[id];if(!S)return linesHTML();
   var ls=EXT.lines.filter(function(L){return L.st.some(function(s){return s[0]===id})});
   ls.sort(function(a,b){var x=extNext(a,id,now,1)[0],y=extNext(b,id,now,1)[0];return (x==null?1e9:x)-(y==null?1e9:y)});
-  return '<p class="eyebrow">Ônibus da cidade</p><h2>'+esc(S.name)+'</h2>'+(S.alt&&S.alt.length?'<p class="muted small keep">Parada da UFRJ e ponto da prefeitura “'+esc(S.alt.join('”, “'))+'”.</p>':'')+liveStatusHTML()+'<p class="muted small keep">'+ls.length+' linha'+(ls.length>1?'s':'')+(ls.length>1?' saem':' sai')+' daqui. Horários programados pela prefeitura.</p>'+
+  return '<p class="eyebrow">Ônibus da cidade</p><h2>'+esc(S.name)+'</h2>'+(S.alt&&S.alt.length?'<p class="muted small keep">Parada da UFRJ e ponto da prefeitura do Rio “'+esc(S.alt.join('”, “'))+'”.</p>':'')+liveStatusHTML()+'<p class="muted small keep">'+ls.length+' linha'+(ls.length>1?'s':'')+(ls.length>1?' saem':' sai')+' daqui. Horários programados pela prefeitura do Rio.</p>'+
     (function(){var row=function(L){return '<li><div class="xl-row">'+extBadge(L)+'<span class="grow"><b>'+esc(L.d)+'</b><small>'+extWhen(L,id,now)+'</small></span></div></li>'},on=ls.filter(extToday),off=ls.filter(function(L){return !extToday(L)});return '<ul class="xl-list">'+on.map(row).join('')+'</ul>'+(off.length?'<details class="xoff"><summary>'+off.length+' linha'+(off.length>1?'s':'')+' não circula'+(off.length>1?'m':'')+' hoje</summary><ul class="xl-list">'+off.map(row).join('')+'</ul></details>':'')})()+
     '<p class="muted small keep xsrc">Fonte: '+esc(EXT.fonte)+'.</p>';
 }
@@ -86,9 +86,9 @@ function liveFetch(){
   var agora=Date.now();if(LIVE.ult&&agora-LIVE.ult<5000)return;LIVE.ult=agora;
   fetch(LIVE.url,{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
     var novos=(d.onibus||[]).filter(function(o){return Date.now()-o.t<6*60e3});
-    /* a prefeitura falhou e o Worker não tinha cópia: mantém os ônibus que já estavam no mapa (até 6 min) */
+    /* a prefeitura do Rio falhou e o Worker não tinha cópia: mantém os ônibus que já estavam no mapa (até 6 min) */
     if(d.falhou&&!novos.length)novos=LIVE.bus.filter(function(o){return Date.now()-o.t<6*60e3});
-    LIVE.bus=novos;LIVE.t=Date.now();LIVE.err=!!d.falhou;LIVE.falhas=d.falhou?(LIVE.falhas||0)+1:0;liveDraw();liveRefreshText();
+    LIVE.bus=novos;LIVE.t=Date.now();LIVE.err=!!d.falhou;LIVE.parcial=!!d.parcial;LIVE.falhas=d.falhou?(LIVE.falhas||0)+1:0;liveDraw();liveRefreshText();
     if(d.falhou)setTimeout(liveFetch,5200);
   },function(){LIVE.err=true;LIVE.falhas=(LIVE.falhas||0)+1;liveRefreshText();setTimeout(liveFetch,5200)});
 }
@@ -117,7 +117,7 @@ function liveStatusHTML(){
   if(!LIVE.t)return '<p class="lv-st muted small keep"><span class="lv-ping"></span> Buscando ônibus ao vivo…</p>';
   var extra='',d=liveDelay(),n=lvmTotal();
   if(LIVE.bus.length&&d!=null)extra=' · posições com ~'+d+' s de atraso, ajustadas pela velocidade'+(n>=20?' e por '+n.toLocaleString('pt-BR')+' trajetos já medidos':'');
-  return '<p class="lv-st small keep"><span class="lv-ping on"></span> <b>Ao vivo:</b> '+LIVE.bus.length+' ônibus na região do Fundão · atualizado '+liveAgo()+(LIVE.err?' (última tentativa falhou)':'')+extra+'</p>';
+  return '<p class="lv-st small keep"><span class="lv-ping on"></span> <b>Ao vivo:</b> '+LIVE.bus.length+' ônibus na região do Fundão · atualizado '+liveAgo()+(LIVE.err?' (última tentativa falhou)':LIVE.parcial?' (a prefeitura do Rio respondeu só em parte: alguns ônibus estão com a última posição guardada)':'')+extra+'</p>';
 }
 function liveTag(n){var c=liveCount(n);return c?' <span class="lv-tag">'+c+' ao vivo</span>':''}
 function liveRefreshText(){
@@ -128,9 +128,9 @@ aoFazer('mapa atualizado',function(){if(LIVE.url&&liveWanted()&&!LIVE.timer)live
 aoFazer('mapa montado',liveDraw);
 document.addEventListener('toggle',function(e){if(e.target&&e.target.id==='fdExt'&&e.target.open)setTimeout(liveFetch,0)},true);
 if(LIVE.url)liveLoop();
-/* ======================= v29: paradas da prefeitura alinhadas às da UFRJ, um botão "Ônibus" e ônibus ao vivo sobre as ruas ======================= */
+/* ======================= v29: paradas da prefeitura do Rio alinhadas às da UFRJ, um botão "Ônibus" e ônibus ao vivo sobre as ruas ======================= */
 var MPU=Math.hypot(GEO.a,GEO.b);/* unidades do mapa por metro */
-/* 1) ponto da prefeitura a até 100 m de uma parada interna (ou 170 m com nome parecido) vira a mesma parada */
+/* 1) ponto da prefeitura do Rio a até 100 m de uma parada interna (ou 170 m com nome parecido) vira a mesma parada */
 (function(){
   var tok=function(s){return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').split(/[^a-z0-9]+/).filter(function(w){return w.length>=4&&['fundao','ufrj','predio','faculdade'].indexOf(w)<0})};
   var G={},map={};
@@ -193,5 +193,5 @@ function snapBus(n,p){
 }
 function shpAt(i,s){var S=SHP[i],c=S.c,P=S.P;s=Math.max(0,Math.min(c[c.length-1],s));var j=1;while(j<c.length-1&&c[j]<s)j++;var a=P[j-1],b=P[j],L=(c[j]-c[j-1])||1e-9,t=(s-c[j-1])/L;return {x:a[0]+t*(b[0]-a[0]),y:a[1]+t*(b[1]-a[1]),ang:Math.atan2(b[0]-a[0],-(b[1]-a[1]))*180/Math.PI}}
 function setMkPos(el,x,y){el.dataset.x=x.toFixed(1);el.dataset.y=y.toFixed(1);el.setAttribute('transform','translate('+el.dataset.x+','+el.dataset.y+')'+(ROT?' rotate('+(-ROT)+')':'')+' scale('+(+MS||1).toFixed(3)+')')}
-/* atualização mais rápida: a cada 20 s (a prefeitura recebe uma posição a cada ~25 s) */
+/* atualização mais rápida: a cada 20 s (a prefeitura do Rio recebe uma posição a cada ~25 s) */
 if(LIVE.url)liveLoop();

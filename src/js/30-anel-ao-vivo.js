@@ -1,6 +1,6 @@
 /* ======================= Anel ao redor da bússola: estado dos ônibus ao vivo =======================
    Com a camada "Ônibus da cidade" ligada, um arco gira ao redor da bússola enquanto o Worker entrega posições:
-   verde = chegando normalmente; laranja = chegando, mas com problema (a prefeitura falhou e o Worker mandou cópia,
+   verde = chegando normalmente; laranja = chegando, mas com problema (a prefeitura do Rio falhou e o Worker mandou cópia,
    ou as posições estão velhas). Se nenhuma resposta boa chega há ANEL_PARADO_MS, o anel para e fica vermelho.
    No modo leve (sem movimento) o arco fica parado; a cor continua valendo. */
 var ANEL_PARADO_MS=40000,ANEL_VELHO_MS=90000,ANEL={estado:''};
@@ -10,7 +10,7 @@ function anelEstado(){
   if(!LIVE.t)return LIVE.err?'parado':'ok';/* ainda na primeira busca */
   if(agora-LIVE.t>ANEL_PARADO_MS)return 'parado';
   var novo=LIVE.bus.reduce(function(m,o){return Math.max(m,o.t||0)},0);
-  if(LIVE.err||(novo&&agora-novo>ANEL_VELHO_MS))return 'lento';
+  if(LIVE.err||LIVE.parcial||(novo&&agora-novo>ANEL_VELHO_MS))return 'lento';
   return 'ok';
 }
 var ANEL_TXT={ok:'Ônibus ao vivo: atualizando.',lento:'Ônibus ao vivo: atualizando com atraso.',parado:'Ônibus ao vivo: parados. O Worker não responde.'};

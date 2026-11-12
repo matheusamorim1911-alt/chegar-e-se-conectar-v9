@@ -1,5 +1,5 @@
 /* ======================= v31: ônibus da cidade sobre as ruas do mapa ======================= */
-/* ruas:  os traçados das linhas internas (desenhados sobre a planta) + os da prefeitura recalibrados */
+/* ruas:  os traçados das linhas internas (desenhados sobre a planta) + os da prefeitura do Rio recalibrados */
 SHP=[];var SHP_INT=[];
 function shpAdd(P){var cum=[0];for(var j=1;j<P.length;j++)cum.push(cum[j-1]+Math.hypot(P[j][0]-P[j-1][0],P[j][1]-P[j-1][1]));SHP.push({P:P,c:cum});return SHP.length-1}
 Object.keys(LINES).forEach(function(l){(LINES[l].trips||[]).forEach(function(t){if(t.pts&&t.pts.length>1)SHP_INT.push(shpAdd(t.pts.map(function(p){return [p[0],p[1]]})))})});
@@ -60,12 +60,12 @@ function lvmVb(v){var k=v*3.6;return k<2?0:k<15?1:k<35?2:3}/* faixa de velocidad
 function lvmPer(t){var d=new Date(t),h=d.getHours()+d.getMinutes()/60,w=d.getDay();return (w>0&&w<6&&((h>=6&&h<9.5)||(h>=16&&h<20)))?'p':'f'}
 function lvmDir(O){if(O.i==null)return 0;var a=shpAt(O.i,O.s).ang+(O.sign<0?180:0);return Math.round((((a%360)+360)%360)/45)%8}
 function lvmCel(O){var c=LVM_CEL*MPU;return Math.floor(O.x/c)+','+Math.floor(O.y/c)}
-/* número do traçado da prefeitura (posição em EXT.shp) a partir do índice interno */
+/* número do traçado da prefeitura do Rio (posição em EXT.shp) a partir do índice interno */
 var LVM_TR=null;function lvmTracado(i){if(!LVM_TR){LVM_TR={};Object.keys(SHP_EXT).forEach(function(k){LVM_TR[SHP_EXT[k]]=k})}return i!=null&&LVM_TR[i]!=null?LVM_TR[i]:null}
 /* velocidade efetiva (m/s) ao longo do traçado: a informada, corrigida pelo que se aprendeu naquele trecho */
 function lvmVel(O){
   if(lvmVb(O.v)===0)return 0;/* parado fica parado: nas medições, 3 de cada 4 continuavam no mesmo lugar */
-  /* histórico de GPS da prefeitura, quando existe para o trecho; senão, o que os aparelhos mediram */
+  /* histórico de GPS da prefeitura do Rio, quando existe para o trecho; senão, o que os aparelhos mediram */
   var H=LV_HIST;if(H&&H.f){var k=lvHistKey(O);if(k&&H.f[k]!=null)return O.v*H.f[k]}
   return O.v*lvfEscolhe(lvmSt2,lvfChaves(lvmCel(O),lvmDir(O),lvmVb(O.v),lvmPer(O.t)));
 }
@@ -91,7 +91,7 @@ function lvmMede(o,P,O){
    e o app ficava buscando sem parar (dezenas de vezes por minuto). Agora há no máximo uma busca a cada 5 s. */
 /* envio em lotes (anônimo: só linha, trecho, horário e desvio; nada de quem usa o app) */
 function lvmEnvia(forca){
-  if(!FB_ON||LV_HIST||!LVM.fila.length||LVM.envB)return;/* com o histórico da prefeitura, os aparelhos não precisam medir */
+  if(!FB_ON||LV_HIST||!LVM.fila.length||LVM.envB)return;/* com o histórico da prefeitura do Rio, os aparelhos não precisam medir */
   var agora=Date.now();if(!forca&&(LVM.fila.length<40||agora-LVM.up<180000))return;if(forca&&LVM.fila.length<5)return;
   var lote=LVM.fila.slice(0,150);LVM.envB=true;
   fbInit().then(function(fb){return fb.db.collection('desvios').add({a:lote,n:lote.length,ts:agora,ver:String(APP_VERSION).slice(0,20)})}).then(function(){
@@ -136,9 +136,9 @@ function gPrevisao(){
   var maeRaw=lvgMae(cur,function(a){return a.real*h(a)-a.raw}),maeMod=lvgMae(cur,function(a){return a.real*h(a)-a.mod}),sim=lvgSimula(A);
   var faixas=['parado','até 15 km/h','15 a 35 km/h','acima de 35 km/h'],linhas={};A.forEach(function(a){linhas[a.l]=1});
   var porVb=faixas.map(function(nm,i){var B=cur.filter(function(a){return a.vb===i});return '<tr><td>'+nm+'</td><td>'+B.length+'</td><td>'+f(lvgMae(B,function(a){return a.real*h(a)-a.raw}))+'</td><td>'+f(lvgMae(B,function(a){return a.real*h(a)-a.mod}))+'</td></tr>'}).join('');
-  var hist=LV_HIST?'<p class="small keep"><b>Previsão ajustada pelo histórico de GPS da prefeitura</b> ('+esc(LV_HIST.de||'')+' a '+esc(LV_HIST.ate||'')+', '+(LV_HIST.pares||0).toLocaleString('pt-BR')+' pares de posições): erro médio nos dias de teste de '+f(LV_HIST.aval.so_velocidade)+' para '+f(Math.min.apply(null,Object.keys(LV_HIST.aval).map(function(k){return LV_HIST.aval[k]})))+'. Com isso, os aparelhos param de enviar medições.</p>':'';
+  var hist=LV_HIST?'<p class="small keep"><b>Previsão ajustada pelo histórico de GPS da prefeitura do Rio</b> ('+esc(LV_HIST.de||'')+' a '+esc(LV_HIST.ate||'')+', '+(LV_HIST.pares||0).toLocaleString('pt-BR')+' pares de posições): erro médio nos dias de teste de '+f(LV_HIST.aval.so_velocidade)+' para '+f(Math.min.apply(null,Object.keys(LV_HIST.aval).map(function(k){return LV_HIST.aval[k]})))+'. Com isso, os aparelhos param de enviar medições.</p>':'';
   var RA=REDUT&&REDUT.ajuste,red='<p class="small keep"><b>Semáforos e lombadas</b>: '+(REDUT.s||[]).length+' semáforos e '+(REDUT.l||[]).length+' lombadas mapeados (UFRJ e OpenStreetMap). '+
-    (RA?'Com o GPS da prefeitura ('+(RA.pares||0).toLocaleString('pt-BR')+' pares de posições), perder '+RA.semaforo_s+' s em cada semáforo'+(RA.lombada_s?' e '+RA.lombada_s+' s em cada lombada':'')+' baixou o erro médio nos dias de teste de '+f(RA.erro_antes_m)+' para '+f(RA.erro_depois_m)+'.':'Ainda sem ganho comprovado com o GPS da prefeitura: a previsão não os considera.')+'</p>';
+    (RA?'Com o GPS da prefeitura do Rio ('+(RA.pares||0).toLocaleString('pt-BR')+' pares de posições), perder '+RA.semaforo_s+' s em cada semáforo'+(RA.lombada_s?' e '+RA.lombada_s+' s em cada lombada':'')+' baixou o erro médio nos dias de teste de '+f(RA.erro_antes_m)+' para '+f(RA.erro_depois_m)+'.':'Ainda sem ganho comprovado com o GPS da prefeitura do Rio: a previsão não os considera.')+'</p>';
   var PF=LV_PERF,perf='<p class="small keep"><b>Perfil dos trechos</b> (dias úteis): '+(PF?Object.keys(PF.periodos).map(function(k){var R=PF.periodos[k];return ({manha:'manhã',tarde:'tarde',noite:'noite'}[k]||k.replace(/^0?(\d+)-0?(\d+)$/,'$1h–$2h'))+' '+f(R.erro_antes_m)+' → '+f(R.erro_depois_m)}).join(', ')+' nos dias de teste. Os outros horários, os fins de semana e os feriados usam a previsão de sempre.':'ainda sem ganho comprovado (gere com tools/perfil_trechos.py).')+'</p>';
   var pub=LVM.pubAt?'Modelo publicado em '+new Date(LVM.pubAt).toLocaleString('pt-BR')+' com '+(LVM.pubN||0).toLocaleString('pt-BR')+' medições.':'Nenhum modelo publicado ainda: cada aparelho usa só o que aprendeu sozinho.';
   var simTxt=sim?'Se publicar agora, o erro médio estimado passa de '+f(sim.raw)+' (só a velocidade) para '+f(sim.mod)+(sim.mod<sim.raw*0.98?'. Vale publicar.':sim.mod>sim.raw*1.02?'. Ainda não vale publicar.':': quase igual. Os dados ainda não mostram ganho; o app continua usando a velocidade informada onde não há ganho comprovado.'):'';
@@ -185,7 +185,7 @@ function lvfEscolhe(get,ks){/* do mais específico ao geral; só usa um fator qu
   return 1;
 }
 function lvmSt2(k){var a=LVM.pub[k],b=LVM.loc[k];if(!a&&!b)return null;if(!a)return b;if(!b)return a;return a.map(function(x,i){return x+b[i]})}
-/* paradas da prefeitura sem parada da UFRJ ao lado ficam na posição oficial do GTFS */
+/* paradas da prefeitura do Rio sem parada da UFRJ ao lado ficam na posição oficial do GTFS */
 Object.keys(EXTS).forEach(function(g){var G=EXTS[g];if(G.stop)return;var k=Object.keys(EXT.stops).filter(function(k){return EXT.stops[k][0]===G.name})[0];if(k){var s=EXT.stops[k];G.p=ll2map(s[1],s[2])}});
 extDraw();
 /* encaixe no traçado da própria linha, considerando o sentido em que o ônibus anda e onde ele estava antes */
@@ -247,7 +247,7 @@ document.addEventListener('click',function(e){
      não ajudou; o que resolve o "andar para trás" é procurar em todos os traçados da linha pelo sentido do movimento.
    Quando chega a posição nova, o ônibus desliza pela própria rota até ela, sem cortar quarteirão. */
 var LV_PONTO_S=12,LV_PONTO_IGNORA=25,LV_HIST=null;
-/* histórico de GPS da prefeitura já processado (tools/historico_gps.py): se existir, ajusta paradas e velocidades
+/* histórico de GPS da prefeitura do Rio já processado (tools/historico_gps.py): se existir, ajusta paradas e velocidades
    e a coleta pelos aparelhos deixa de ser necessária */
 function lvHistKey(O){if(O.la==null)return null;var d=new Date(O.t),h=d.getHours()+d.getMinutes()/60,w=d.getDay(),per=(w===0||w===6)?'w':((h>=6&&h<9.5)||(h>=16&&h<20))?'p':'f';
   return Math.floor(O.la/0.0015)+','+Math.floor(O.lo/0.0015)+'|'+(O.hd==null?0:Math.floor((((O.hd%360)+360)%360+22.5)/45)%8)+'|'+lvmVb(O.v)+'|'+per}
@@ -264,7 +264,7 @@ if(LIVE.url&&window.fetch)fetch('historico-previsao.json',{cache:'no-cache'}).th
     out.sort(function(a,b){return a[0]-b[0]});S.st=out.map(function(x){return x[0]});S.stK=out.map(function(x){return x[1]})});
 })();
 /* semáforos e lombadas (UFRJ e OpenStreetMap, gerados por tools/redutores.py): posição ao longo de cada traçado.
-   Só mudam a previsão se o ajuste foi comprovado com o GPS da prefeitura (REDUT.ajuste); senão ficam guardados. */
+   Só mudam a previsão se o ajuste foi comprovado com o GPS da prefeitura do Rio (REDUT.ajuste); senão ficam guardados. */
 var REDUT=__REDUTORES__,LV_EV_IGNORA=10;
 (function(){
   var A=REDUT.ajuste;if(!A)return;

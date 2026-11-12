@@ -1,0 +1,11 @@
+/* folha "Como você usa o Fundão?" (usa a base da folha de instalar) */
+.uso-opc{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.uso-o{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line);font-size:15px;line-height:1.3;cursor:pointer;min-height:52px}
+.uso-o input{width:20px;height:20px;flex:none;accent-color:var(--press)}
+.uso-o:has(input:checked){border-color:var(--ink)}
+.uso-o:has(input:focus-visible){outline:2px solid var(--ink);outline-offset:2px}
+.uso-o small{display:block;color:var(--ink-2);font-size:13px;margin-top:2px}
+.uso-g{background:transparent}
+.uso-cfg{margin-top:8px}
+@media (max-width:420px){.uso-opc{grid-template-columns:1fr}}
+#usoOk{background:var(--press);color:var(--ink-inv);border-color:var(--press);min-height:46px;padding:0 24px;font-weight:700}

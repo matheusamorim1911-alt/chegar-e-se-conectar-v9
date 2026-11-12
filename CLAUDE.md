@@ -16,7 +16,7 @@ App web (sem framework) da Cidade Universitária da UFRJ, publicado pelo GitHub 
 - `python3 tools/build_site.py` gera o site: `app.js`, `style.css`, o corpo do `index.html`, `version.json` e `sw.js`. **Nunca edite esses arquivos à mão.** O cabeçalho do `index.html` (até `<body>`) é mantido.
 
 ## Regras
-- **Nenhuma parte substitui função de outra** (nada de `var _x=x; x=function(){...}`). Para acrescentar algo a uma tela central, registre uma etapa: `aoFazer('mapa montado', function(){...})`. As etapas existentes: `mapa vai montar`, `mapa montado`, `mapa atualizado`, `vista aplicada`, `trajeto montado`, `detalhe montado`, `ajustes montados`, `gestão montada`, `dados da gestão aplicados`, `tudo reconstruído`, `gestor definido`, `Firebase conectado`, `usuário saiu`. Elas rodam na ordem em que as partes são carregadas.
+- **Nenhuma parte substitui função de outra** (nada de `var _x=x; x=function(){...}`). Para acrescentar algo a uma tela central, registre uma etapa: `aoFazer('mapa montado', function(){...})`. As etapas existentes: `mapa vai montar`, `mapa montado`, `mapa atualizado`, `vista aplicada`, `trajeto montado`, `detalhe montado`, `ajustes montados`, `gestão montada`, `dados da gestão aplicados`, `tudo reconstruído`, `gestor definido`, `Firebase conectado`, `usuário saiu`, `login fechado`. Elas rodam na ordem em que as partes são carregadas.
 - Funcionalidade nova: arquivo novo em `src/js/` (e `src/css/`), com número depois do último, e uma linha em `src/PARTES.md`.
 - Estado e dados usados por funções chamadas logo na carga ficam antes delas (cuidado com a ordem dos arquivos). Um erro na carga para o resto do app (as partes seguintes não rodam): `tests/teste-carga.js` abre o app com seções e camadas guardadas abertas.
 - Textos da interface em português do Brasil, frases curtas.
@@ -36,6 +36,17 @@ App web (sem framework) da Cidade Universitária da UFRJ, publicado pelo GitHub 
 - Anel ao redor da bússola (`src/js/30-anel-ao-vivo.js`), com a camada "Ônibus da cidade" ligada: verde girando com posições chegando, laranja girando quando a prefeitura falhou ou as posições estão velhas, vermelho e parado quando o Worker não responde há 40 s. Teste: `tests/teste-anel.js`.
 - Ruas ao redor da ilha (`src/js/29-ruas-cidade.js`): esboço das vias fora da ilha (OpenStreetMap, ODbL, com crédito embaixo do mapa), só com a camada "Ônibus da cidade" ligada; aí o mapa pode ser arrastado até a área do ao vivo (`LIMITES_EXTRA` em `03-mapa.js`). `ruas-cidade.json` (raiz) é gerado por `tools/ruas_cidade.py` a partir da cópia em `tools/dados/osm-ruas-fundao.json.gz`; dentro da ilha vale a planta.
 - Semáforos e lombadas: `tools/redutores.py <gps.csv>` testa a previsão com o GPS da prefeitura (70% treino, 30% teste) e só grava em `src/redutores.json` o tempo perdido em cada um se reduzir o erro em pelo menos 2% e 1 m; sem `ajuste`, a previsão não muda. Também lista em `tools/dados/paradas-fora-dos-pontos.csv` onde vários ônibus param longe de um ponto. As medições dos aparelhos guardam o traçado e a posição ao longo dele (de 5 em 5 m).
+
+- Resposta parcial da prefeitura do Rio (só ônibus comuns ou só BRT respondeu, comum com HTTP 500): o Worker tenta de novo uma vez e, se continuar, completa com os ônibus da cópia guardada (`completar`), marcando `parcial`. Códigos que não são linha (GARAGEM, APOIO, TR, 0…) não entram (`linhaDeVerdade`).
+- Ônibus chegando (`src/js/33-chegando-e-legenda.js`): no painel de um ponto da cidade, "Chegando agora" lista os ônibus ao vivo vindo pelo traçado, com tempo e distância; a legenda ganha os itens do ao vivo com a camada ligada.
+
+## Textos
+- "Prefeitura Universitária" (da UFRJ: linhas internas, segurança) e "prefeitura do Rio" (ônibus da cidade, GPS, Jaé) sempre por extenso; nunca só "prefeitura".
+- Idioma (`src/js/36-idioma.js`): o app é escrito em português; com English ou Español (`CFG.idioma`, em Ajustes e na capa), os textos fixos são trocados na tela pela tabela `IDI_TAB` e pelos padrões `IDI_PAD`. Texto novo de interface: acrescente a linha na tabela. Nomes de lugares e linhas não se traduzem.
+
+## Perfil de uso
+- `src/js/34-perfil-de-uso.js`: depois do login, a folha "Como você usa o Fundão?" (`cse-uso`). Quem mora na Vila Residencial tem a Volta à noite para o ponto mais perto da Vila (`nightDest`, `vilaPonto`); a aba Grade aparece conforme a resposta (`CFG.tabsOff`). A etapa `login fechado` avisa quando o login termina.
+- Capa (`src/js/35-capa-avisos.js`): alerta de tiroteio e botão das notificações. Teste de tudo isso: `tests/teste-novidades.js`.
 
 ## Desempenho
 - Modos em Ajustes: completo (vidro e animações), intermediário (padrão no celular: tudo opaco, classe `solido`, sem `backdrop-filter` nem refração, mas com o movimento do mapa e dos ônibus) e leve (`lowgfx`: opaco e sem movimento). Regras só visuais usam `.solido`; as de movimento, `.lowgfx`.

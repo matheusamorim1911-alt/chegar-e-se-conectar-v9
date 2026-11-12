@@ -1861,3 +1861,51 @@ a.jae-link{text-decoration:none;display:inline-flex;align-items:center}
 .push-ios .copy{flex:none}
 .push-msg:empty{display:none}
 #pushBox .gbtns{margin:4px 0 0}
+/* ônibus chegando (painel do ponto) e itens do ao vivo na legenda */
+.chg-box{margin:10px 0 4px;padding:12px 14px;border-radius:16px;border:1px solid var(--lg-rim2,var(--line));background:var(--surface-2,transparent)}
+.chg-box h3{margin:0 0 8px;font-size:15px;display:flex;align-items:center;gap:8px}
+.chg-box p{margin:6px 0 0}
+.chg-list{margin:0}
+.chg-list b{font-size:16px}
+.chg-seg{flex:none;min-height:36px}
+.legend .lg-vivo{display:flex;flex-wrap:wrap;gap:6px 18px;flex-basis:100%;padding-top:6px;border-top:1px dashed var(--mc-line)}
+.legend .lg-vivo[hidden]{display:none}
+.lg-bus{position:relative;width:20px;height:20px;border-radius:50%;background:#2F7BF6;border:1.5px solid #fff;display:inline-grid;place-items:center;flex:none;margin-top:3px}
+.lg-bus b{font:700 7.5px/1 var(--f-body);color:#fff;letter-spacing:-.2px}
+.lg-bus::before{content:"";position:absolute;left:50%;top:-6px;margin-left:-4px;border:4px solid transparent;border-top:0;border-bottom:5px solid var(--mc-ink)}
+.lg-bus.seg{border:2.5px solid #FFD24A}
+.lg-bus.cinza{background:#5B6B7A}
+.lg-anel{width:13px;height:13px;border-radius:50%;border:2.5px solid #34C759;border-right-color:transparent}
+.lg-anel.lento{border-color:#FF9F0A;border-right-color:transparent}
+.lg-anel.parado{border-color:#FF453A}
+/* folha "Como você usa o Fundão?" (usa a base da folha de instalar) */
+.uso-opc{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.uso-o{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line);font-size:15px;line-height:1.3;cursor:pointer;min-height:52px}
+.uso-o input{width:20px;height:20px;flex:none;accent-color:var(--press)}
+.uso-o:has(input:checked){border-color:var(--ink)}
+.uso-o:has(input:focus-visible){outline:2px solid var(--ink);outline-offset:2px}
+.uso-o small{display:block;color:var(--ink-2);font-size:13px;margin-top:2px}
+.uso-g{background:transparent}
+.uso-cfg{margin-top:8px}
+@media (max-width:420px){.uso-opc{grid-template-columns:1fr}}
+#usoOk{background:var(--press);color:var(--ink-inv);border-color:var(--press);min-height:46px;padding:0 24px;font-weight:700}
+/* notificações na capa: alerta de tiroteio e botão das notificações do celular */
+.cv-avisos{display:flex;flex-direction:column;gap:8px;align-self:stretch}
+.cv-avisos[hidden]{display:none}
+.cv-aviso{display:flex;align-items:center;gap:12px;width:100%;margin:0;padding:10px 14px;border-radius:16px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+p.cv-aviso{cursor:default}
+.cv-aviso b{display:block;font-size:15px;line-height:1.25}
+.cv-aviso small{display:block;font-size:13px;line-height:1.3;opacity:.85;margin-top:1px}
+.cv-aviso .grow{flex:1;min-width:0}
+.cv-av-ic{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:rgba(127,127,127,.18)}
+.cv-av-ic svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cv-aviso.vermelho{background:#C62828;border-color:#C62828;color:#fff}
+.cv-aviso.amarelo{background:#F5B700;border-color:#F5B700;color:#1D1600}
+.cv-aviso.vermelho .cv-av-ic,.cv-aviso.amarelo .cv-av-ic{background:rgba(0,0,0,.18)}
+.cv-aviso.ok .cv-av-ic{background:rgba(52,199,89,.22);color:#34C759}
+.cv-aviso:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.cv-aviso[disabled]{opacity:.7}
+/* escolha do idioma: em Ajustes e na capa */
+.idi-sec{display:flex;flex-direction:column;gap:10px;margin-bottom:6px}
+.cv-idioma{align-self:flex-start;margin:0}
+.cv-idioma button{min-height:32px;padding:0 12px;font-size:13px}

@@ -38,7 +38,7 @@ var LINES={
       {to:'Gráfica',seq:['est','hu','j1','j2','j3','pu','cepel','cenpes1','ath','ccmn','ath','ctl','pc','xisto','pc','reit','pe','cpst','incub','graf']},
       {to:'Estação',seq:['graf','wL','coppead','cetem','wL','pe','reit','pc','ctl','ath','ccmn','ath','cenpes2','dg','dg2','j1','eefd','dipro','wn','res','wn','biorio','j1','ccsbb','hu','est']}]}]},
   '2':{name:'Estação × COPPEAD',color:'--l2',
-    sum:'A cada 40 min. Saídas da Estação das 7h05 às 19h05; da COPPEAD das 7h25 às 18h45. A volta segue até a Estação (a página da Prefeitura cita a volta só até a Faculdade de Letras).',
+    sum:'A cada 40 min. Saídas da Estação das 7h05 às 19h05; da COPPEAD das 7h25 às 18h45. A volta segue até a Estação (a página da Prefeitura Universitária cita a volta só até a Faculdade de Letras).',
     trips:[
       {deps:range(425,1145,40),halves:[{to:'COPPEAD',seq:['est','hu','j1','j2','j3','pu','cepel','cenpes1','ctl','pc','reit','pe','wL','cetem','coppead']}]},
       {deps:range(445,1125,40),halves:[{to:'Estação',seq:['coppead','cetem','wL','pe','~reit','pc','ctl','cenpes2','dg','dg2','j1','eefd','biorio','j1','ccsbb','hu','est']}]}]},

@@ -90,7 +90,7 @@ function openLogin(){
 function closeLogin(){
   var rm=window.matchMedia('(prefers-reduced-motion:reduce)').matches;login.classList.add('closing');if(!cover.hidden)setTimeout(cvEnter,rm?0:120);
   setTimeout(function(){login.hidden=true;if(cover.hidden)document.documentElement.style.overflow='';else{var b=cover.querySelector('.cv-btn.main');if(b)b.focus({preventScroll:true})}},rm?0:300);
-  if(!$('#pane-cfg').hidden)renderCfg();setTimeout(function(){refreshAll();if(!pPane.hidden)renderPredios()},0);}
+  if(!$('#pane-cfg').hidden)renderCfg();setTimeout(function(){refreshAll();if(!pPane.hidden)renderPredios()},0);etapas('login fechado');}
 $('#lgBio').addEventListener('click',function(){bioLogin()});
 $('#lgUsePin').addEventListener('click',function(){this.hidden=true;$('#lgPinForm').hidden=false;$('#lgPin').focus()});
 $('#lgPinForm').addEventListener('submit',function(e){e.preventDefault();
