@@ -3327,7 +3327,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261112-1604';
+var APP_VERSION='20261112-1618';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -5096,18 +5096,23 @@ updateMap();
 /* ======================= v28: ônibus da cidade ao vivo (via Worker do Cloudflare) ======================= */
 function liveWanted(){return !!LIVE.url&&!document.hidden&&(state.layers.ext||(state.sel&&state.sel.kind==='ext')||!!($('#fdExt')&&$('#fdExt').open))}
 function liveFetch(){
-  if(!liveWanted())return;
-  /* v38: no máximo um pedido a cada 5 s, mesmo quando várias partes do app pedem ao mesmo tempo ao abrir */
-  var agora=Date.now();if(LIVE.ult&&agora-LIVE.ult<5000)return;LIVE.ult=agora;
-  fetch(LIVE.url,{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
+  if(!liveWanted()){if(LIVE.timer)liveAgenda(10000);return}
+  /* no máximo um pedido a cada 2 s, mesmo quando várias partes do app pedem ao mesmo tempo ao abrir */
+  var agora=Date.now();if(LIVE.ult&&agora-LIVE.ult<2000)return;LIVE.ult=agora;
+  fetch(LIVE.url,{cache:'no-store'}).then(function(r){
+    /* o Worker diz em quantos ms sai a próxima posição nova (x-prox): o próximo pedido vai logo depois dela,
+       com um pequeno sorteio para os aparelhos não pedirem todos no mesmo instante; sem o cabeçalho, 10 s */
+    var px=parseInt(r.headers.get('x-prox'),10);liveAgenda(px>=0?px+400+Math.random()*600:10000);
+    return r.json()}).then(function(d){
     var novos=(d.onibus||[]).filter(function(o){return Date.now()-o.t<6*60e3});
     /* a prefeitura do Rio falhou e o Worker não tinha cópia: mantém os ônibus que já estavam no mapa (até 6 min) */
     if(d.falhou&&!novos.length)novos=LIVE.bus.filter(function(o){return Date.now()-o.t<6*60e3});
     LIVE.bus=novos;LIVE.t=Date.now();LIVE.err=!!d.falhou;LIVE.parcial=!!d.parcial;LIVE.falhas=d.falhou?(LIVE.falhas||0)+1:0;liveDraw();liveRefreshText();
-    if(d.falhou)setTimeout(liveFetch,5200);
-  },function(){LIVE.err=true;LIVE.falhas=(LIVE.falhas||0)+1;liveRefreshText();setTimeout(liveFetch,5200)});
+    if(d.falhou)liveAgenda(5200);
+  },function(){LIVE.err=true;LIVE.falhas=(LIVE.falhas||0)+1;liveRefreshText();liveAgenda(5200)});
 }
-function liveLoop(){clearInterval(LIVE.timer);if(!LIVE.url)return;liveFetch();LIVE.timer=setInterval(function(){liveFetch()},10000)}
+function liveAgenda(ms){clearTimeout(LIVE.timer);LIVE.timer=setTimeout(liveFetch,Math.max(2000,Math.min(12000,ms)));}
+function liveLoop(){clearTimeout(LIVE.timer);if(!LIVE.url)return;liveAgenda(10000);liveFetch()}
 document.addEventListener('visibilitychange',function(){if(!document.hidden)liveFetch()});
 function liveCount(n){return LIVE.bus.filter(function(o){return o.l===n}).length}
 function liveColor(n){var L=EXT.lines.filter(function(x){return x.n===n})[0];return (L&&L.c)||'#5B6B7A'}
