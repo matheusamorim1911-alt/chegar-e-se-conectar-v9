@@ -60,3 +60,10 @@ Os avisos vão em lotes de 40 a cada 5 minutos (limite de pedidos do plano grát
 notificações ainda não foram ativadas. Em Gestão › Saúde aparecem quantos aparelhos assinaram e o último envio.
 
 No iPhone, as notificações só funcionam com o app instalado na Tela de Início (iOS 16.4 ou mais novo).
+
+## Fonte das posições (GTFS Realtime)
+
+Desde 11/2026 o Worker lê o GTFS Realtime da prefeitura do Rio (`dados.mobilidade.rio/gtfs/realtime/onibus/vehicle-positions`
+e `.../brt/vehicle-positions`, licença CC BY 4.0, sem chave). As APIs antigas em JSON (`/gps/sppo` e `/gps/brt`) saem do ar
+até 30/11/2026; até lá, o Worker volta a elas se o GTFS Realtime falhar. Em Gestão › Saúde › "Fonte das posições" aparece
+qual está sendo usada. Se aparecer "API antiga" com exemplos de route_id, mande esses exemplos para quem cuida do app.

@@ -1,5 +1,9 @@
 // Testa o Worker sem internet: simula a API da prefeitura com uma amostra e confere o filtro.
-import worker, { filtrar, fcFiltrar, fcHora, extrairLinhas, naIlha, contarFora, linhaDeVerdade, completar, endpointValido, jwtVapid, vapid, avisaTiroteios } from '../worker/gps-fundao.js';
+import worker, { lerGtfsRt, ajustarRt, linhaDaRota, filtrar, fcFiltrar, fcHora, extrairLinhas, naIlha, contarFora, linhaDeVerdade, completar, endpointValido, jwtVapid, vapid, avisaTiroteios } from '../worker/gps-fundao.js';
+// A maior parte dos testes simula a API antiga (JSON): o GTFS Realtime responde 404 e o Worker volta a ela.
+// Os testes do GTFS Realtime (no fim) ligam RT_MODO.
+let RT_MODO = false, _f;
+Object.defineProperty(globalThis, 'fetch', { configurable: true, get: () => RT_MODO ? _f : (u, o) => String(u).includes('/gtfs/realtime/') ? Promise.resolve(new Response('', { status: 404 })) : _f(u, o), set: v => { _f = v; } });
 let falhou = false; const ok = (c, m) => { console.log((c ? 'ok   ' : 'FALHA') + '  ' + m); if (!c) falhou = true; };
 const agora = Date.parse('2026-11-07T10:15:00-03:00');
 const amostra = [
@@ -209,4 +213,64 @@ const t1 = await (await teste()).json(), t2 = await teste();
 ok(t1.ok === true && t2.status === 429, 'push: aviso de teste para quem assinou, no máximo um por minuto');
 const t3 = await worker.fetch(new Request('https://x.workers.dev/push/teste', { method: 'POST', body: JSON.stringify({ endpoint: 'https://fcm.googleapis.com/fcm/send/naoassinou' }) }), envP, { waitUntil() {} });
 ok(t3.status === 404, 'push: teste só para quem assinou');
+// ---------- GTFS Realtime (API atual da prefeitura do Rio) ----------
+// codificador mínimo de protobuf, só para montar um FeedMessage de teste
+const pb = { vi(n) { const o = []; do { let b = n % 128; n = Math.floor(n / 128); if (n) b |= 128; o.push(b); } while (n); return o; },
+  k(f, w) { return pb.vi(f * 8 + w); }, s(f, t) { const b = [...new TextEncoder().encode(t)]; return [...pb.k(f, 2), ...pb.vi(b.length), ...b]; },
+  m(f, b) { return [...pb.k(f, 2), ...pb.vi(b.length), ...b]; }, u(f, n) { return [...pb.k(f, 0), ...pb.vi(n)]; },
+  fl(f, x) { const a = new Uint8Array(4); new DataView(a.buffer).setFloat32(0, x, true); return [...pb.k(f, 5), ...a]; } };
+const veiculo = (id, rid, la, lo, sp, br, tSeg) => pb.m(2, [...pb.s(1, 'e' + id), ...pb.m(4, [
+  ...pb.m(1, [...pb.s(1, 'trip-uuid'), ...pb.s(5, rid), ...pb.u(6, 1)]), ...pb.m(2, [...pb.fl(1, la), ...pb.fl(2, lo), ...pb.fl(3, br), ...pb.fl(5, sp)]),
+  ...pb.u(5, tSeg), ...pb.m(8, [...pb.s(1, id), ...pb.s(2, id)]), ...pb.s(7, 'parada-x')])]);
+const feed = (L, tSeg) => new Uint8Array([...pb.m(1, [...pb.s(1, '2.0'), ...pb.u(3, tSeg)]), ...L.flat()]);
+ok(linhaDaRota('O0321AAA0A') === '321' && linhaDaRota('O0803AAP0A') === 'SP803' && linhaDaRota('O0485AAA0A') === '485' && linhaDaRota('O0328ZZZ0A') === '328' && linhaDaRota('8f1e-uuid') === '', 'GTFS-RT: linha tirada do route_id da prefeitura do Rio');
+{ const ag = Date.now(), ts = Math.floor((ag - 25e3) / 1000);
+  const longe = Array.from({ length: 60 }, (_, k) => veiculo('C' + k, 'O0' + (100 + k) + 'AAA0A', -22.95, -43.35, 30, 0, ts));
+  const F = feed([veiculo('A1', 'O0321AAA0A', -22.8394, -43.2396, 36, 90, ts), veiculo('A2', 'O0803AAP0A', -22.8586, -43.2318, 0, 0, ts), veiculo('N1', 'O0474AAA0A', -22.8586, -43.2318, 20, 180, ts), ...longe], ts);
+  const L = lerGtfsRt(F);
+  ok(L.total === 63 && L.lista.length === 3 && L.resolvidos === 63 && L.ts === ts * 1000, 'GTFS-RT: lê o feed e só monta os veículos da região do Fundão');
+  const a1 = L.lista.find(o => o.id_veiculo === 'A1');
+  ok(a1.servico === '321' && Math.abs(a1.latitude + 22.8394) < 1e-5 && a1.direcao === 90 && a1.t === ts * 1000, 'GTFS-RT: posição, sentido e hora de cada veículo');
+  const A = ajustarRt([...L.lista, ...longe.map((_, k) => ({ sp: 30 + k % 10, t: ts * 1000 }))], ag);
+  ok(A.kmh && A.lista[0].velocidade === 36 && !A.desloc, 'GTFS-RT: velocidade em km/h (como a prefeitura do Rio manda) fica como está');
+  const B = ajustarRt(L.lista.map(o => ({ ...o, sp: 10 })), ag);
+  ok(!B.kmh && B.lista[0].velocidade === 36, 'GTFS-RT: se vier em m/s (o padrão), converte para km/h');
+  const C = ajustarRt(L.lista.map(o => ({ ...o, t: o.t - 3 * 3600e3 })), ag);
+  ok(C.desloc === 3 * 3600e3 && C.lista[0].datahora === ts * 1000, 'GTFS-RT: hora 3 h deslocada (Brasília marcada como UTC) é corrigida');
+  const fo = filtrar(A.lista.slice(0, 3), ag);
+  ok(fo.map(o => o.v + ':' + o.l + (o.f ? '*' : '')).sort().join() === 'A1:321,A2:SP803*,N1:474*' && fo.find(o => o.v === 'A1').t === ts * 1000, 'GTFS-RT: passa pelo mesmo filtro (linhas da lista e outras dentro da ilha)');
+  // pelo Worker: GTFS-RT funcionando
+  RT_MODO = true; const usadas = [];
+  globalThis.fetch = async u => { usadas.push(String(u)); return /realtime\/onibus/.test(u) ? new Response(F) : /realtime\/brt/.test(u) ? new Response(feed([veiculo('B1', 'O0042AAA0A', -22.8394, -43.2396, 40, 0, ts)], ts)) : new Response('[]'); };
+  globalThis.caches = { default: { match: async () => null, put: async () => {} } };
+  const w1 = await (await worker.fetch(new Request('https://x.workers.dev/'), {}, { waitUntil() {} })).json();
+  ok(w1.onibus.some(o => o.v === 'A1') && w1.onibus.some(o => o.v === 'B1' && o.l === '42') && !usadas.some(u => /gps\/(sppo|brt)/.test(u)), 'Worker usa o GTFS Realtime (ônibus e BRT) e não pede a API antiga');
+  // GTFS-RT fora do ar: volta à API antiga
+  usadas.length = 0;
+  globalThis.fetch = async u => { usadas.push(String(u)); return /realtime/.test(u) ? new Response('', { status: 503 }) : new Response(JSON.stringify(/sppo/.test(u) ? [{ id_veiculo: 'V1', servico: '321', latitude: -22.8394, longitude: -43.2396, datetime: new Date(Date.now() - 3 * 3600e3 - 30e3).toISOString().slice(0, 19) + 'Z' }] : [])); };
+  let reg = [];
+  globalThis.caches = { default: { match: async r => r.url.includes('registro') ? new Response(JSON.stringify(reg)) : null, put: async (r, v) => { if (r.url.includes('registro')) reg = await v.json(); } } };
+  const cx = { esperas: [], waitUntil(p) { this.esperas.push(p); } };
+  const w2 = await (await worker.fetch(new Request('https://x.workers.dev/'), {}, cx)).json(); await Promise.all(cx.esperas);
+  const fsp = reg[reg.length - 1].fontes.find(f => f.f === 'sppo');
+  ok(w2.onibus.some(o => o.v === 'V1') && fsp.via === 'json-antigo' && /HTTP 503/.test(fsp.motivo_rt), 'GTFS-RT fora do ar: usa a API antiga e registra o motivo');
+  // formato desconhecido (route_id sem a linha): também volta e mostra exemplos na Saúde
+  const opaco = feed(Array.from({ length: 40 }, (_, k) => veiculo('X' + k, 'f3a9-' + k, -22.95, -43.35, 30, 0, ts)), ts);
+  globalThis.fetch = async u => /realtime\/onibus/.test(u) ? new Response(opaco) : /realtime/.test(u) ? new Response(feed([], ts)) : new Response('[]');
+  const cx2 = { esperas: [], waitUntil(p) { this.esperas.push(p); } };
+  await worker.fetch(new Request('https://x.workers.dev/'), {}, cx2); await Promise.all(cx2.esperas);
+  const f2 = reg[reg.length - 1].fontes.find(f => f.f === 'sppo');
+  ok(f2.via === 'json-antigo' && /formato/.test(f2.motivo_rt) && f2.rotas && f2.rotas[0].startsWith('f3a9-'), 'GTFS-RT em formato desconhecido: volta à API antiga e guarda exemplos de route_id');
+  // as duas fora do ar (depois de 30/11): falha com o motivo
+  globalThis.fetch = async u => new Response('', { status: 404 });
+  const cx3 = { esperas: [], waitUntil(p) { this.esperas.push(p); } };
+  await worker.fetch(new Request('https://x.workers.dev/'), {}, cx3); await Promise.all(cx3.esperas);
+  const f3 = reg[reg.length - 1].fontes.find(f => f.f === 'sppo');
+  ok(!f3.ok && /HTTP 404/.test(f3.motivo), 'GTFS-RT e API antiga fora do ar: falha com o motivo');
+  // desempenho: feed do tamanho da cidade (~11 mil veículos)
+  const grande = feed(Array.from({ length: 11000 }, (_, k) => veiculo('Z' + k, 'O0' + (100 + k % 900) + 'AAA0A', -22.9 - (k % 100) / 1000, -43.3 - (k % 70) / 1000, 30, 0, ts)), ts);
+  const T = []; for (let r = 0; r < 30; r++) { const t0 = performance.now(); lerGtfsRt(grande); T.push(performance.now() - t0); } T.sort((a, b) => a - b);
+  ok(T[15] < 15, 'GTFS-RT: lê o feed da cidade (' + Math.round(grande.length / 1024) + ' KB) em ' + T[15].toFixed(1) + ' ms (mediana)');
+  RT_MODO = false;
+}
 process.exit(falhou ? 1 : 0);
