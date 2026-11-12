@@ -42,7 +42,7 @@ App web (sem framework) da Cidade Universitária da UFRJ, publicado pelo GitHub 
 
 ## Textos
 - "Prefeitura Universitária" (da UFRJ: linhas internas, segurança) e "prefeitura do Rio" (ônibus da cidade, GPS, Jaé) sempre por extenso; nunca só "prefeitura".
-- Idioma (`src/js/36-idioma.js`): o app é escrito em português; com English ou Español (`CFG.idioma`, em Ajustes e na capa), os textos fixos são trocados na tela pela tabela `IDI_TAB` e pelos padrões `IDI_PAD`. Texto novo de interface: acrescente a linha na tabela. Nomes de lugares e linhas não se traduzem.
+- Idioma (`src/js/36-idioma.js`): o app é escrito em português; com English ou Español (`CFG.idioma`, em Ajustes e na capa), os textos fixos são trocados na tela pela tabela `IDI_TAB` e pelos padrões `IDI_PAD`. A tabela continua em `37-idioma-textos.js` (com as datas). Texto novo de interface: acrescente a linha na tabela nos dois idiomas; `tests/teste-idioma.js` percorre as telas em inglês e espanhol e falha se sobrar frase em português. Nomes de lugares e linhas e a mensagem pronta do "Avisar alguém" não se traduzem; a Gestão fica em português.
 
 ## Perfil de uso
 - `src/js/34-perfil-de-uso.js`: depois do login, a folha "Como você usa o Fundão?" (`cse-uso`). Quem mora na Vila Residencial tem a Volta à noite para o ponto mais perto da Vila (`nightDest`, `vilaPonto`); a aba Grade aparece conforme a resposta (`CFG.tabsOff`). A etapa `login fechado` avisa quando o login termina.
