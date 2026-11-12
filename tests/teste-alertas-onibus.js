@@ -67,4 +67,18 @@ const { chromium } = require('playwright');const servir=require('./servidor');co
  ok(/Por enquanto, só com o app aberto/.test(await p.textContent('#alvCfg'))&&!!(await p.$('#alvCfg [data-alvtenta]')),'Ajustes mostra o motivo e o botão Tentar de novo');
  await c.unroute('**workers.dev/push/alertas');await p.click('#alvCfg [data-alvtenta]');await p.waitForTimeout(1200);
  ok(/Os avisos chegam mesmo com o app fechado/.test(await p.textContent('#alvCfg'))&&!(await p.$('#alvCfg .alv-aviso')),'depois de publicar o Worker, Tentar de novo liga o aviso com o app fechado');await c.close();
+ {const id='a_est';
+   const [c,p,e,posts]=await abre();
+   // linha sem traçado guardado: vale o traçado das linhas que passam no ponto
+   await p.evaluate(id=>{localStorage.setItem('cse-alertas-onibus',JSON.stringify([{id:'t1',tipo:'c',ponto:id,linhas:['ZZ999'],carro:'',min:5,quando:'uma',fim:Date.now()+36e5}]))},id);
+   await p.reload();await p.waitForTimeout(7500);await p.click('#tab-cfg');await p.waitForTimeout(600);
+   await p.evaluate(()=>{const b=document.querySelector('[data-alvtenta]');b&&b.click()});await p.waitForTimeout(1500);
+   const u=posts[posts.length-1];
+   ok(u&&u.alertas.length===1&&u.alertas[0].cor.length>=1,'linha sem traçado guardado: usa o traçado das linhas que passam no ponto');
+   ok(!/Não achei o traçado/.test(await p.textContent('#alvCfg')),'e não diz que o traçado não foi achado');
+   // alerta de linha interna sem horário: motivo próprio
+   await p.evaluate(()=>{localStorage.setItem('cse-alertas-onibus',JSON.stringify([{id:'t2',tipo:'i',de:'zz',para:'yy',linhas:[],min:5,quando:'uma',fim:Date.now()+36e5}]))});
+   await p.reload();await p.waitForTimeout(7500);await p.click('#tab-cfg');await p.waitForTimeout(600);
+   await p.evaluate(()=>{const b=document.querySelector('[data-alvtenta]');b&&b.click()});await p.waitForTimeout(1500);
+   ok(/Não há horário de linha interna/.test(await p.textContent('#alvCfg')),'alerta de linha interna sem horário: explica que falta horário, não o traçado');await c.close()}
  await b.close();srv.close();process.exit(falhou?1:0)})();

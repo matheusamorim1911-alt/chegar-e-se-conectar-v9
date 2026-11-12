@@ -3327,7 +3327,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261112-1757';
+var APP_VERSION='20261112-1833';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -5163,6 +5163,7 @@ var MPU=Math.hypot(GEO.a,GEO.b);/* unidades do mapa por metro */
     var gid=alvo?'a_'+alvo:k;best=alvo||best;
     map[k]=gid;
     if(!G[gid])G[gid]=gid.indexOf('a_')===0?{name:STOPS[best].name,p:STOPS[best].p.slice(),alt:[],stop:best}:{name:EXTS[k].name,p:EXTS[k].p,alt:[]};
+    (G[gid].ids=G[gid].ids||[]).push(k);/* paradas originais do GTFS neste ponto (EXT.stops) */
     if(G[gid].stop)G[gid].alt.push(EXTS[k].name);
   });
   Object.keys(EXTS).forEach(function(k){delete EXTS[k]});Object.keys(G).forEach(function(g){EXTS[g]=G[g]});
@@ -7895,6 +7896,7 @@ As notificações ainda não foram ativadas no servidor do app (falta o KV PUSH 
 O servidor do app ainda não aceita alertas de ônibus: o Worker precisa ser publicado de novo na Cloudflare. ¦ The app server does not accept bus alerts yet: it needs to be updated. ¦ El servidor de la app aún no acepta alertas de autobús: hay que actualizarlo.
 O app ainda não terminou de se instalar neste navegador. Recarregue a página e toque em Tentar de novo. ¦ The app has not finished installing in this browser. Reload the page and tap Try again. ¦ La app aún no terminó de instalarse en este navegador. Recarga la página y toca Reintentar.
 O navegador não conseguiu assinar as notificações. Confira a conexão e toque em Tentar de novo. ¦ The browser could not subscribe to notifications. Check your connection and tap Try again. ¦ El navegador no pudo suscribirse a las notificaciones. Revisa la conexión y toca Reintentar.
+Não há horário de linha interna ligando esses dois pontos hoje: este alerta só avisa com o app aberto. ¦ There is no campus bus schedule linking these two stops today: this alert only works with the app open. ¦ Hoy no hay horario de línea interna que una estas dos paradas: esta alerta solo avisa con la app abierta.
 Não achei o traçado da linha neste ponto: este alerta só avisa com o app aberto. ¦ Could not find the line's route at this stop: this alert only works with the app open. ¦ No encontré el recorrido de la línea en esta parada: esta alerta solo avisa con la app abierta.
 Sem conexão com o servidor do app. Toque em Tentar de novo. ¦ No connection to the app server. Tap Try again. ¦ Sin conexión con el servidor de la app. Toca Reintentar.
 Pronto. Os avisos chegam mesmo com o app fechado. ¦ Done. Alerts arrive even with the app closed. ¦ Listo. Los avisos llegan incluso con la app cerrada.
@@ -8040,11 +8042,13 @@ function alvResumo(a){
 }
 /* ---------- o que vai para o Worker ---------- */
 /* trecho de até 3,5 km do traçado que chega ao ponto (lat/lon × 1e5), para cada traçado das linhas escolhidas */
-function alvCorredores(a){
-  var G=EXT.stops[a.ponto];if(!G)return [];
-  var linhas=a.linhas.length?a.linhas:alvLinhasDoPonto(a.ponto),vistos={},out=[],kx=1.1132*Math.cos(G[1]*Math.PI/180),ky=1.10574;
+function alvCorredores(a,todas){
+  /* o ponto do app pode juntar várias paradas do GTFS (ids em EXTS[ponto].ids): cada uma conta */
+  var ids=((EXTS[a.ponto]||{}).ids||[a.ponto]).filter(function(i){return EXT.stops[i]}),out=[],vistos={};
+  var linhas=a.linhas.length&&!todas?a.linhas:alvLinhasDoPonto(a.ponto);
+  ids.forEach(function(sid){var G=EXT.stops[sid],kx=1.1132*Math.cos(G[1]*Math.PI/180),ky=1.10574;
   linhas.forEach(function(n){((EXT.sh||{})[n]||[]).forEach(function(i){
-    if(vistos[i]||out.length>=6)return;vistos[i]=1;var d=EXT.shp[i],la=-2280000,lo=-4320000,P=[];
+    var ch=sid+'|'+i;if(vistos[ch]||out.length>=6)return;vistos[ch]=1;var d=EXT.shp[i],la=-2280000,lo=-4320000,P=[];
     for(var k=0;k<d.length;k+=2){la+=d[k];lo+=d[k+1];P.push([la,lo])}
     /* ponto do traçado mais perto da parada (os traçados têm poucos vértices: vale a projeção no segmento) */
     var bi=-1,bd=1e9,bq=null,gx=G[2]*1e5*kx,gy=G[1]*1e5*ky;
@@ -8054,7 +8058,9 @@ function alvCorredores(a){
     var C=[bq],ac=0,ant=bq;for(k=bi-1;k>=0&&ac<3500;k--){ac+=Math.hypot((ant[1]-P[k][1])*kx,(ant[0]-P[k][0])*ky);C.unshift(P[k]);ant=P[k]}
     if(C.length<2)return;
     while(C.length>80){var R=[];for(k=0;k<C.length;k+=2)R.push(C[k]);if(R[R.length-1]!==C[C.length-1])R.push(C[C.length-1]);C=R}
-    var flat=[];C.forEach(function(p){flat.push(p[0],p[1])});out.push(flat)})});
+    var flat=[];C.forEach(function(p){flat.push(p[0],p[1])});out.push(flat)})})});
+  /* linha sem traçado guardado (linha de fora da lista, por exemplo): vale o traçado de qualquer linha que passa no ponto */
+  if(!out.length&&!todas&&a.linhas.length)return alvCorredores(a,true);
   return out;
 }
 /* horários estimados (minuto do dia) em que as linhas internas escolhidas passam em "de" indo para "para" */
@@ -8082,7 +8088,7 @@ function alvSincroniza(pedir){
   if(pushPermissao()==='denied'){ALV.motivo='bloqueado';return Promise.resolve(false)}
   if(pushPermissao()!=='granted'&&!pedir){ALV.motivo='permissao';return Promise.resolve(false)}
   var L=alvVivos().map(alvParaServidor).filter(Boolean),chave;
-  if(!L.length&&alvVivos().length)ALV.motivo='tracado';
+  if(!L.length&&alvVivos().length){var tc=alvVivos().some(function(a){return a.tipo==='c'});ALV.motivo=tc?'tracado':'horarios'}
   return Promise.resolve(pushPermissao()==='granted'?'granted':Notification.requestPermission()).then(function(p){if(p!=='granted')throw new Error(p==='denied'?'bloqueado':'permissao');
     return fetch(PUSH.url+'/chave',{cache:'no-store'}).then(function(r){return r.json().catch(function(){return {}})},function(){throw new Error('rede')})})
   .then(function(j){if(!j||!j.disponivel||!j.chave)throw new Error('kv');chave=j.chave;
@@ -8107,6 +8113,7 @@ function alvMotivoTxt(){
     worker:'O servidor do app ainda não aceita alertas de ônibus: o Worker precisa ser publicado de novo na Cloudflare.',
     sw:'O app ainda não terminou de se instalar neste navegador. Recarregue a página e toque em Tentar de novo.',
     assinatura:'O navegador não conseguiu assinar as notificações. Confira a conexão e toque em Tentar de novo.',
+    horarios:'Não há horário de linha interna ligando esses dois pontos hoje: este alerta só avisa com o app aberto.',
     tracado:'Não achei o traçado da linha neste ponto: este alerta só avisa com o app aberto.',
     rede:'Sem conexão com o servidor do app. Toque em Tentar de novo.'};
   return M[ALV.motivo]||'';

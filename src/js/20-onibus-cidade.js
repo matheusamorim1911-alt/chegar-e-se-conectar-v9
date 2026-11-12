@@ -148,6 +148,7 @@ var MPU=Math.hypot(GEO.a,GEO.b);/* unidades do mapa por metro */
     var gid=alvo?'a_'+alvo:k;best=alvo||best;
     map[k]=gid;
     if(!G[gid])G[gid]=gid.indexOf('a_')===0?{name:STOPS[best].name,p:STOPS[best].p.slice(),alt:[],stop:best}:{name:EXTS[k].name,p:EXTS[k].p,alt:[]};
+    (G[gid].ids=G[gid].ids||[]).push(k);/* paradas originais do GTFS neste ponto (EXT.stops) */
     if(G[gid].stop)G[gid].alt.push(EXTS[k].name);
   });
   Object.keys(EXTS).forEach(function(k){delete EXTS[k]});Object.keys(G).forEach(function(g){EXTS[g]=G[g]});
