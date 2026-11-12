@@ -31,7 +31,7 @@ var MAPIMG=mapaUrl('mapa-bordas'+MAPSUF+'.jpg');
 /* mapa base: planta cadastral da Cidade Universitária (ETU/UFRJ), vetorizada; JPG para a visão geral, SVG nítido no zoom */
 var MAPHD=window.MAPHD_URL=mapaUrl('mapa-campus'+MAPSUF+'.jpg'),MAPVEC=mapaUrl('mapa-campus'+MAPSUF+'.svg'),MAPMINI=mapaUrl('mapa-mini'+MAPSUF+'.jpg'),MAPBLUR=mapaUrl('mapa-blur'+MAPSUF+'.jpg'),MAPVEC0=mapaUrl('mapa-campus.svg');
 /* nomes recriados como texto: [texto, x, y, classe, nível de zoom, rotação] */
-/* guaritas (posições do mapa da Prefeitura; o nº 33 da legenda é "Guaritas / DISEG") */
+/* guaritas (posições do mapa da Prefeitura Universitária; o nº 33 da legenda é "Guaritas / DISEG") */
 var GUARDS={
   g1:{name:'Guarita 1',short:'G1',where:'Acesso pela Linha Vermelha, sentido Ilha do Governador e Baixada.',p:[256.4,378.8]},
   g2:{name:'Guarita 2',short:'G2',where:'Acesso pela Av. Brasil.',p:[391.1,444.5]},
@@ -296,7 +296,7 @@ function drawLabels(){
   gLab.innerHTML=s;
 }
 /* ======================= nomes dos prédios no zoom (da planta da ETU/UFRJ) ======================= */
-var BLDN=[["Hospital Universitário",325.7,364,1],["IPPMG (Pediatria)",279.9,370,2],["CCS",352.6,290.8,1],["Instituto de Microbiologia",324.9,274,3],["Escola de Educação Infantil",272.9,345.2,3],["Usina Verde",362.3,235.3,3],["Polo Bio-Rio",377.5,192.6,2],["RU Central",424.4,330.8,1],["EEFD",428.2,302.6,1],["Ginásio",450.8,293.6,3],["Gastronomia",459.3,327.3,3],["Prefeitura · DISEG",417.4,449.2,1],["Horto Universitário",435,461.4,3],["Instituto de Física",750.6,447,2],["Instituto de Química",749.5,396,2],["Instituto de Matemática",753.5,467.9,2],["CCMN",765,501.4,1],["CT 2",936.5,558.2,2],["Macromoléculas",938.2,457,3],["LNDC",961.4,460,3],["Polo de Xistoquímica",1000.4,553.4,2],["Faculdade de Letras",940,379.9,1],["CCJE",908.2,386.2,2],["Reitoria (CLA)",1013.5,367.7,1],["COPPEAD",1027.5,226,1],["Incubadora",1119.3,336.2,2],["Gráfica",1142.3,337.2,3],["Almoxarifado",1172.3,335.9,3],["Frota Oficial",1168.1,355.1,3],["CPST · EBA",1148.4,362,3],["DIPRO",423.9,83.6,2],["UFRJ-Mar",469.3,45.6,3],["Escola Tenente Antônio João",1020.9,213.3,3]];
+var BLDN=[["Hospital Universitário",325.7,364,1],["IPPMG (Pediatria)",279.9,370,2],["CCS",352.6,290.8,1],["Instituto de Microbiologia",324.9,274,3],["Escola de Educação Infantil",272.9,345.2,3],["Usina Verde",362.3,235.3,3],["Polo Bio-Rio",377.5,192.6,2],["RU Central",424.4,330.8,1],["EEFD",428.2,302.6,1],["Ginásio",450.8,293.6,3],["Gastronomia",459.3,327.3,3],["Prefeitura Universitária · DISEG",417.4,449.2,1],["Horto Universitário",435,461.4,3],["Instituto de Física",750.6,447,2],["Instituto de Química",749.5,396,2],["Instituto de Matemática",753.5,467.9,2],["CCMN",765,501.4,1],["CT 2",936.5,558.2,2],["Macromoléculas",938.2,457,3],["LNDC",961.4,460,3],["Polo de Xistoquímica",1000.4,553.4,2],["Faculdade de Letras",940,379.9,1],["CCJE",908.2,386.2,2],["Reitoria (CLA)",1013.5,367.7,1],["COPPEAD",1027.5,226,1],["Incubadora",1119.3,336.2,2],["Gráfica",1142.3,337.2,3],["Almoxarifado",1172.3,335.9,3],["Frota Oficial",1168.1,355.1,3],["CPST · EBA",1148.4,362,3],["DIPRO",423.9,83.6,2],["UFRJ-Mar",469.3,45.6,3],["Escola Tenente Antônio João",1020.9,213.3,3]];
 function bldLabels(taken){
   var ppu=box().w/view.w,mob=box().w<680;
   if(ppu<(mob?1.5:2.2))return '';

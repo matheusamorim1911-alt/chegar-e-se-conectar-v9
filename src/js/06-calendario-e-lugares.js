@@ -132,7 +132,7 @@ var PL={
   a_if:{s:'Secretaria do IF',name:'Secretaria do Instituto de Física',cat:'atend',where:'CT, Bloco A, 3º andar, sala 342-A',bld:'ct',b:'A',f:3,p:[857.4,466.6],wk:null,note:'Horário não informado.'},
   a_geo:{s:'Secretaria de Geografia',name:'Secretaria de Geografia (IGEO)',cat:'atend',where:'CCMN, Bloco G, sala 025',bld:'ccmn',b:'G',f:0,p:[793.6,481.4],wk:[[600,1020]]},
   a_ic:{s:'Secretaria do IC',name:'Secretaria do Instituto de Computação',cat:'atend',where:'Prédio do CCMN',bld:'ccmn',b:'?',f:null,p:[793.6,481.4],wk:[[540,720]]},
-  a_pu:{name:'Prefeitura Universitária',cat:'atend',where:'Prédio da Prefeitura (nº 07 no mapa)',p:[415.7,455.3],wk:[[540,960]],note:'Atendimento presencial e telefone fixo (21) 3938-0346.'},
+  a_pu:{name:'Prefeitura Universitária',cat:'atend',where:'Prédio da Prefeitura Universitária (nº 07 no mapa)',p:[415.7,455.3],wk:[[540,960]],note:'Atendimento presencial e telefone fixo (21) 3938-0346.'},
   hall_h:{s:'Hall (eventos)',name:'Hall do Bloco H',cat:'atend',where:'CT, Bloco H',bld:'ct',b:'H',f:1,p:[857.4,466.6],wk:null,note:'Espaço de eventos. Sem horário fixo.'},
   s_diseg:{name:'DISEG – Divisão de Segurança',cat:'seg',where:'Telefone (21) 97380-2554',wk:[[0,1440]],we:[[0,1440]],note:'Atendimento 24 horas.'},
   s_cco:{name:'Centro de Controle Operacional',cat:'seg',where:'WhatsApp (21) 99871-1621',wk:[[0,1440]],we:[[0,1440]],note:'Atendimento 24 horas.'}
@@ -140,7 +140,7 @@ var PL={
 Object.keys(LINES).forEach(function(id){
   var l=LINES[id],d=l.trips[0].deps;
   PL['bus'+id]={incl:1,name:'Linha '+id+' · '+l.name,cat:'onibus',where:'Primeira e última saída da origem',wk:[[d[0],d[d.length-1]+1]],we:l.weekdays?null:undefined,line:id,
-    note:l.weekdays?'Só de segunda a sexta.':'Fins de semana: a Prefeitura não informa; confirme antes.'};
+    note:l.weekdays?'Só de segunda a sexta.':'Fins de semana: a Prefeitura Universitária não informa; confirme antes.'};
 });
 var BLD={
   ct:{name:'Centro de Tecnologia',short:'CT',addr:'Av. Athos da Silveira Ramos, 149',stop:'ctl',

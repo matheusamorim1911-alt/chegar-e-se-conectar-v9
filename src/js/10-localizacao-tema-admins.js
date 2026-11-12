@@ -3,7 +3,7 @@
    (escala, rotação, espelho e deslocamento) ajustada em pontos de referência.
    Calibração inicial: coordenadas aproximadas de CT, HU, Polo de Biotecnologia, Parque Tecnológico e CETEM (margem ~150 m).
    A gestão refina em "GPS e mapa" com coordenadas copiadas do Google Maps. */
-/* v34: calibração refeita encaixando os traçados oficiais das linhas da prefeitura (GTFS/SMTR) nas ruas da planta: erro médio ~13 m (antes ~90 m) */
+/* v34: calibração refeita encaixando os traçados oficiais das linhas da prefeitura do Rio (GTFS/SMTR) nas ruas da planta: erro médio ~13 m (antes ~90 m) */
 var GEO0={lat0:-22.855,lng0:-43.228,a:0.142691,b:0.216408,tx:768.63,ty:348.65,n:0,err:15};
 var GEO=Object.assign({},GEO0);
 var GPS_REF=['est','hu','eefd','res','pu','cenpes1','ccmn','ctl','reit','cetem','coppead','parque','graf'];

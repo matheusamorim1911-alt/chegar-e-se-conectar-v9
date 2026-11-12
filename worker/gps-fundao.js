@@ -1,14 +1,19 @@
 // Cloudflare Worker: posição ao vivo dos ônibus que atendem o Fundão.
-// Busca a API aberta da prefeitura (dados.mobilidade.rio), filtra as linhas do app na região da Ilha do Fundão
+// Busca a API aberta da prefeitura do Rio (dados.mobilidade.rio), filtra as linhas do app na região da Ilha do Fundão
 // (e qualquer outra linha com ônibus dentro da ilha), e devolve um JSON pequeno com CORS liberado.
-// O resultado fica guardado por 10 segundos (a prefeitura atualiza cada ônibus a cada ~30 s): todos os usuários usam
-// a mesma cópia, então a prefeitura recebe no máximo 1 pedido a cada 10 s por fonte (por data center da Cloudflare), não importa quantas pessoas usem o app.
-// Se a prefeitura falhar ou demorar, devolve a última resposta boa (até 3 min), marcada com x-cache: antiga.
+// O resultado fica guardado por 10 segundos (a prefeitura do Rio atualiza cada ônibus a cada ~30 s): todos os usuários usam
+// a mesma cópia, então a prefeitura do Rio recebe no máximo 1 pedido a cada 10 s por fonte (por data center da Cloudflare), não importa quantas pessoas usem o app.
+// Se a prefeitura do Rio falhar ou demorar, devolve a última resposta boa (até 3 min), marcada com x-cache: antiga.
 // Cada tentativa fica registrada (resultado, tempo, tamanho e motivo da falha) e aparece na aba Saúde do app (/saude).
 // Em /tiroteios, entrega os tiroteios recentes perto das saídas do Fundão (Fogo Cruzado), para quem ligou o aviso no app.
 // Em /push/…, guarda quem quer ser notificado de tiroteios novos; o gatilho Cron (a cada 5 min) manda os avisos.
 
-const LINHAS = new Set(['321','323','324','325','326','327','328','329','42','43','485','486','616','634','635','663','696','90','901','910','913','915','922','975','979','SN324','SN328','SN696','SP324','SP328','SP329','SP485','SP635','SPB326','SR328','SV922','SVB901']);
+const LINHAS = new Set(['321','323','324','325','326','327','328','329','42','43','485','486','616','634','635','663','696','90','901','910','913','915','922','975','979','SN324','SN328','SN696','SP324','SP328','SP329','SP485','SP635','SPB326','SR328','SV922','SVB901',
+  // vistas todo dia dentro da ilha (Gestão › Saúde, 11/11/2026): entram também nos acessos
+  '35','91','95']);
+// Códigos que não são linha (GARAGEM, APOIO, MANUTENCAO, TR, 0…): ônibus fora de serviço não vão para o mapa.
+// Uma linha de verdade tem número; só zeros não vale.
+export const linhaDeVerdade = l => /\d/.test(l) && !/^0+$/.test(l);
 // Ilha do Fundão e acessos (Linha Vermelha, Av. Brasil e pontes); fica de fora a garagem na Ilha do Governador
 const AREA = { latMin: -22.885, latMax: -22.825, lonMin: -43.27, lonMax: -43.195 };
 // Ônibus de outras linhas também entram quando estão dentro da Ilha do Fundão (contorno do OpenStreetMap,
@@ -34,7 +39,7 @@ export function naIlha(la, lo) {
   return true;
 }
 const FONTES = ['https://dados.mobilidade.rio/gps/sppo', 'https://dados.mobilidade.rio/gps/brt'];
-// JANELA_MIN: período pedido à prefeitura. Os ônibus mandam posição a cada ~30 s e chegam com ~11 s de atraso,
+// JANELA_MIN: período pedido à prefeitura do Rio. Os ônibus mandam posição a cada ~30 s e chegam com ~11 s de atraso,
 // então 1,5 min basta para ter todos; um período maior aumenta a resposta (cidade inteira) e o Worker pode
 // estourar o limite de processamento do plano grátis da Cloudflare nos horários de pico.
 const CACHE_S = 10, RESERVA_S = 180, JANELA_MIN = 1.5, VELHO_MIN = 6;
@@ -59,7 +64,7 @@ export function filtrar(lista, agora) {
     const linha = String(pega(o, ['servico', 'linha', 'route_short_name']) ?? '').trim().toUpperCase();
     const la = num(pega(o, ['latitude', 'lat'])), lo = num(pega(o, ['longitude', 'lon', 'lng']));
     const daLista = LINHAS.has(linha);
-    if (daLista ? !(la >= AREA.latMin && la <= AREA.latMax && lo >= AREA.lonMin && lo <= AREA.lonMax) : !(linha && naIlha(la, lo))) continue;
+    if (daLista ? !(la >= AREA.latMin && la <= AREA.latMax && lo >= AREA.lonMin && lo <= AREA.lonMax) : !(linhaDeVerdade(linha) && naIlha(la, lo))) continue;
     const t = horaRio(pega(o, ['datetime', 'datahora', 'dataHora', 'timestamp']));
     if (!(t > agora - VELHO_MIN * 60e3)) continue;
     const id = String(pega(o, ['id_veiculo', 'ordem', 'codigo', 'veiculo']) ?? '');
@@ -74,6 +79,11 @@ export function filtrar(lista, agora) {
 // filtrar depois passava do limite de processamento do plano grátis da Cloudflare (10 ms) e o Worker caía antes
 // de responder. Aqui o texto é varrido atrás de "servico":"…" e só os registros das linhas do app viram objeto.
 // Se o formato mudar (a marca não aparece), volta ao JSON.parse.
+// junta à resposta nova os ônibus da cópia guardada que não vieram agora (posição ainda dentro da validade)
+export function completar(novos, guardados, agora) {
+  const tem = new Set(novos.map(o => o.v));
+  return novos.concat((guardados || []).filter(o => !tem.has(o.v) && agora - o.t < VELHO_MIN * 60e3));
+}
 export function extrairLinhas(texto) {
   const marca = '"servico":"';
   let i = texto.indexOf(marca);
@@ -143,12 +153,12 @@ async function lerFora(agora) {
 // motivo de uma falha, em palavras (vai para a aba Saúde)
 function motivoErro(e) {
   const m = String(e && (e.name === 'TimeoutError' ? 'tempo' : e.message) || e);
-  if (m === 'tempo' || /timed? ?out|aborted/i.test(m)) return 'a prefeitura não respondeu em 8 s';
-  if (/json|unexpected|parse/i.test(m)) return 'a prefeitura mandou uma resposta que não é JSON';
+  if (m === 'tempo' || /timed? ?out|aborted/i.test(m)) return 'a prefeitura do Rio não respondeu em 8 s';
+  if (/json|unexpected|parse/i.test(m)) return 'a prefeitura do Rio mandou uma resposta que não é JSON';
   return 'erro de rede: ' + m.slice(0, 80);
 }
 function motivoHttp(st) {
-  return 'a prefeitura respondeu HTTP ' + st + (st === 429 ? ' (pedidos demais)' : st >= 500 ? ' (erro no servidor dela)' : st === 404 ? ' (endereço não encontrado)' : st === 403 ? ' (acesso recusado)' : '');
+  return 'a prefeitura do Rio respondeu HTTP ' + st + (st === 429 ? ' (pedidos demais)' : st >= 500 ? ' (erro no servidor dela)' : st === 404 ? ' (endereço não encontrado)' : st === 403 ? ' (acesso recusado)' : '');
 }
 async function buscar(agora) {
   const q = `?dataInicial=${dataRio(agora - JANELA_MIN * 60e3)}&dataFinal=${dataRio(agora)}`;
@@ -156,7 +166,10 @@ async function buscar(agora) {
   const partes = await Promise.all(FONTES.map(async u => {
     const f = { f: u.split('/').pop(), ok: false }, t0 = Date.now(); fontes.push(f);
     try {
-      const r = await fetch(u + q, { headers: { 'user-agent': 'chega-ai-ufrj (UFRJ)' }, signal: AbortSignal.timeout(8000) });
+      const pede = () => fetch(u + q, { headers: { 'user-agent': 'chega-ai-ufrj (UFRJ)' }, signal: AbortSignal.timeout(8000) });
+      let r = await pede();
+      // erro no servidor da prefeitura do Rio (HTTP 5xx): costuma passar na segunda tentativa
+      if (r.status >= 500) { f.de_novo = r.status; await new Promise(ok => setTimeout(ok, 400)); r = await pede(); }
       f.http = r.status;
       if (!r.ok) { f.motivo = motivoHttp(r.status); return []; }
       const texto = await r.text();
@@ -167,9 +180,9 @@ async function buscar(agora) {
     } catch (e) { f.motivo = motivoErro(e); return []; }
     finally { f.ms = Date.now() - t0; }
   }));
-  return { onibus: filtrar(partes.flat(), agora), falhou: fontes.every(f => !f.ok), fontes };
+  return { onibus: filtrar(partes.flat(), agora), falhou: fontes.every(f => !f.ok), parcial: fontes.some(f => !f.ok), fontes };
 }
-// registro das últimas tentativas de falar com a prefeitura (para a aba Saúde): fica no cache deste data center
+// registro das últimas tentativas de falar com a prefeitura do Rio (para a aba Saúde): fica no cache deste data center
 const REGISTRO = 'https://cache.local/gps-registro', REGISTRO_N = 60;
 async function registrar(entrada) {
   const cache = caches.default, chave = new Request(REGISTRO);
@@ -407,8 +420,8 @@ export default {
     if (guardado) return new Response(guardado.body, { headers: { ...cors, 'x-cache': 'hit' } });
     const reserva = new Request('https://cache.local/gps-fundao-reserva');
     const agora = Date.now();
-    let onibus = [], falhou = true, fontes = [];
-    try { ({ onibus, falhou, fontes } = await buscar(agora)); } catch (e) { falhou = true; fontes = [{ f: 'worker', ok: false, motivo: 'erro no Worker: ' + String(e.message || e).slice(0, 80) }]; }
+    let onibus = [], falhou = true, parcial = false, fontes = [];
+    try { ({ onibus, falhou, parcial, fontes } = await buscar(agora)); } catch (e) { falhou = true; fontes = [{ f: 'worker', ok: false, motivo: 'erro no Worker: ' + String(e.message || e).slice(0, 80) }]; }
     if (falhou) {
       const velho = await cache.match(reserva);
       ctx.waitUntil(registrar({ t: agora, r: velho ? 'reserva' : 'falhou', fontes }).catch(() => {}));
@@ -416,10 +429,15 @@ export default {
       /* sem cópia guardada: responde que falhou (com CORS), em vez de deixar o app sem resposta */
       return new Response(JSON.stringify({ t: agora, fonte: 'SMTR / Prefeitura do Rio (dados.mobilidade.rio)', onibus: [], falhou: true }), { headers: { ...cors, 'cache-control': 'no-store' } });
     }
+    // Só uma das fontes respondeu (ônibus comuns ou BRT): os da fonte que falhou continuam no mapa com a última
+    // posição guardada (até VELHO_MIN), em vez de sumirem até a prefeitura do Rio voltar.
+    if (parcial) {
+      try { const v = await cache.match(reserva); if (v) onibus = completar(onibus, (await v.json()).onibus, agora); } catch (e) { /* sem cópia: segue só com o que veio */ }
+    }
     const fora = contarFora(onibus);
     ctx.waitUntil(registrar({ t: agora, r: fontes.every(f => f.ok) ? 'ok' : 'parcial', n: onibus.length, fontes, ...(Object.keys(fora).length ? { fora } : {}) }).catch(() => {}));
     ctx.waitUntil(registrarFora(fora, agora).catch(() => {}));
-    const corpo = JSON.stringify({ t: agora, fonte: 'SMTR / Prefeitura do Rio (dados.mobilidade.rio)', onibus });
+    const corpo = JSON.stringify({ t: agora, fonte: 'SMTR / Prefeitura do Rio (dados.mobilidade.rio)', onibus, ...(parcial ? { parcial: true } : {}) });
     const resp = new Response(corpo, { headers: { ...cors, 'cache-control': `public, max-age=${CACHE_S}` } });
     ctx.waitUntil(cache.put(chave, resp.clone()));
     if (!falhou) ctx.waitUntil(cache.put(reserva, new Response(corpo, { headers: { 'content-type': 'application/json', 'cache-control': `public, max-age=${RESERVA_S}` } })));

@@ -50,7 +50,7 @@ const mock=fs.readFileSync(path.join(__dirname,'firebase-mock.js'),'utf8');
  ok(/2 linhas fora da lista tiveram ônibus dentro da ilha hoje/.test(t2)&&/474 vista em 12 consultas, até 2 ônibus ao mesmo tempo.*carros C47001, C47002/.test(t2)&&/SVA485 vista em 1 consulta,/.test(t2),'linhas fora da lista vistas na ilha hoje');
  ok(/Hoje nenhum ônibus de outra linha passou dentro da ilha|Publique o Worker de novo \(worker\/gps-fundao.js\) para ver as linhas/.test(t),'sem linhas fora da lista: avisa (ou pede para publicar o Worker)');
  ok(/37 aparelhos recebem os avisos/.test(t2)&&/36 entregues ao serviço de notificações, 1 inscrição\(ões\) vencida\(s\) apagada\(s\)/.test(t2),'notificações de tiroteio: aparelhos inscritos e último envio');
- ok(/Prefeitura: 1 de 2 tentativas falhou/.test(t2)&&/data center GIG/.test(t2)&&/não respondeu em 8 s/.test(t2)&&/usou a cópia guardada/.test(t2),'tentativas com a prefeitura, com o motivo de cada falha');
+ ok(/Prefeitura do Rio: 1 de 2 tentativas falhou/.test(t2)&&/data center GIG/.test(t2)&&/não respondeu em 8 s/.test(t2)&&/usou a cópia guardada/.test(t2),'tentativas com a prefeitura, com o motivo de cada falha');
  await p.evaluate(()=>{const e=document.querySelector('.sd-fora');if(e)e.scrollIntoView()});await p.waitForTimeout(300);await p.screenshot({path:(process.env.FOTO||'/tmp/saude.png').replace('.png','-fora.png')});await p.evaluate(()=>{const e=document.querySelector('.sd-horas');if(e)e.scrollIntoView({block:'center'})});await p.waitForTimeout(300);await p.screenshot({path:(process.env.FOTO||'/tmp/saude.png').replace('.png','-falhas.png')});
  ok(errs.length===0,'sem erros de JavaScript com o Worker caindo '+JSON.stringify(errs));
  await b.close();srv.close();process.exit(falhou?1:0)})();

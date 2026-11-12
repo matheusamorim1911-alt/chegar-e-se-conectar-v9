@@ -49,22 +49,27 @@ function lastPill(t,now){
 }
 function nightHTML(now){
   var from=state.nightFrom||state.to;state.nightFrom=from;
+  /* destino: a Estação BRT ou, para quem mora na Vila Residencial (perfil de uso), o ponto mais perto da Vila */
+  var dest=nightDest(),vila=dest!=='est',DN=STOPS[dest].short||STOPS[dest].name,V=vila?vilaPonto():null;
+  var ape=vila?' De lá até a Vila são uns '+V.min+' min a pé ('+V.m+' m).':'';
   var opts=SORTED.map(function(k){return '<option value="'+k+'"'+(k===from?' selected':'')+'>'+STOPS[k].name+'</option>'}).join('');
   var top='';
-  if(from==='est'){
-    top='<div class="next"><p><b>Você já está na Estação BRT.</b></p><p class="muted small">Daqui saem o BRT e os ônibus para fora da ilha.</p></div>';
+  if(from===dest){
+    top=vila?'<div class="next"><p><b>Você já está no ponto mais perto da Vila Residencial.</b></p><p class="muted small">'+ape.trim().replace('De lá','Daqui')+'</p></div>'
+      :'<div class="next"><p><b>Você já está na Estação BRT.</b></p><p class="muted small">Daqui saem o BRT e os ônibus para fora da ilha.</p></div>';
   }else{
-    var L=lastTo(from,'est');
-    if(!L.length)top='<div class="next"><p><b>Nenhuma linha vai direto daqui para a Estação BRT.</b></p><p class="muted small">Veja abaixo os últimos horários de cada linha nesta parada.</p></div>';
+    var L=lastTo(from,dest);
+    if(!L.length)top='<div class="next"><p><b>Nenhuma linha vai direto daqui para '+(vila?'o ponto mais perto da Vila Residencial ('+DN+')':'a Estação BRT')+'.</b></p><p class="muted small">Veja abaixo os últimos horários de cada linha nesta parada.</p></div>';
     else{
       var b=L[0],d=Math.round(b.dep)-now;
-      top='<div class="next lastbig"><p class="eyebrow">Último ônibus daqui para a Estação BRT</p>'+
+      top='<div class="next lastbig"><p class="eyebrow">Último ônibus daqui para '+(vila?'a Vila Residencial (ponto '+DN+')':'a Estação BRT')+'</p>'+
         '<div class="nx-top">'+badge(b.lid)+'<span>Linha '+b.lid+' · '+LINES[b.lid].name+'</span></div>'+
         '<div class="nx-big"><span class="nx-min">'+tilde(b.lid)+bt(b.dep)+'</span>'+lastPill(b.dep,now)+'</div>'+faixaGraf(b.dep,now,b.lid)+
-        '<p class="muted small">'+(d>=0?(CFG.faixa?'Passa '+relB(b.dep,now).pre+' '+relB(b.dep,now).val:'Faltam '+(d>=60?Math.floor(d/60)+' h '+(d%60)+' min':d+' min'))+'. ':'Este horário já passou hoje. ')+'Chega na Estação '+(CFG.faixa?atTxt(b.arr):'por volta de '+fmt(b.arr))+'.</p>'+
+        '<p class="muted small">'+(d>=0?(CFG.faixa?'Passa '+relB(b.dep,now).pre+' '+relB(b.dep,now).val:'Faltam '+(d>=60?Math.floor(d/60)+' h '+(d%60)+' min':d+' min'))+'. ':'Este horário já passou hoje. ')+(vila?'Chega no ponto '+DN+' ':'Chega na Estação ')+(CFG.faixa?atTxt(b.arr):'por volta de '+fmt(b.arr))+'.'+ape+'</p>'+
         (L.length>1?'<div class="later"><span class="lab">Outras</span>'+L.slice(1).map(function(c){return badge(c.lid)+' <span class="mono">'+tilde(c.lid)+bt(c.dep)+'</span>'}).join(' ')+'</div>':'')+'</div>';
     }
   }
+  if(usoMoraNaVila())top+='<p class="small keep"><button type="button" class="linkbtn" data-nightest>'+(vila?'Hoje vou sair da ilha: ver a volta para a Estação BRT':'Ver a volta para a Vila Residencial')+'</button></p>';
   var rows=linesAt(from).map(function(lid){
     if(!nightOK(lid))return '<div class="lastrow">'+badge(lid)+'<span class="grow">'+LINES[lid].name+'</span><span class="pill bad">Só seg. a sex.</span></div>';
     return lastAt(lid,from).map(function(g){
@@ -75,7 +80,7 @@ function nightHTML(now){
     '<div><p class="eyebrow">Segurança</p><h2>Volta à noite</h2></div>'+
     (isWeekend()&&!state.manual?weekendNote:'')+
     '<label class="fld">Onde você está?<select id="nightFrom">'+opts+'</select></label>'+top+
-    (from!=='est'?(function(){var o=options(from,'est',now)[0]||lastTo(from,'est')[0];return o?warnHTML({from:from,to:'est',lid:o.lid,dep:o.dep,arr:o.arr},'night',true):''})():'')+
+    (from!==dest?(function(){var o=options(from,dest,now)[0]||lastTo(from,dest)[0];return o?warnHTML({from:from,to:dest,lid:o.lid,dep:o.dep,arr:o.arr},'night',true):''})():'')+
     '<h3>Último horário de cada linha aqui</h3><div>'+rows+'</div>'+
     nightShareHTML()+'<h3>Telefones da segurança</h3><div class="calls">'+CALLS.map(function(c){
       return '<div class="callrow"><span class="grow"><b>'+c.n+'</b><small>'+c.d+'</small></span><a class="num" href="tel:'+c.raw+'">'+c.num+'</a><button class="copy" type="button" data-copy="'+c.num+'">Copiar</button></div>';
@@ -85,14 +90,14 @@ function nightHTML(now){
       var g=GUARDS[id];
       return '<button class="item tint" type="button" style="--c:var(--warn)" data-kind="guard" data-id="'+id+'"><span class="lb" style="--c:var(--mc-guard);color:#0A0E13">'+g.short+'</span><span class="grow">'+g.name+'<small>'+g.where+'</small></span></button>';
     }).join('')+'</div>'+
-    '<h3>Dicas da Prefeitura</h3><ul class="tips">'+NTIPS.map(function(t){return '<li>'+t+'</li>'}).join('')+'</ul>';
+    '<h3>Dicas da Prefeitura Universitária</h3><ul class="tips">'+NTIPS.map(function(t){return '<li>'+t+'</li>'}).join('')+'</ul>';
 }
 function guardHTML(id){
   var g=GUARDS[id];
   var near=Object.keys(STOPS).filter(function(s){return Math.hypot(STOPS[s].p[0]-g.p[0],STOPS[s].p[1]-g.p[1])<=130});
   return '<button class="back" type="button" data-kind="night" data-id="x">← Volta à noite</button>'+
     '<div><p class="eyebrow">Segurança · guarita</p><h2>'+g.name+'</h2></div><p>'+g.where+'</p>'+
-    '<p class="note">No mapa da Prefeitura, as guaritas aparecem com o nº 33, junto da Divisão de Segurança (DISEG). Em caso de problema, procure a guarita mais próxima ou ligue para a DISEG.</p>'+
+    '<p class="note">No mapa da Prefeitura Universitária, as guaritas aparecem com o nº 33, junto da Divisão de Segurança (DISEG). Em caso de problema, procure a guarita mais próxima ou ligue para a DISEG.</p>'+
     '<div class="calls">'+CALLS.slice(0,2).map(function(c){
       return '<div class="callrow"><span class="grow"><b>'+c.n+'</b><small>'+c.d+'</small></span><a class="num" href="tel:'+c.raw+'">'+c.num+'</a><button class="copy" type="button" data-copy="'+c.num+'">Copiar</button></div>';
     }).join('')+'</div>'+
@@ -122,7 +127,7 @@ function faixaOf(m){var w=+CFG.faixa||0,a=Math.round((m-w/2)/5)*5;return [a,a+w]
 function bt(m){if(!CFG.faixa)return fmt(m);var f=faixaOf(m);return fmt(f[0])+'–'+fmt(f[1])}
 function atT(m){if(!CFG.faixa)return 'às <span class="mono">'+fmt(m)+'</span>';var f=faixaOf(m);return 'entre <span class="mono">'+fmt(f[0])+'</span> e <span class="mono">'+fmt(f[1])+'</span>'}
 function atTxt(m){if(!CFG.faixa)return 'às '+fmt(m);var f=faixaOf(m);return 'entre '+fmt(f[0])+' e '+fmt(f[1])}
-var weekendNote='<p class="note">Hoje é fim de semana. A página da Prefeitura só informa horários de dias úteis; confirme antes de sair.</p>';
+var weekendNote='<p class="note">Hoje é fim de semana. A página da Prefeitura Universitária só informa horários de dias úteis; confirme antes de sair.</p>';
 /* ---------- planejador ---------- */
 var plan=$('#plan'),detail=$('#detail');
 function renderPlan(focusSel){
@@ -235,7 +240,7 @@ function wifiHTML(id){
     (ss.length?'<h3>Paradas por perto</h3><div class="list">'+ss.map(stopItem).join('')+'</div>':'');
 }
 function renderDetail(focusSel){
-  if(state.sel&&state.sel.kind==='ext'){detail.innerHTML=extStopHTML(state.sel.id,nowMin());etapas('detalhe montado');return}/* ponto da prefeitura */
+  if(state.sel&&state.sel.kind==='ext'){detail.innerHTML=extStopHTML(state.sel.id,nowMin());etapas('detalhe montado');return}/* ponto da prefeitura do Rio */
   var now=nowMin(),s=state.sel,h;
   if(!s)h=linesHTML();
   else if(s.kind==='line')h=lineHTML(s.id,now);
@@ -260,7 +265,7 @@ function renderDetail(focusSel){
 }
 function renderAll(){renderPlan();renderDetail();updateMap()}
 function select(kind,id,scroll){
-  /* ponto da prefeitura: liga a camada de ônibus da cidade e vai para Trajetos */
+  /* ponto da prefeitura do Rio: liga a camada de ônibus da cidade e vai para Trajetos */
   if(kind==='ext'&&EXTS[id]){
     if(!state.layers.ext){state.layers.ext=true;try{localStorage.setItem('cse-lay-ext','1')}catch(e){}busChip();setTimeout(liveFetch,0)}
     setTab('trajeto');

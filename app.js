@@ -82,7 +82,7 @@ var LINES={
       {to:'Gráfica',seq:['est','hu','j1','j2','j3','pu','cepel','cenpes1','ath','ccmn','ath','ctl','pc','xisto','pc','reit','pe','cpst','incub','graf']},
       {to:'Estação',seq:['graf','wL','coppead','cetem','wL','pe','reit','pc','ctl','ath','ccmn','ath','cenpes2','dg','dg2','j1','eefd','dipro','wn','res','wn','biorio','j1','ccsbb','hu','est']}]}]},
   '2':{name:'Estação × COPPEAD',color:'--l2',
-    sum:'A cada 40 min. Saídas da Estação das 7h05 às 19h05; da COPPEAD das 7h25 às 18h45. A volta segue até a Estação (a página da Prefeitura cita a volta só até a Faculdade de Letras).',
+    sum:'A cada 40 min. Saídas da Estação das 7h05 às 19h05; da COPPEAD das 7h25 às 18h45. A volta segue até a Estação (a página da Prefeitura Universitária cita a volta só até a Faculdade de Letras).',
     trips:[
       {deps:range(425,1145,40),halves:[{to:'COPPEAD',seq:['est','hu','j1','j2','j3','pu','cepel','cenpes1','ctl','pc','reit','pe','wL','cetem','coppead']}]},
       {deps:range(445,1125,40),halves:[{to:'Estação',seq:['coppead','cetem','wL','pe','~reit','pc','ctl','cenpes2','dg','dg2','j1','eefd','biorio','j1','ccsbb','hu','est']}]}]},
@@ -306,7 +306,7 @@ var MAPIMG=mapaUrl('mapa-bordas'+MAPSUF+'.jpg');
 /* mapa base: planta cadastral da Cidade Universitária (ETU/UFRJ), vetorizada; JPG para a visão geral, SVG nítido no zoom */
 var MAPHD=window.MAPHD_URL=mapaUrl('mapa-campus'+MAPSUF+'.jpg'),MAPVEC=mapaUrl('mapa-campus'+MAPSUF+'.svg'),MAPMINI=mapaUrl('mapa-mini'+MAPSUF+'.jpg'),MAPBLUR=mapaUrl('mapa-blur'+MAPSUF+'.jpg'),MAPVEC0=mapaUrl('mapa-campus.svg');
 /* nomes recriados como texto: [texto, x, y, classe, nível de zoom, rotação] */
-/* guaritas (posições do mapa da Prefeitura; o nº 33 da legenda é "Guaritas / DISEG") */
+/* guaritas (posições do mapa da Prefeitura Universitária; o nº 33 da legenda é "Guaritas / DISEG") */
 var GUARDS={
   g1:{name:'Guarita 1',short:'G1',where:'Acesso pela Linha Vermelha, sentido Ilha do Governador e Baixada.',p:[256.4,378.8]},
   g2:{name:'Guarita 2',short:'G2',where:'Acesso pela Av. Brasil.',p:[391.1,444.5]},
@@ -571,7 +571,7 @@ function drawLabels(){
   gLab.innerHTML=s;
 }
 /* ======================= nomes dos prédios no zoom (da planta da ETU/UFRJ) ======================= */
-var BLDN=[["Hospital Universitário",325.7,364,1],["IPPMG (Pediatria)",279.9,370,2],["CCS",352.6,290.8,1],["Instituto de Microbiologia",324.9,274,3],["Escola de Educação Infantil",272.9,345.2,3],["Usina Verde",362.3,235.3,3],["Polo Bio-Rio",377.5,192.6,2],["RU Central",424.4,330.8,1],["EEFD",428.2,302.6,1],["Ginásio",450.8,293.6,3],["Gastronomia",459.3,327.3,3],["Prefeitura · DISEG",417.4,449.2,1],["Horto Universitário",435,461.4,3],["Instituto de Física",750.6,447,2],["Instituto de Química",749.5,396,2],["Instituto de Matemática",753.5,467.9,2],["CCMN",765,501.4,1],["CT 2",936.5,558.2,2],["Macromoléculas",938.2,457,3],["LNDC",961.4,460,3],["Polo de Xistoquímica",1000.4,553.4,2],["Faculdade de Letras",940,379.9,1],["CCJE",908.2,386.2,2],["Reitoria (CLA)",1013.5,367.7,1],["COPPEAD",1027.5,226,1],["Incubadora",1119.3,336.2,2],["Gráfica",1142.3,337.2,3],["Almoxarifado",1172.3,335.9,3],["Frota Oficial",1168.1,355.1,3],["CPST · EBA",1148.4,362,3],["DIPRO",423.9,83.6,2],["UFRJ-Mar",469.3,45.6,3],["Escola Tenente Antônio João",1020.9,213.3,3]];
+var BLDN=[["Hospital Universitário",325.7,364,1],["IPPMG (Pediatria)",279.9,370,2],["CCS",352.6,290.8,1],["Instituto de Microbiologia",324.9,274,3],["Escola de Educação Infantil",272.9,345.2,3],["Usina Verde",362.3,235.3,3],["Polo Bio-Rio",377.5,192.6,2],["RU Central",424.4,330.8,1],["EEFD",428.2,302.6,1],["Ginásio",450.8,293.6,3],["Gastronomia",459.3,327.3,3],["Prefeitura Universitária · DISEG",417.4,449.2,1],["Horto Universitário",435,461.4,3],["Instituto de Física",750.6,447,2],["Instituto de Química",749.5,396,2],["Instituto de Matemática",753.5,467.9,2],["CCMN",765,501.4,1],["CT 2",936.5,558.2,2],["Macromoléculas",938.2,457,3],["LNDC",961.4,460,3],["Polo de Xistoquímica",1000.4,553.4,2],["Faculdade de Letras",940,379.9,1],["CCJE",908.2,386.2,2],["Reitoria (CLA)",1013.5,367.7,1],["COPPEAD",1027.5,226,1],["Incubadora",1119.3,336.2,2],["Gráfica",1142.3,337.2,3],["Almoxarifado",1172.3,335.9,3],["Frota Oficial",1168.1,355.1,3],["CPST · EBA",1148.4,362,3],["DIPRO",423.9,83.6,2],["UFRJ-Mar",469.3,45.6,3],["Escola Tenente Antônio João",1020.9,213.3,3]];
 function bldLabels(taken){
   var ppu=box().w/view.w,mob=box().w<680;
   if(ppu<(mob?1.5:2.2))return '';
@@ -690,22 +690,27 @@ function lastPill(t,now){
 }
 function nightHTML(now){
   var from=state.nightFrom||state.to;state.nightFrom=from;
+  /* destino: a Estação BRT ou, para quem mora na Vila Residencial (perfil de uso), o ponto mais perto da Vila */
+  var dest=nightDest(),vila=dest!=='est',DN=STOPS[dest].short||STOPS[dest].name,V=vila?vilaPonto():null;
+  var ape=vila?' De lá até a Vila são uns '+V.min+' min a pé ('+V.m+' m).':'';
   var opts=SORTED.map(function(k){return '<option value="'+k+'"'+(k===from?' selected':'')+'>'+STOPS[k].name+'</option>'}).join('');
   var top='';
-  if(from==='est'){
-    top='<div class="next"><p><b>Você já está na Estação BRT.</b></p><p class="muted small">Daqui saem o BRT e os ônibus para fora da ilha.</p></div>';
+  if(from===dest){
+    top=vila?'<div class="next"><p><b>Você já está no ponto mais perto da Vila Residencial.</b></p><p class="muted small">'+ape.trim().replace('De lá','Daqui')+'</p></div>'
+      :'<div class="next"><p><b>Você já está na Estação BRT.</b></p><p class="muted small">Daqui saem o BRT e os ônibus para fora da ilha.</p></div>';
   }else{
-    var L=lastTo(from,'est');
-    if(!L.length)top='<div class="next"><p><b>Nenhuma linha vai direto daqui para a Estação BRT.</b></p><p class="muted small">Veja abaixo os últimos horários de cada linha nesta parada.</p></div>';
+    var L=lastTo(from,dest);
+    if(!L.length)top='<div class="next"><p><b>Nenhuma linha vai direto daqui para '+(vila?'o ponto mais perto da Vila Residencial ('+DN+')':'a Estação BRT')+'.</b></p><p class="muted small">Veja abaixo os últimos horários de cada linha nesta parada.</p></div>';
     else{
       var b=L[0],d=Math.round(b.dep)-now;
-      top='<div class="next lastbig"><p class="eyebrow">Último ônibus daqui para a Estação BRT</p>'+
+      top='<div class="next lastbig"><p class="eyebrow">Último ônibus daqui para '+(vila?'a Vila Residencial (ponto '+DN+')':'a Estação BRT')+'</p>'+
         '<div class="nx-top">'+badge(b.lid)+'<span>Linha '+b.lid+' · '+LINES[b.lid].name+'</span></div>'+
         '<div class="nx-big"><span class="nx-min">'+tilde(b.lid)+bt(b.dep)+'</span>'+lastPill(b.dep,now)+'</div>'+faixaGraf(b.dep,now,b.lid)+
-        '<p class="muted small">'+(d>=0?(CFG.faixa?'Passa '+relB(b.dep,now).pre+' '+relB(b.dep,now).val:'Faltam '+(d>=60?Math.floor(d/60)+' h '+(d%60)+' min':d+' min'))+'. ':'Este horário já passou hoje. ')+'Chega na Estação '+(CFG.faixa?atTxt(b.arr):'por volta de '+fmt(b.arr))+'.</p>'+
+        '<p class="muted small">'+(d>=0?(CFG.faixa?'Passa '+relB(b.dep,now).pre+' '+relB(b.dep,now).val:'Faltam '+(d>=60?Math.floor(d/60)+' h '+(d%60)+' min':d+' min'))+'. ':'Este horário já passou hoje. ')+(vila?'Chega no ponto '+DN+' ':'Chega na Estação ')+(CFG.faixa?atTxt(b.arr):'por volta de '+fmt(b.arr))+'.'+ape+'</p>'+
         (L.length>1?'<div class="later"><span class="lab">Outras</span>'+L.slice(1).map(function(c){return badge(c.lid)+' <span class="mono">'+tilde(c.lid)+bt(c.dep)+'</span>'}).join(' ')+'</div>':'')+'</div>';
     }
   }
+  if(usoMoraNaVila())top+='<p class="small keep"><button type="button" class="linkbtn" data-nightest>'+(vila?'Hoje vou sair da ilha: ver a volta para a Estação BRT':'Ver a volta para a Vila Residencial')+'</button></p>';
   var rows=linesAt(from).map(function(lid){
     if(!nightOK(lid))return '<div class="lastrow">'+badge(lid)+'<span class="grow">'+LINES[lid].name+'</span><span class="pill bad">Só seg. a sex.</span></div>';
     return lastAt(lid,from).map(function(g){
@@ -716,7 +721,7 @@ function nightHTML(now){
     '<div><p class="eyebrow">Segurança</p><h2>Volta à noite</h2></div>'+
     (isWeekend()&&!state.manual?weekendNote:'')+
     '<label class="fld">Onde você está?<select id="nightFrom">'+opts+'</select></label>'+top+
-    (from!=='est'?(function(){var o=options(from,'est',now)[0]||lastTo(from,'est')[0];return o?warnHTML({from:from,to:'est',lid:o.lid,dep:o.dep,arr:o.arr},'night',true):''})():'')+
+    (from!==dest?(function(){var o=options(from,dest,now)[0]||lastTo(from,dest)[0];return o?warnHTML({from:from,to:dest,lid:o.lid,dep:o.dep,arr:o.arr},'night',true):''})():'')+
     '<h3>Último horário de cada linha aqui</h3><div>'+rows+'</div>'+
     nightShareHTML()+'<h3>Telefones da segurança</h3><div class="calls">'+CALLS.map(function(c){
       return '<div class="callrow"><span class="grow"><b>'+c.n+'</b><small>'+c.d+'</small></span><a class="num" href="tel:'+c.raw+'">'+c.num+'</a><button class="copy" type="button" data-copy="'+c.num+'">Copiar</button></div>';
@@ -726,14 +731,14 @@ function nightHTML(now){
       var g=GUARDS[id];
       return '<button class="item tint" type="button" style="--c:var(--warn)" data-kind="guard" data-id="'+id+'"><span class="lb" style="--c:var(--mc-guard);color:#0A0E13">'+g.short+'</span><span class="grow">'+g.name+'<small>'+g.where+'</small></span></button>';
     }).join('')+'</div>'+
-    '<h3>Dicas da Prefeitura</h3><ul class="tips">'+NTIPS.map(function(t){return '<li>'+t+'</li>'}).join('')+'</ul>';
+    '<h3>Dicas da Prefeitura Universitária</h3><ul class="tips">'+NTIPS.map(function(t){return '<li>'+t+'</li>'}).join('')+'</ul>';
 }
 function guardHTML(id){
   var g=GUARDS[id];
   var near=Object.keys(STOPS).filter(function(s){return Math.hypot(STOPS[s].p[0]-g.p[0],STOPS[s].p[1]-g.p[1])<=130});
   return '<button class="back" type="button" data-kind="night" data-id="x">← Volta à noite</button>'+
     '<div><p class="eyebrow">Segurança · guarita</p><h2>'+g.name+'</h2></div><p>'+g.where+'</p>'+
-    '<p class="note">No mapa da Prefeitura, as guaritas aparecem com o nº 33, junto da Divisão de Segurança (DISEG). Em caso de problema, procure a guarita mais próxima ou ligue para a DISEG.</p>'+
+    '<p class="note">No mapa da Prefeitura Universitária, as guaritas aparecem com o nº 33, junto da Divisão de Segurança (DISEG). Em caso de problema, procure a guarita mais próxima ou ligue para a DISEG.</p>'+
     '<div class="calls">'+CALLS.slice(0,2).map(function(c){
       return '<div class="callrow"><span class="grow"><b>'+c.n+'</b><small>'+c.d+'</small></span><a class="num" href="tel:'+c.raw+'">'+c.num+'</a><button class="copy" type="button" data-copy="'+c.num+'">Copiar</button></div>';
     }).join('')+'</div>'+
@@ -763,7 +768,7 @@ function faixaOf(m){var w=+CFG.faixa||0,a=Math.round((m-w/2)/5)*5;return [a,a+w]
 function bt(m){if(!CFG.faixa)return fmt(m);var f=faixaOf(m);return fmt(f[0])+'–'+fmt(f[1])}
 function atT(m){if(!CFG.faixa)return 'às <span class="mono">'+fmt(m)+'</span>';var f=faixaOf(m);return 'entre <span class="mono">'+fmt(f[0])+'</span> e <span class="mono">'+fmt(f[1])+'</span>'}
 function atTxt(m){if(!CFG.faixa)return 'às '+fmt(m);var f=faixaOf(m);return 'entre '+fmt(f[0])+' e '+fmt(f[1])}
-var weekendNote='<p class="note">Hoje é fim de semana. A página da Prefeitura só informa horários de dias úteis; confirme antes de sair.</p>';
+var weekendNote='<p class="note">Hoje é fim de semana. A página da Prefeitura Universitária só informa horários de dias úteis; confirme antes de sair.</p>';
 /* ---------- planejador ---------- */
 var plan=$('#plan'),detail=$('#detail');
 function renderPlan(focusSel){
@@ -876,7 +881,7 @@ function wifiHTML(id){
     (ss.length?'<h3>Paradas por perto</h3><div class="list">'+ss.map(stopItem).join('')+'</div>':'');
 }
 function renderDetail(focusSel){
-  if(state.sel&&state.sel.kind==='ext'){detail.innerHTML=extStopHTML(state.sel.id,nowMin());etapas('detalhe montado');return}/* ponto da prefeitura */
+  if(state.sel&&state.sel.kind==='ext'){detail.innerHTML=extStopHTML(state.sel.id,nowMin());etapas('detalhe montado');return}/* ponto da prefeitura do Rio */
   var now=nowMin(),s=state.sel,h;
   if(!s)h=linesHTML();
   else if(s.kind==='line')h=lineHTML(s.id,now);
@@ -901,7 +906,7 @@ function renderDetail(focusSel){
 }
 function renderAll(){renderPlan();renderDetail();updateMap()}
 function select(kind,id,scroll){
-  /* ponto da prefeitura: liga a camada de ônibus da cidade e vai para Trajetos */
+  /* ponto da prefeitura do Rio: liga a camada de ônibus da cidade e vai para Trajetos */
   if(kind==='ext'&&EXTS[id]){
     if(!state.layers.ext){state.layers.ext=true;try{localStorage.setItem('cse-lay-ext','1')}catch(e){}busChip();setTimeout(liveFetch,0)}
     setTab('trajeto');
@@ -1449,7 +1454,7 @@ var PL={
   a_if:{s:'Secretaria do IF',name:'Secretaria do Instituto de Física',cat:'atend',where:'CT, Bloco A, 3º andar, sala 342-A',bld:'ct',b:'A',f:3,p:[857.4,466.6],wk:null,note:'Horário não informado.'},
   a_geo:{s:'Secretaria de Geografia',name:'Secretaria de Geografia (IGEO)',cat:'atend',where:'CCMN, Bloco G, sala 025',bld:'ccmn',b:'G',f:0,p:[793.6,481.4],wk:[[600,1020]]},
   a_ic:{s:'Secretaria do IC',name:'Secretaria do Instituto de Computação',cat:'atend',where:'Prédio do CCMN',bld:'ccmn',b:'?',f:null,p:[793.6,481.4],wk:[[540,720]]},
-  a_pu:{name:'Prefeitura Universitária',cat:'atend',where:'Prédio da Prefeitura (nº 07 no mapa)',p:[415.7,455.3],wk:[[540,960]],note:'Atendimento presencial e telefone fixo (21) 3938-0346.'},
+  a_pu:{name:'Prefeitura Universitária',cat:'atend',where:'Prédio da Prefeitura Universitária (nº 07 no mapa)',p:[415.7,455.3],wk:[[540,960]],note:'Atendimento presencial e telefone fixo (21) 3938-0346.'},
   hall_h:{s:'Hall (eventos)',name:'Hall do Bloco H',cat:'atend',where:'CT, Bloco H',bld:'ct',b:'H',f:1,p:[857.4,466.6],wk:null,note:'Espaço de eventos. Sem horário fixo.'},
   s_diseg:{name:'DISEG – Divisão de Segurança',cat:'seg',where:'Telefone (21) 97380-2554',wk:[[0,1440]],we:[[0,1440]],note:'Atendimento 24 horas.'},
   s_cco:{name:'Centro de Controle Operacional',cat:'seg',where:'WhatsApp (21) 99871-1621',wk:[[0,1440]],we:[[0,1440]],note:'Atendimento 24 horas.'}
@@ -1457,7 +1462,7 @@ var PL={
 Object.keys(LINES).forEach(function(id){
   var l=LINES[id],d=l.trips[0].deps;
   PL['bus'+id]={incl:1,name:'Linha '+id+' · '+l.name,cat:'onibus',where:'Primeira e última saída da origem',wk:[[d[0],d[d.length-1]+1]],we:l.weekdays?null:undefined,line:id,
-    note:l.weekdays?'Só de segunda a sexta.':'Fins de semana: a Prefeitura não informa; confirme antes.'};
+    note:l.weekdays?'Só de segunda a sexta.':'Fins de semana: a Prefeitura Universitária não informa; confirme antes.'};
 });
 var BLD={
   ct:{name:'Centro de Tecnologia',short:'CT',addr:'Av. Athos da Silveira Ramos, 149',stop:'ctl',
@@ -1898,7 +1903,7 @@ var GLOSS=[
  ['CEPE','Clube dos Empregados da Petrobras','Clube na Av. Horácio Macedo, com ponto das linhas internas.','lugar','s:cepe'],
  ['IEN','Instituto de Engenharia Nuclear','Instituto da CNEN (não é da UFRJ), perto da Xistoquímica.','lugar',''],
  ['DISEG','Divisão de Segurança','Segurança e vigilância do campus. Cuida das guaritas e das câmeras.','serv','c:seg'],
- ['CCO','Centro de Controle Operacional','Central da Prefeitura que acompanha o trânsito e as câmeras da ilha.','serv','c:seg'],
+ ['CCO','Centro de Controle Operacional','Central da Prefeitura Universitária que acompanha o trânsito e as câmeras da ilha.','serv','c:seg'],
  ['DFO','Divisão da Frota Oficial','Setor da Prefeitura Universitária que cuida dos veículos. Dá nome ao ponto CPST / DFO.','serv','s:cpst'],
  ['DIPRO','Divisão de Produção','Setor da Prefeitura Universitária. Dá nome a um ponto das linhas internas.','serv','s:dipro'],
  ['CPST','Coordenação de Políticas de Saúde do Trabalhador','Saúde dos servidores da UFRJ, ligada à PR-4.','serv','s:cpst'],
@@ -2890,7 +2895,7 @@ applyFont();
    (escala, rotação, espelho e deslocamento) ajustada em pontos de referência.
    Calibração inicial: coordenadas aproximadas de CT, HU, Polo de Biotecnologia, Parque Tecnológico e CETEM (margem ~150 m).
    A gestão refina em "GPS e mapa" com coordenadas copiadas do Google Maps. */
-/* v34: calibração refeita encaixando os traçados oficiais das linhas da prefeitura (GTFS/SMTR) nas ruas da planta: erro médio ~13 m (antes ~90 m) */
+/* v34: calibração refeita encaixando os traçados oficiais das linhas da prefeitura do Rio (GTFS/SMTR) nas ruas da planta: erro médio ~13 m (antes ~90 m) */
 var GEO0={lat0:-22.855,lng0:-43.228,a:0.142691,b:0.216408,tx:768.63,ty:348.65,n:0,err:15};
 var GEO=Object.assign({},GEO0);
 var GPS_REF=['est','hu','eefd','res','pu','cenpes1','ccmn','ctl','reit','cetem','coppead','parque','graf'];
@@ -3322,7 +3327,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261111-1158';
+var APP_VERSION='20261112-1518';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -4089,7 +4094,7 @@ function openLogin(){
 function closeLogin(){
   var rm=window.matchMedia('(prefers-reduced-motion:reduce)').matches;login.classList.add('closing');if(!cover.hidden)setTimeout(cvEnter,rm?0:120);
   setTimeout(function(){login.hidden=true;if(cover.hidden)document.documentElement.style.overflow='';else{var b=cover.querySelector('.cv-btn.main');if(b)b.focus({preventScroll:true})}},rm?0:300);
-  if(!$('#pane-cfg').hidden)renderCfg();setTimeout(function(){refreshAll();if(!pPane.hidden)renderPredios()},0);}
+  if(!$('#pane-cfg').hidden)renderCfg();setTimeout(function(){refreshAll();if(!pPane.hidden)renderPredios()},0);etapas('login fechado');}
 $('#lgBio').addEventListener('click',function(){bioLogin()});
 $('#lgUsePin').addEventListener('click',function(){this.hidden=true;$('#lgPinForm').hidden=false;$('#lgPin').focus()});
 $('#lgPinForm').addEventListener('submit',function(e){e.preventDefault();
@@ -4649,11 +4654,11 @@ var CONT={nome:'',tel:''};try{var _ct=JSON.parse(localStorage.getItem('cse-conta
 function saveCont(){try{localStorage.setItem('cse-contato',JSON.stringify(CONT))}catch(e){}if(contaOk())accQueue()}
 function telDig(t){var d=String(t||'').replace(/\D/g,'');if(d.length===10||d.length===11)d='55'+d;return d.length>=12?d:''}
 function nightMsg(kind,from,now){
-  var hi=CONT.nome?'Oi, '+CONT.nome+'! ':'';
-  if(kind==='cheguei')return hi+'Cheguei bem na Estação BRT. (Chega aí UFRJ)';
-  if(from==='est')return hi+'Estou na Estação BRT do Fundão saindo agora. Te aviso quando chegar. (Chega aí UFRJ)';
-  var o=options(from,'est',now)[0]||lastTo(from,'est')[0];
-  return hi+'Estou saindo de '+STOPS[from].name+' agora'+(o?'. Vou pegar a Linha '+o.lid+' ('+LINES[o.lid].name+') por volta de '+hm(Math.round(o.dep))+' e devo chegar na Estação BRT perto de '+hm(Math.round(o.arr)):'')+'. Te aviso quando chegar. (Chega aí UFRJ)';
+  var hi=CONT.nome?'Oi, '+CONT.nome+'! ':'',dest=nightDest(),vila=dest!=='est',onde=vila?'na Vila Residencial':'na Estação BRT';
+  if(kind==='cheguei')return hi+'Cheguei bem '+onde+'. (Chega aí UFRJ)';
+  if(from===dest)return hi+(vila?'Estou no ponto '+(STOPS[dest].short||STOPS[dest].name)+', indo a pé para a Vila Residencial agora':'Estou na Estação BRT do Fundão saindo agora')+'. Te aviso quando chegar. (Chega aí UFRJ)';
+  var o=options(from,dest,now)[0]||lastTo(from,dest)[0];
+  return hi+'Estou saindo de '+STOPS[from].name+' agora'+(o?'. Vou pegar a Linha '+o.lid+' ('+LINES[o.lid].name+') por volta de '+hm(Math.round(o.dep))+' e devo chegar '+(vila?'no ponto '+(STOPS[dest].short||STOPS[dest].name)+', perto da Vila Residencial,':'na Estação BRT')+' perto de '+hm(Math.round(o.arr)):'')+'. Te aviso quando chegar. (Chega aí UFRJ)';
 }
 function hm(m){m=((m%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')}
 function nightSend(kind){
@@ -5045,7 +5050,7 @@ function extPanelHTML(now){
     var k=L.n+'|'+L.d,open=EXTSEL.ln===k,first=L.st[0][0];
     return '<li><button type="button" class="xl-row" data-xln="'+esc(k)+'" aria-expanded="'+open+'">'+extBadge(L)+'<span class="grow"><b>'+esc(L.d)+'</b><small>'+extWhen(L,first,now)+' · '+esc(EXTS[first]?EXTS[first].name:'')+'</small></span></button>'+
       (open?'<div class="xl-more"><p class="small keep">'+esc(L.nm)+'. Passa por: '+extStopsOf(L).map(function(n,i){return '<button type="button" class="linkbtn" data-kind="ext" data-id="'+L.st[i][0]+'">'+esc(n)+'</button>'}).join(', ')+'.</p><p class="small keep">Hoje: '+extToday(L)+' saídas'+(extToday(L)?', da primeira às '+fmt((L.t[extSvc(new Date())]||[0])[0])+' à última às '+fmt((L.t[extSvc(new Date())]||[0]).slice(-1)[0]):'')+'.</p></div>':'')+'</li>'}).join('')+'</ul>';
-  return liveStatusHTML()+chips+list+(fora?'<p class="muted small keep">'+fora+' linha'+(fora>1?'s':'')+' deste destino não circula'+(fora>1?'m':'')+' hoje.</p>':'')+'<p class="muted small keep xsrc">Horários programados pela prefeitura ('+esc(EXT.fonte)+'). O trânsito pode atrasar o ônibus.'+
+  return liveStatusHTML()+chips+list+(fora?'<p class="muted small keep">'+fora+' linha'+(fora>1?'s':'')+' deste destino não circula'+(fora>1?'m':'')+' hoje.</p>':'')+'<p class="muted small keep xsrc">Horários programados pela prefeitura do Rio ('+esc(EXT.fonte)+'). O trânsito pode atrasar o ônibus.'+
     (REDUT&&REDUT.ajuste?' A posição ao vivo considera os semáforos mapeados pela UFRJ e pelo OpenStreetMap (© colaboradores do OpenStreetMap).':'')+'</p>';
 }
 function extFoldHTML(now){
@@ -5069,7 +5074,7 @@ function extStopHTML(id,now){
   var S=EXTS[id];if(!S)return linesHTML();
   var ls=EXT.lines.filter(function(L){return L.st.some(function(s){return s[0]===id})});
   ls.sort(function(a,b){var x=extNext(a,id,now,1)[0],y=extNext(b,id,now,1)[0];return (x==null?1e9:x)-(y==null?1e9:y)});
-  return '<p class="eyebrow">Ônibus da cidade</p><h2>'+esc(S.name)+'</h2>'+(S.alt&&S.alt.length?'<p class="muted small keep">Parada da UFRJ e ponto da prefeitura “'+esc(S.alt.join('”, “'))+'”.</p>':'')+liveStatusHTML()+'<p class="muted small keep">'+ls.length+' linha'+(ls.length>1?'s':'')+(ls.length>1?' saem':' sai')+' daqui. Horários programados pela prefeitura.</p>'+
+  return '<p class="eyebrow">Ônibus da cidade</p><h2>'+esc(S.name)+'</h2>'+(S.alt&&S.alt.length?'<p class="muted small keep">Parada da UFRJ e ponto da prefeitura do Rio “'+esc(S.alt.join('”, “'))+'”.</p>':'')+liveStatusHTML()+'<p class="muted small keep">'+ls.length+' linha'+(ls.length>1?'s':'')+(ls.length>1?' saem':' sai')+' daqui. Horários programados pela prefeitura do Rio.</p>'+
     (function(){var row=function(L){return '<li><div class="xl-row">'+extBadge(L)+'<span class="grow"><b>'+esc(L.d)+'</b><small>'+extWhen(L,id,now)+'</small></span></div></li>'},on=ls.filter(extToday),off=ls.filter(function(L){return !extToday(L)});return '<ul class="xl-list">'+on.map(row).join('')+'</ul>'+(off.length?'<details class="xoff"><summary>'+off.length+' linha'+(off.length>1?'s':'')+' não circula'+(off.length>1?'m':'')+' hoje</summary><ul class="xl-list">'+off.map(row).join('')+'</ul></details>':'')})()+
     '<p class="muted small keep xsrc">Fonte: '+esc(EXT.fonte)+'.</p>';
 }
@@ -5096,9 +5101,9 @@ function liveFetch(){
   var agora=Date.now();if(LIVE.ult&&agora-LIVE.ult<5000)return;LIVE.ult=agora;
   fetch(LIVE.url,{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
     var novos=(d.onibus||[]).filter(function(o){return Date.now()-o.t<6*60e3});
-    /* a prefeitura falhou e o Worker não tinha cópia: mantém os ônibus que já estavam no mapa (até 6 min) */
+    /* a prefeitura do Rio falhou e o Worker não tinha cópia: mantém os ônibus que já estavam no mapa (até 6 min) */
     if(d.falhou&&!novos.length)novos=LIVE.bus.filter(function(o){return Date.now()-o.t<6*60e3});
-    LIVE.bus=novos;LIVE.t=Date.now();LIVE.err=!!d.falhou;LIVE.falhas=d.falhou?(LIVE.falhas||0)+1:0;liveDraw();liveRefreshText();
+    LIVE.bus=novos;LIVE.t=Date.now();LIVE.err=!!d.falhou;LIVE.parcial=!!d.parcial;LIVE.falhas=d.falhou?(LIVE.falhas||0)+1:0;liveDraw();liveRefreshText();
     if(d.falhou)setTimeout(liveFetch,5200);
   },function(){LIVE.err=true;LIVE.falhas=(LIVE.falhas||0)+1;liveRefreshText();setTimeout(liveFetch,5200)});
 }
@@ -5127,7 +5132,7 @@ function liveStatusHTML(){
   if(!LIVE.t)return '<p class="lv-st muted small keep"><span class="lv-ping"></span> Buscando ônibus ao vivo…</p>';
   var extra='',d=liveDelay(),n=lvmTotal();
   if(LIVE.bus.length&&d!=null)extra=' · posições com ~'+d+' s de atraso, ajustadas pela velocidade'+(n>=20?' e por '+n.toLocaleString('pt-BR')+' trajetos já medidos':'');
-  return '<p class="lv-st small keep"><span class="lv-ping on"></span> <b>Ao vivo:</b> '+LIVE.bus.length+' ônibus na região do Fundão · atualizado '+liveAgo()+(LIVE.err?' (última tentativa falhou)':'')+extra+'</p>';
+  return '<p class="lv-st small keep"><span class="lv-ping on"></span> <b>Ao vivo:</b> '+LIVE.bus.length+' ônibus na região do Fundão · atualizado '+liveAgo()+(LIVE.err?' (última tentativa falhou)':LIVE.parcial?' (a prefeitura do Rio respondeu só em parte: alguns ônibus estão com a última posição guardada)':'')+extra+'</p>';
 }
 function liveTag(n){var c=liveCount(n);return c?' <span class="lv-tag">'+c+' ao vivo</span>':''}
 function liveRefreshText(){
@@ -5138,9 +5143,9 @@ aoFazer('mapa atualizado',function(){if(LIVE.url&&liveWanted()&&!LIVE.timer)live
 aoFazer('mapa montado',liveDraw);
 document.addEventListener('toggle',function(e){if(e.target&&e.target.id==='fdExt'&&e.target.open)setTimeout(liveFetch,0)},true);
 if(LIVE.url)liveLoop();
-/* ======================= v29: paradas da prefeitura alinhadas às da UFRJ, um botão "Ônibus" e ônibus ao vivo sobre as ruas ======================= */
+/* ======================= v29: paradas da prefeitura do Rio alinhadas às da UFRJ, um botão "Ônibus" e ônibus ao vivo sobre as ruas ======================= */
 var MPU=Math.hypot(GEO.a,GEO.b);/* unidades do mapa por metro */
-/* 1) ponto da prefeitura a até 100 m de uma parada interna (ou 170 m com nome parecido) vira a mesma parada */
+/* 1) ponto da prefeitura do Rio a até 100 m de uma parada interna (ou 170 m com nome parecido) vira a mesma parada */
 (function(){
   var tok=function(s){return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').split(/[^a-z0-9]+/).filter(function(w){return w.length>=4&&['fundao','ufrj','predio','faculdade'].indexOf(w)<0})};
   var G={},map={};
@@ -5203,7 +5208,7 @@ function snapBus(n,p){
 }
 function shpAt(i,s){var S=SHP[i],c=S.c,P=S.P;s=Math.max(0,Math.min(c[c.length-1],s));var j=1;while(j<c.length-1&&c[j]<s)j++;var a=P[j-1],b=P[j],L=(c[j]-c[j-1])||1e-9,t=(s-c[j-1])/L;return {x:a[0]+t*(b[0]-a[0]),y:a[1]+t*(b[1]-a[1]),ang:Math.atan2(b[0]-a[0],-(b[1]-a[1]))*180/Math.PI}}
 function setMkPos(el,x,y){el.dataset.x=x.toFixed(1);el.dataset.y=y.toFixed(1);el.setAttribute('transform','translate('+el.dataset.x+','+el.dataset.y+')'+(ROT?' rotate('+(-ROT)+')':'')+' scale('+(+MS||1).toFixed(3)+')')}
-/* atualização mais rápida: a cada 20 s (a prefeitura recebe uma posição a cada ~25 s) */
+/* atualização mais rápida: a cada 20 s (a prefeitura do Rio recebe uma posição a cada ~25 s) */
 if(LIVE.url)liveLoop();
 /* ======================= v30: planta real do CT (EPLAN CT / UFRJ, 2018) em "Prédios por dentro" ======================= */
 var CTP={d:null,loading:false,err:false,pav:'pav1',bl:'',f:'',q:'',sel:null,vb:null,lastPl:'b_ct'};
@@ -5292,7 +5297,7 @@ if(window.matchMedia){var ctpMQ=matchMedia('(max-width:680px) and (orientation:p
 /* "Prédios por dentro" já aberto na carga foi montado antes desta parte: monta de novo, agora com a planta */
 if(pstate.bldOpen&&pstate.bld==='ct'&&document.querySelector('#fdBld[open]'))renderPredios();
 /* ======================= v31: ônibus da cidade sobre as ruas do mapa ======================= */
-/* ruas:  os traçados das linhas internas (desenhados sobre a planta) + os da prefeitura recalibrados */
+/* ruas:  os traçados das linhas internas (desenhados sobre a planta) + os da prefeitura do Rio recalibrados */
 SHP=[];var SHP_INT=[];
 function shpAdd(P){var cum=[0];for(var j=1;j<P.length;j++)cum.push(cum[j-1]+Math.hypot(P[j][0]-P[j-1][0],P[j][1]-P[j-1][1]));SHP.push({P:P,c:cum});return SHP.length-1}
 Object.keys(LINES).forEach(function(l){(LINES[l].trips||[]).forEach(function(t){if(t.pts&&t.pts.length>1)SHP_INT.push(shpAdd(t.pts.map(function(p){return [p[0],p[1]]})))})});
@@ -5353,12 +5358,12 @@ function lvmVb(v){var k=v*3.6;return k<2?0:k<15?1:k<35?2:3}/* faixa de velocidad
 function lvmPer(t){var d=new Date(t),h=d.getHours()+d.getMinutes()/60,w=d.getDay();return (w>0&&w<6&&((h>=6&&h<9.5)||(h>=16&&h<20)))?'p':'f'}
 function lvmDir(O){if(O.i==null)return 0;var a=shpAt(O.i,O.s).ang+(O.sign<0?180:0);return Math.round((((a%360)+360)%360)/45)%8}
 function lvmCel(O){var c=LVM_CEL*MPU;return Math.floor(O.x/c)+','+Math.floor(O.y/c)}
-/* número do traçado da prefeitura (posição em EXT.shp) a partir do índice interno */
+/* número do traçado da prefeitura do Rio (posição em EXT.shp) a partir do índice interno */
 var LVM_TR=null;function lvmTracado(i){if(!LVM_TR){LVM_TR={};Object.keys(SHP_EXT).forEach(function(k){LVM_TR[SHP_EXT[k]]=k})}return i!=null&&LVM_TR[i]!=null?LVM_TR[i]:null}
 /* velocidade efetiva (m/s) ao longo do traçado: a informada, corrigida pelo que se aprendeu naquele trecho */
 function lvmVel(O){
   if(lvmVb(O.v)===0)return 0;/* parado fica parado: nas medições, 3 de cada 4 continuavam no mesmo lugar */
-  /* histórico de GPS da prefeitura, quando existe para o trecho; senão, o que os aparelhos mediram */
+  /* histórico de GPS da prefeitura do Rio, quando existe para o trecho; senão, o que os aparelhos mediram */
   var H=LV_HIST;if(H&&H.f){var k=lvHistKey(O);if(k&&H.f[k]!=null)return O.v*H.f[k]}
   return O.v*lvfEscolhe(lvmSt2,lvfChaves(lvmCel(O),lvmDir(O),lvmVb(O.v),lvmPer(O.t)));
 }
@@ -5384,7 +5389,7 @@ function lvmMede(o,P,O){
    e o app ficava buscando sem parar (dezenas de vezes por minuto). Agora há no máximo uma busca a cada 5 s. */
 /* envio em lotes (anônimo: só linha, trecho, horário e desvio; nada de quem usa o app) */
 function lvmEnvia(forca){
-  if(!FB_ON||LV_HIST||!LVM.fila.length||LVM.envB)return;/* com o histórico da prefeitura, os aparelhos não precisam medir */
+  if(!FB_ON||LV_HIST||!LVM.fila.length||LVM.envB)return;/* com o histórico da prefeitura do Rio, os aparelhos não precisam medir */
   var agora=Date.now();if(!forca&&(LVM.fila.length<40||agora-LVM.up<180000))return;if(forca&&LVM.fila.length<5)return;
   var lote=LVM.fila.slice(0,150);LVM.envB=true;
   fbInit().then(function(fb){return fb.db.collection('desvios').add({a:lote,n:lote.length,ts:agora,ver:String(APP_VERSION).slice(0,20)})}).then(function(){
@@ -5429,9 +5434,9 @@ function gPrevisao(){
   var maeRaw=lvgMae(cur,function(a){return a.real*h(a)-a.raw}),maeMod=lvgMae(cur,function(a){return a.real*h(a)-a.mod}),sim=lvgSimula(A);
   var faixas=['parado','até 15 km/h','15 a 35 km/h','acima de 35 km/h'],linhas={};A.forEach(function(a){linhas[a.l]=1});
   var porVb=faixas.map(function(nm,i){var B=cur.filter(function(a){return a.vb===i});return '<tr><td>'+nm+'</td><td>'+B.length+'</td><td>'+f(lvgMae(B,function(a){return a.real*h(a)-a.raw}))+'</td><td>'+f(lvgMae(B,function(a){return a.real*h(a)-a.mod}))+'</td></tr>'}).join('');
-  var hist=LV_HIST?'<p class="small keep"><b>Previsão ajustada pelo histórico de GPS da prefeitura</b> ('+esc(LV_HIST.de||'')+' a '+esc(LV_HIST.ate||'')+', '+(LV_HIST.pares||0).toLocaleString('pt-BR')+' pares de posições): erro médio nos dias de teste de '+f(LV_HIST.aval.so_velocidade)+' para '+f(Math.min.apply(null,Object.keys(LV_HIST.aval).map(function(k){return LV_HIST.aval[k]})))+'. Com isso, os aparelhos param de enviar medições.</p>':'';
+  var hist=LV_HIST?'<p class="small keep"><b>Previsão ajustada pelo histórico de GPS da prefeitura do Rio</b> ('+esc(LV_HIST.de||'')+' a '+esc(LV_HIST.ate||'')+', '+(LV_HIST.pares||0).toLocaleString('pt-BR')+' pares de posições): erro médio nos dias de teste de '+f(LV_HIST.aval.so_velocidade)+' para '+f(Math.min.apply(null,Object.keys(LV_HIST.aval).map(function(k){return LV_HIST.aval[k]})))+'. Com isso, os aparelhos param de enviar medições.</p>':'';
   var RA=REDUT&&REDUT.ajuste,red='<p class="small keep"><b>Semáforos e lombadas</b>: '+(REDUT.s||[]).length+' semáforos e '+(REDUT.l||[]).length+' lombadas mapeados (UFRJ e OpenStreetMap). '+
-    (RA?'Com o GPS da prefeitura ('+(RA.pares||0).toLocaleString('pt-BR')+' pares de posições), perder '+RA.semaforo_s+' s em cada semáforo'+(RA.lombada_s?' e '+RA.lombada_s+' s em cada lombada':'')+' baixou o erro médio nos dias de teste de '+f(RA.erro_antes_m)+' para '+f(RA.erro_depois_m)+'.':'Ainda sem ganho comprovado com o GPS da prefeitura: a previsão não os considera.')+'</p>';
+    (RA?'Com o GPS da prefeitura do Rio ('+(RA.pares||0).toLocaleString('pt-BR')+' pares de posições), perder '+RA.semaforo_s+' s em cada semáforo'+(RA.lombada_s?' e '+RA.lombada_s+' s em cada lombada':'')+' baixou o erro médio nos dias de teste de '+f(RA.erro_antes_m)+' para '+f(RA.erro_depois_m)+'.':'Ainda sem ganho comprovado com o GPS da prefeitura do Rio: a previsão não os considera.')+'</p>';
   var PF=LV_PERF,perf='<p class="small keep"><b>Perfil dos trechos</b> (dias úteis): '+(PF?Object.keys(PF.periodos).map(function(k){var R=PF.periodos[k];return ({manha:'manhã',tarde:'tarde',noite:'noite'}[k]||k.replace(/^0?(\d+)-0?(\d+)$/,'$1h–$2h'))+' '+f(R.erro_antes_m)+' → '+f(R.erro_depois_m)}).join(', ')+' nos dias de teste. Os outros horários, os fins de semana e os feriados usam a previsão de sempre.':'ainda sem ganho comprovado (gere com tools/perfil_trechos.py).')+'</p>';
   var pub=LVM.pubAt?'Modelo publicado em '+new Date(LVM.pubAt).toLocaleString('pt-BR')+' com '+(LVM.pubN||0).toLocaleString('pt-BR')+' medições.':'Nenhum modelo publicado ainda: cada aparelho usa só o que aprendeu sozinho.';
   var simTxt=sim?'Se publicar agora, o erro médio estimado passa de '+f(sim.raw)+' (só a velocidade) para '+f(sim.mod)+(sim.mod<sim.raw*0.98?'. Vale publicar.':sim.mod>sim.raw*1.02?'. Ainda não vale publicar.':': quase igual. Os dados ainda não mostram ganho; o app continua usando a velocidade informada onde não há ganho comprovado.'):'';
@@ -5478,7 +5483,7 @@ function lvfEscolhe(get,ks){/* do mais específico ao geral; só usa um fator qu
   return 1;
 }
 function lvmSt2(k){var a=LVM.pub[k],b=LVM.loc[k];if(!a&&!b)return null;if(!a)return b;if(!b)return a;return a.map(function(x,i){return x+b[i]})}
-/* paradas da prefeitura sem parada da UFRJ ao lado ficam na posição oficial do GTFS */
+/* paradas da prefeitura do Rio sem parada da UFRJ ao lado ficam na posição oficial do GTFS */
 Object.keys(EXTS).forEach(function(g){var G=EXTS[g];if(G.stop)return;var k=Object.keys(EXT.stops).filter(function(k){return EXT.stops[k][0]===G.name})[0];if(k){var s=EXT.stops[k];G.p=ll2map(s[1],s[2])}});
 extDraw();
 /* encaixe no traçado da própria linha, considerando o sentido em que o ônibus anda e onde ele estava antes */
@@ -5540,7 +5545,7 @@ document.addEventListener('click',function(e){
      não ajudou; o que resolve o "andar para trás" é procurar em todos os traçados da linha pelo sentido do movimento.
    Quando chega a posição nova, o ônibus desliza pela própria rota até ela, sem cortar quarteirão. */
 var LV_PONTO_S=12,LV_PONTO_IGNORA=25,LV_HIST=null;
-/* histórico de GPS da prefeitura já processado (tools/historico_gps.py): se existir, ajusta paradas e velocidades
+/* histórico de GPS da prefeitura do Rio já processado (tools/historico_gps.py): se existir, ajusta paradas e velocidades
    e a coleta pelos aparelhos deixa de ser necessária */
 function lvHistKey(O){if(O.la==null)return null;var d=new Date(O.t),h=d.getHours()+d.getMinutes()/60,w=d.getDay(),per=(w===0||w===6)?'w':((h>=6&&h<9.5)||(h>=16&&h<20))?'p':'f';
   return Math.floor(O.la/0.0015)+','+Math.floor(O.lo/0.0015)+'|'+(O.hd==null?0:Math.floor((((O.hd%360)+360)%360+22.5)/45)%8)+'|'+lvmVb(O.v)+'|'+per}
@@ -5557,7 +5562,7 @@ if(LIVE.url&&window.fetch)fetch('historico-previsao.json',{cache:'no-cache'}).th
     out.sort(function(a,b){return a[0]-b[0]});S.st=out.map(function(x){return x[0]});S.stK=out.map(function(x){return x[1]})});
 })();
 /* semáforos e lombadas (UFRJ e OpenStreetMap, gerados por tools/redutores.py): posição ao longo de cada traçado.
-   Só mudam a previsão se o ajuste foi comprovado com o GPS da prefeitura (REDUT.ajuste); senão ficam guardados. */
+   Só mudam a previsão se o ajuste foi comprovado com o GPS da prefeitura do Rio (REDUT.ajuste); senão ficam guardados. */
 var REDUT={"fonte":"UFRJ (Mobilidade e Transporte, ArcGIS Online) e OpenStreetMap (© colaboradores do OpenStreetMap, ODbL)","s":[[-22.843312,-43.233795],[-22.843016,-43.234006],[-22.83971,-43.23737],[-22.839494,-43.237478],[-22.839587,-43.238778],[-22.838373,-43.240239],[-22.839426,-43.241228],[-22.839233,-43.241093],[-22.839217,-43.241411],[-22.838955,-43.241416],[-22.838282,-43.24225],[-22.840523,-43.240023],[-22.845255,-43.238797],[-22.844767,-43.238531],[-22.850078,-43.235156],[-22.849867,-43.234899],[-22.853421,-43.23273],[-22.853245,-43.232449],[-22.860963,-43.227263],[-22.860813,-43.226967],[-22.864523,-43.228994],[-22.864526,-43.229263],[-22.880771,-43.258243],[-22.868195,-43.254908],[-22.845426,-43.268012],[-22.84729,-43.267359],[-22.854046,-43.261359],[-22.869588,-43.268194],[-22.872481,-43.268546],[-22.872217,-43.268399],[-22.874008,-43.26648],[-22.847461,-43.265724],[-22.856692,-43.252321],[-22.865156,-43.25262],[-22.86589,-43.255155],[-22.865575,-43.254079],[-22.865235,-43.252912],[-22.866997,-43.254887],[-22.866303,-43.252525],[-22.85453,-43.260284],[-22.858012,-43.256904],[-22.851294,-43.264098],[-22.84216,-43.269766],[-22.845703,-43.267918],[-22.871133,-43.258098],[-22.871793,-43.258309],[-22.878804,-43.250881],[-22.880844,-43.253526],[-22.882925,-43.254121],[-22.854742,-43.26052],[-22.844203,-43.268878],[-22.861844,-43.224425],[-22.855095,-43.252504],[-22.872477,-43.268162],[-22.866487,-43.255836],[-22.866076,-43.255974],[-22.838455,-43.241933],[-22.833278,-43.239435],[-22.833344,-43.239689],[-22.832763,-43.238653],[-22.832979,-43.238867],[-22.873209,-43.267221],[-22.873249,-43.267614],[-22.874106,-43.266165],[-22.87422,-43.266642],[-22.874344,-43.266166],[-22.872709,-43.258534],[-22.873037,-43.262581],[-22.87326,-43.252927],[-22.873785,-43.257966],[-22.874031,-43.257863],[-22.883249,-43.254092],[-22.883937,-43.253662],[-22.859646,-43.267572],[-22.876805,-43.256516],[-22.878175,-43.255453],[-22.882944,-43.254406],[-22.884165,-43.253348],[-22.884613,-43.264571],[-22.884526,-43.26402],[-22.884857,-43.264595],[-22.884981,-43.265299],[-22.867285,-43.251866],[-22.867524,-43.251932],[-22.854556,-43.254601],[-22.850955,-43.263588],[-22.846859,-43.243126],[-22.880122,-43.268246],[-22.878554,-43.26577],[-22.878171,-43.264324],[-22.878439,-43.261457],[-22.879832,-43.259763],[-22.880392,-43.258928],[-22.883921,-43.248983],[-22.86698,-43.255337],[-22.880637,-43.250825],[-22.880471,-43.250279],[-22.854599,-43.254008],[-22.849539,-43.265973],[-22.84872,-43.266844],[-22.880666,-43.258936],[-22.861736,-43.267849],[-22.854752,-43.254193],[-22.854813,-43.254775],[-22.857326,-43.25714],[-22.856866,-43.267023]],"l":[[-22.850025,-43.235143],[-22.849905,-43.234964],[-22.846297,-43.237837],[-22.847287,-43.238576],[-22.843097,-43.233957],[-22.843265,-43.233798],[-22.860896,-43.226972],[-22.8609,-43.227236],[-22.863344,-43.230032],[-22.863081,-43.230232],[-22.866626,-43.218363],[-22.864184,-43.228122],[-22.863971,-43.228213],[-22.864682,-43.219677],[-22.864457,-43.220242],[-22.851317,-43.261],[-22.85153,-43.260691],[-22.831885,-43.242717],[-22.829917,-43.247193],[-22.830227,-43.246728],[-22.877039,-43.269797],[-22.839875,-43.238168],[-22.863135,-43.238984],[-22.862769,-43.238734],[-22.853067,-43.264697],[-22.852552,-43.265146],[-22.852289,-43.26517],[-22.851882,-43.264781],[-22.851562,-43.26444],[-22.862958,-43.238872],[-22.862692,-43.239003],[-22.863482,-43.239171],[-22.859679,-43.267804],[-22.837021,-43.267161],[-22.837044,-43.266643],[-22.8368,-43.265093],[-22.836416,-43.263363],[-22.839459,-43.266145],[-22.839881,-43.265255],[-22.839045,-43.264265],[-22.843005,-43.262414],[-22.842513,-43.268512],[-22.844757,-43.266222],[-22.845621,-43.266347],[-22.85015,-43.261207],[-22.850435,-43.261171],[-22.853116,-43.260851],[-22.854423,-43.262712],[-22.853379,-43.263264],[-22.854468,-43.254332],[-22.854762,-43.252739],[-22.854614,-43.253682],[-22.854573,-43.253864],[-22.854428,-43.25455],[-22.85023,-43.254399],[-22.847689,-43.25157],[-22.847802,-43.251063],[-22.846547,-43.249558],[-22.846841,-43.248346],[-22.848305,-43.248106],[-22.845308,-43.254552],[-22.845325,-43.254232],[-22.845477,-43.255021],[-22.851239,-43.264013],[-22.884738,-43.219124],[-22.884274,-43.219833],[-22.883985,-43.220549],[-22.882339,-43.223826],[-22.831653,-43.242893],[-22.841937,-43.238868],[-22.843822,-43.238211],[-22.847123,-43.238017],[-22.857797,-43.230733],[-22.858263,-43.231051],[-22.856044,-43.246127],[-22.855943,-43.245239],[-22.855842,-43.24428],[-22.855745,-43.243288],[-22.855467,-43.242235],[-22.855186,-43.242311],[-22.855435,-43.243473],[-22.859601,-43.241187],[-22.861177,-43.238999],[-22.860955,-43.239375],[-22.861078,-43.239299],[-22.861525,-43.238728],[-22.864097,-43.243352],[-22.863781,-43.243186],[-22.864706,-43.243647],[-22.864864,-43.244068],[-22.864747,-43.240631],[-22.864374,-43.240052],[-22.864704,-43.238776],[-22.865211,-43.238983],[-22.866082,-43.239361],[-22.866622,-43.239605],[-22.866195,-43.238527],[-22.866554,-43.238548],[-22.867596,-43.239063],[-22.866981,-43.237346],[-22.867394,-43.236725],[-22.867507,-43.236274],[-22.867577,-43.235366],[-22.86858,-43.236844],[-22.868627,-43.237353],[-22.868806,-43.237702],[-22.868278,-43.239682],[-22.868834,-43.239769],[-22.868662,-43.24098],[-22.869836,-43.240758],[-22.870183,-43.240353],[-22.870938,-43.239469],[-22.869805,-43.237771],[-22.870761,-43.237944],[-22.869022,-43.242103],[-22.869256,-43.241674],[-22.869386,-43.241563],[-22.86977,-43.24122],[-22.870539,-43.240382],[-22.871513,-43.239321],[-22.871614,-43.239136],[-22.871909,-43.239563],[-22.872312,-43.240154],[-22.87308,-43.241284],[-22.873559,-43.24166],[-22.872407,-43.242584],[-22.874586,-43.240859],[-22.875227,-43.240342],[-22.875663,-43.240116],[-22.875689,-43.239652],[-22.876019,-43.240234],[-22.875094,-43.239138],[-22.874772,-43.238577],[-22.876344,-43.24082],[-22.876373,-43.2412],[-22.876009,-43.239136],[-22.876531,-43.238781],[-22.877166,-43.238332],[-22.877258,-43.237938],[-22.876554,-43.237425],[-22.877821,-43.238357],[-22.877668,-43.238243],[-22.878514,-43.238857],[-22.879121,-43.239278],[-22.875543,-43.242272],[-22.875068,-43.242629],[-22.874592,-43.243027],[-22.871256,-43.242569],[-22.87107,-43.241543],[-22.870646,-43.240929],[-22.870182,-43.242196],[-22.870527,-43.243138],[-22.869709,-43.243073],[-22.869366,-43.242428],[-22.868766,-43.257852],[-22.868723,-43.2569],[-22.869466,-43.257985],[-22.869439,-43.257533],[-22.869412,-43.257085],[-22.869383,-43.256609],[-22.869313,-43.255422],[-22.869839,-43.255933],[-22.870431,-43.255898],[-22.870069,-43.256317],[-22.870162,-43.257916],[-22.869496,-43.265448],[-22.869805,-43.265685],[-22.875128,-43.259674],[-22.875872,-43.259369],[-22.876569,-43.259799],[-22.877001,-43.259104],[-22.877288,-43.2598],[-22.876811,-43.260916],[-22.87815,-43.266995],[-22.877116,-43.267611],[-22.876306,-43.268095],[-22.875557,-43.268804],[-22.875422,-43.268206],[-22.875617,-43.269457],[-22.877528,-43.269517],[-22.869865,-43.264918],[-22.841513,-43.264223],[-22.8464,-43.26421],[-22.839319,-43.260205],[-22.868903,-43.255978],[-22.863701,-43.23814],[-22.869031,-43.248648],[-22.851394,-43.260849],[-22.841365,-43.238464],[-22.880907,-43.259815],[-22.877896,-43.244562],[-22.876019,-43.259309],[-22.851888,-43.260705],[-22.851261,-43.261233],[-22.840948,-43.237601],[-22.866155,-43.21703],[-22.866985,-43.216466],[-22.866446,-43.215844],[-22.865505,-43.217481],[-22.865013,-43.217526],[-22.864862,-43.217924],[-22.864317,-43.218826],[-22.863926,-43.219083],[-22.864698,-43.215046],[-22.855426,-43.250086],[-22.855297,-43.249236]],"ajuste":null},LV_EV_IGNORA=10;
 (function(){
   var A=REDUT.ajuste;if(!A)return;
@@ -5727,23 +5732,23 @@ var SAUDE_CHECKS=[
     return sdJson('version.json').then(function(v){return v.v===APP_VERSION?{estado:'ok',det:'Versão '+v.v+', a mesma deste aparelho.'}:{estado:'aviso',det:'Publicada: '+v.v+'. Este aparelho: '+APP_VERSION+'. Recarregue para atualizar.'}})}],
   ['worker','Ônibus ao vivo (Worker da Cloudflare)','posições dos ônibus da cidade',function(){
     if(!LIVE.url)return Promise.resolve({estado:'aviso',det:'Endereço do Worker não configurado (config.js).'});
-    /* junto, o /saude do Worker: registro das tentativas com a prefeitura e falhas do dia (seção abaixo) */
+    /* junto, o /saude do Worker: registro das tentativas com a prefeitura do Rio e falhas do dia (seção abaixo) */
     SAUDE.sdP=sdJson(LIVE.url+'/saude').then(function(d){SAUDE.sd=d;return d},function(){SAUDE.sd=null;return null});
     return fetch(LIVE.url,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('O Worker respondeu HTTP '+r.status+(r.status>=500?' (erro na Cloudflare)':'')+'.');var ant=r.headers.get('x-cache')==='antiga';return r.json().then(function(d){d.antiga=ant;return d})},
       function(){throw new Error('O Worker não respondeu. Quase sempre é o limite de processamento da Cloudflare (o Worker cai antes de responder); veja as causas em "Falhas de hoje", abaixo.')})
       .then(function(d){var n=(d.onibus||[]).length;SAUDE.gps=d;
-        if(d.falhou)return {estado:'falha',det:'O Worker está no ar, mas a prefeitura não respondeu e não havia cópia guardada.'};
-        if(d.antiga)return {estado:'aviso',det:'A prefeitura não respondeu agora; o Worker entregou a cópia guardada ('+n+' ônibus, de até 3 min atrás).'};
+        if(d.falhou)return {estado:'falha',det:'O Worker está no ar, mas a prefeitura do Rio não respondeu e não havia cópia guardada.'};
+        if(d.antiga)return {estado:'aviso',det:'A prefeitura do Rio não respondeu agora; o Worker entregou a cópia guardada ('+n+' ônibus, de até 3 min atrás).'};
         return {estado:'ok',det:n+' ônibus na região do Fundão agora.'}})}],
-  ['prefeitura','GPS da prefeitura (dados.mobilidade.rio)','pelo Worker: idade da posição mais nova',function(){
+  ['prefeitura','GPS da prefeitura do Rio (dados.mobilidade.rio)','pelo Worker: idade da posição mais nova',function(){
     if(!LIVE.url)return Promise.resolve({estado:'aviso',det:'Depende do Worker.'});
     var w=SAUDE.res.worker;
-    /* com o Worker caído, não dá para saber da prefeitura: diz isso, com o que o registro do Worker já mostrou */
+    /* com o Worker caído, não dá para saber da prefeitura do Rio: diz isso, com o que o registro do Worker já mostrou */
     if(!SAUDE.gps&&w&&w.estado==='falha')return Promise.resolve(SAUDE.sdP).then(function(){var R=sdRegistro(),ult=R.falhas[0];
       return {estado:'aviso',det:'Não dá para conferir agora: o Worker não respondeu.'+(R.n?' Nas últimas '+R.n+' tentativas do Worker, '+(R.n-R.ok)+(R.n-R.ok===1?' falhou':' falharam')+(ult?' (a última às '+sdHora(ult.t)+': '+sdMotivo(ult)+')':'')+'.':'')}});
     var d=SAUDE.gps;var p=d?Promise.resolve(d):sdJson(LIVE.url);
     return Promise.all([p,SAUDE.sdP||null]).then(function(a){var d=a[0],R=sdRegistro(),ult=R.falhas[0],extra=R.n?' Nas últimas '+R.n+' tentativas do Worker, '+(R.n-R.ok)+(R.n-R.ok===1?' falhou':' falharam')+(ult?' (a última às '+sdHora(ult.t)+': '+sdMotivo(ult)+')':'')+'.':'';
-      var L=d.onibus||[];if(!L.length){var h=new Date().getHours();return {estado:h>=5&&h<23?'aviso':'ok',det:'Nenhum ônibus na região'+(h>=5&&h<23?' em horário de serviço: a prefeitura pode estar sem dados.':' (madrugada).')+extra}}
+      var L=d.onibus||[];if(!L.length){var h=new Date().getHours();return {estado:h>=5&&h<23?'aviso':'ok',det:'Nenhum ônibus na região'+(h>=5&&h<23?' em horário de serviço: a prefeitura do Rio pode estar sem dados.':' (madrugada).')+extra}}
       var novo=Math.max.apply(null,L.map(function(o){return o.t||0})),idade=(d.t||Date.now())-novo;
       var est=idade<120000?'ok':idade<600000?'aviso':'falha';if(est==='ok'&&R.n>=10&&(R.n-R.ok)/R.n>0.2)est='aviso';
       return {estado:est,det:'Posição mais nova de '+sdIdade(idade)+' atrás.'+extra}})}],
@@ -5769,7 +5774,7 @@ var SAUDE_CHECKS=[
     return sdJson('https://api.open-meteo.com/v1/forecast?latitude=-22.86&longitude=-43.23&current=temperature_2m&timezone=America%2FSao_Paulo').then(function(d){var t=d.current&&d.current.temperature_2m;return {estado:'ok',det:t!=null?String(t).replace('.',',')+' °C agora.':'Respondendo.'}})}],
   ['rede','Diagnóstico de rede (ipify)','descobre se o aparelho está na rede da UFRJ',function(){
     return sdJson('https://api.ipify.org?format=json').then(function(j){return {estado:'ok',det:'Respondendo.'}})}],
-  ['gtfs','Horários da prefeitura (GTFS)','dados embutidos no app',function(){
+  ['gtfs','Horários da prefeitura do Rio (GTFS)','dados embutidos no app',function(){
     var a=String(EXT.ate||''),fim=a.length===8?Date.parse(a.slice(0,4)+'-'+a.slice(4,6)+'-'+a.slice(6,8)+'T23:59:59-03:00'):NaN;
     if(!(fim>0))return Promise.resolve({estado:'aviso',det:'Validade não informada.'});
     var dias=Math.floor((fim-Date.now())/864e5),dt=new Date(fim).toLocaleDateString('pt-BR');
@@ -5779,7 +5784,7 @@ var SAUDE_CHECKS=[
 ];
 function saudeVerifica(){
   if(SAUDE.busy)return;SAUDE.busy=true;SAUDE.gps=null;SAUDE.res={};SAUDE.sd=null;SAUDE.sdP=null;
-  /* o Worker antes da prefeitura, que reaproveita a resposta */
+  /* o Worker antes da prefeitura do Rio, que reaproveita a resposta */
   var ordem=SAUDE_CHECKS.slice();
   (function proxima(i){
     if(i>=ordem.length){SAUDE.busy=false;SAUDE.quando=Date.now();if(gTab==='saude')renderGest();return}
@@ -5801,7 +5806,7 @@ function saudeEstatisticas(){
     E.err={n:L.length,dia:L.filter(function(o){return (o.ts||0)>agora-864e5}).length,sem:L.filter(function(o){return (o.ts||0)>agora-7*864e5}).length}},function(){E.err=null}));
   Promise.all(ps).then(fim,fim);
 }
-/* ---------- falhas dos ônibus ao vivo: registro do Worker (tentativas com a prefeitura) e análise da Cloudflare ---------- */
+/* ---------- falhas dos ônibus ao vivo: registro do Worker (tentativas com a prefeitura do Rio) e análise da Cloudflare ---------- */
 var SD_STATUS={success:'deram certo',exceededResources:'passaram do limite de processamento da Cloudflare (10 ms de CPU por pedido no plano grátis): o Worker cai antes de responder',
   exceededCpu:'passaram do limite de processamento da Cloudflare',exceededMemory:'passaram do limite de memória da Cloudflare',scriptThrewException:'deram erro no código do Worker',
   internalError:'deram erro interno da Cloudflare',clientDisconnected:'o aparelho desistiu antes da resposta (rede ruim ou app fechado); não é falha do Worker',
@@ -5825,7 +5830,7 @@ function sdVivoHTML(){
     h+='<p class="sd-res"><b>'+fal.toLocaleString('pt-BR')+' de '+tot.toLocaleString('pt-BR')+' pedidos ao Worker falharam hoje ('+pct.toFixed(pct<10?1:0).replace('.',',')+'%).</b></p>';
     var ks=Object.keys(det.porStatus).filter(function(k){return k!=='success'}).sort(function(a,b){return det.porStatus[b]-det.porStatus[a]});
     if(ks.length)h+='<ul class="sd-causas">'+ks.map(function(k){return '<li><b>'+det.porStatus[k].toLocaleString('pt-BR')+'</b> '+esc(SD_STATUS[k]||('terminaram como "'+k+'"'))+'.</li>'}).join('')+'</ul>';
-    if(det.cpuP99Ms!=null)h+='<p class="muted small keep">Processamento por pedido: mediana de '+String(det.cpuMedianoMs).replace('.',',')+' ms; nos 1% mais pesados, '+String(det.cpuP99Ms).replace('.',',')+' ms (o limite é 10 ms).'+(det.cpuP99Ms>10?' Os mais pesados são as buscas na prefeitura.':'')+'</p>';
+    if(det.cpuP99Ms!=null)h+='<p class="muted small keep">Processamento por pedido: mediana de '+String(det.cpuMedianoMs).replace('.',',')+' ms; nos 1% mais pesados, '+String(det.cpuP99Ms).replace('.',',')+' ms (o limite é 10 ms).'+(det.cpuP99Ms>10?' Os mais pesados são as buscas na prefeitura do Rio.':'')+'</p>';
     var H=(det.porHora||[]).filter(function(x){return x.pedidos});
     if(H.length){var mx=Math.max.apply(null,H.map(function(x){return x.pedidos}));
       h+='<div class="sd-horas" role="list" aria-label="Pedidos e falhas por hora">'+H.map(function(x){var hr=new Date(x.h).getHours(),w=x.pedidos/mx*100,wf=x.falhas/mx*100;
@@ -5833,16 +5838,16 @@ function sdVivoHTML(){
         '<p class="muted small keep">Barra clara: pedidos. Barra vermelha: os que falharam.</p>';}
   }else if(det&&det.erro)h+='<p class="muted small keep">A Cloudflare não deu o detalhe por motivo: '+esc(det.erro)+'.</p>';
   else if(c&&c.erros)h+='<p class="sd-res"><b>'+c.erros+' de '+c.pedidos+' pedidos ao Worker falharam hoje.</b></p><p class="muted small keep">Publique o Worker de novo para ver o motivo de cada falha.</p>';
-  /* 2) tentativas do Worker com a prefeitura */
+  /* 2) tentativas do Worker com a prefeitura do Rio */
   var R=sdRegistro();
-  if(!d.registro)h+='<p class="muted small keep">Publique o Worker de novo (worker/gps-fundao.js) para ver as tentativas com a prefeitura.</p>';
+  if(!d.registro)h+='<p class="muted small keep">Publique o Worker de novo (worker/gps-fundao.js) para ver as tentativas com a prefeitura do Rio.</p>';
   else if(!R.n)h+='<p class="muted small keep">Ainda não há tentativas registradas neste data center da Cloudflare.</p>';
   else{
     var ms=R.todas.map(function(e){var f=(e.fontes||[]).filter(function(f){return f.f==='sppo'})[0];return f&&f.ok?f.ms:null}).filter(function(x){return x!=null}).sort(function(a,b){return a-b}),med=ms.length?ms[Math.floor(ms.length/2)]:null;
     var cont={reserva:0,falhou:0,parcial:0};R.falhas.forEach(function(e){cont[e.r]=(cont[e.r]||0)+1});
-    h+='<p class="sd-res"><b>Prefeitura: '+(R.n-R.ok)+' de '+R.n+' tentativas '+(R.n-R.ok===1?'falhou':'falharam')+'</b> (desde '+sdHora(R.todas[R.todas.length-1].t)+(d.dataCenter?', data center '+esc(d.dataCenter):'')+').</p>'+
+    h+='<p class="sd-res"><b>Prefeitura do Rio: '+(R.n-R.ok)+' de '+R.n+' tentativas '+(R.n-R.ok===1?'falhou':'falharam')+'</b> (desde '+sdHora(R.todas[R.todas.length-1].t)+(d.dataCenter?', data center '+esc(d.dataCenter):'')+').</p>'+
       '<p class="muted small keep">'+(cont.reserva?cont.reserva+' vez(es) o app recebeu a cópia guardada; ':'')+(cont.falhou?cont.falhou+' vez(es) não havia cópia e o app ficou sem dados; ':'')+(cont.parcial?cont.parcial+' vez(es) só uma das fontes respondeu; ':'')+
-      (med!=null?'a prefeitura costuma responder em '+(med/1000).toFixed(1).replace('.',',')+' s.':'')+'</p>';
+      (med!=null?'a prefeitura do Rio costuma responder em '+(med/1000).toFixed(1).replace('.',',')+' s.':'')+'</p>';
     if(R.falhas.length)h+='<ul class="sd-causas">'+R.falhas.slice(0,8).map(function(e){return '<li><b>'+sdHora(e.t)+'</b> '+esc(sdMotivo(e))+(e.r==='reserva'?' (usou a cópia guardada)':e.r==='falhou'?' (sem dados)':'')+'.</li>'}).join('')+'</ul>';
   }
   return h+sdForaHTML(d)+sdPushHTML(d);
@@ -5923,7 +5928,7 @@ function edifDraw(){
 }
 aoFazer('mapa montado',edifDraw);
 edifDraw();
-/* ======================= Atalho para o Jaé (passagem dos ônibus, BRT e VLT da prefeitura) =======================
+/* ======================= Atalho para o Jaé (passagem dos ônibus, BRT e VLT da prefeitura do Rio) =======================
    O Jaé não tem serviço aberto para outros apps (saldo, recarga, QR Code) nem um link público que abra o app direto
    (como o wa.me do WhatsApp). Por isso o atalho leva à página do app oficial na loja do aparelho: lá aparece "Abrir"
    se o app já estiver instalado e "Instalar"/"Obter" se não estiver. No computador, mostra as duas lojas. */
@@ -5940,7 +5945,7 @@ function jaeHTML(){
   var a=jaeAparelho();
   var botoes=a==='ios'?jaeLink(JAE_IOS,'Abrir ou baixar o Jaé'):a==='android'?jaeLink(JAE_PLAY,'Abrir ou baixar o Jaé'):
     jaeLink(JAE_PLAY,'Jaé no Google Play')+jaeLink(JAE_IOS,'Jaé na App Store');
-  return '<div class="jae-box"><p class="small keep">Nos ônibus, BRT e VLT da prefeitura, a passagem é paga com o <b>Jaé</b>: cartão ou QR Code no app.</p>'+
+  return '<div class="jae-box"><p class="small keep">Nos ônibus, BRT e VLT da prefeitura do Rio, a passagem é paga com o <b>Jaé</b>: cartão ou QR Code no app.</p>'+
     '<div class="jae-bt">'+botoes+'</div>'+(a?'<p class="muted small keep">Se o app já estiver instalado, a loja mostra o botão Abrir.</p>':'')+'</div>';
 }
 /* em Trajetos, logo depois de "Ônibus da cidade" (fora do bloco, que é redesenhado a cada minuto) */
@@ -5951,7 +5956,7 @@ function jaeTrajeto(){
 }
 aoFazer('trajeto montado',jaeTrajeto);
 jaeTrajeto();/* Trajetos já foi montado uma vez antes desta parte carregar */
-/* no detalhe de um ponto da prefeitura */
+/* no detalhe de um ponto da prefeitura do Rio */
 aoFazer('detalhe montado',function(){
   if(state.sel&&state.sel.kind==='ext'&&detail&&!detail.querySelector('.jae-box'))detail.insertAdjacentHTML('beforeend',jaeHTML());
 });
@@ -6193,7 +6198,7 @@ aoFazer('mapa atualizado',ruasDesenha);
 ruasDesenha();
 /* ======================= Anel ao redor da bússola: estado dos ônibus ao vivo =======================
    Com a camada "Ônibus da cidade" ligada, um arco gira ao redor da bússola enquanto o Worker entrega posições:
-   verde = chegando normalmente; laranja = chegando, mas com problema (a prefeitura falhou e o Worker mandou cópia,
+   verde = chegando normalmente; laranja = chegando, mas com problema (a prefeitura do Rio falhou e o Worker mandou cópia,
    ou as posições estão velhas). Se nenhuma resposta boa chega há ANEL_PARADO_MS, o anel para e fica vermelho.
    No modo leve (sem movimento) o arco fica parado; a cor continua valendo. */
 var ANEL_PARADO_MS=40000,ANEL_VELHO_MS=90000,ANEL={estado:''};
@@ -6203,7 +6208,7 @@ function anelEstado(){
   if(!LIVE.t)return LIVE.err?'parado':'ok';/* ainda na primeira busca */
   if(agora-LIVE.t>ANEL_PARADO_MS)return 'parado';
   var novo=LIVE.bus.reduce(function(m,o){return Math.max(m,o.t||0)},0);
-  if(LIVE.err||(novo&&agora-novo>ANEL_VELHO_MS))return 'lento';
+  if(LIVE.err||LIVE.parcial||(novo&&agora-novo>ANEL_VELHO_MS))return 'lento';
   return 'ok';
 }
 var ANEL_TXT={ok:'Ônibus ao vivo: atualizando.',lento:'Ônibus ao vivo: atualizando com atraso.',parado:'Ônibus ao vivo: parados. O Worker não responde.'};
@@ -6349,6 +6354,528 @@ document.addEventListener('click',function(e){var t=e.target.closest&&e.target.c
 setTimeout(function(){var g=pushGuardado();if(!g||!g.on||!pushSuportado())return;
   if(pushPermissao()!=='granted'){pushGuarda(null);pushPinta();return}
   pushChave().then(pushAssina).catch(function(){})},5000);
+/* ======================= Ônibus chegando (ao vivo) e legenda do ao vivo =======================
+   1) No painel de um ponto de ônibus da cidade, "Chegando agora": os ônibus ao vivo que vêm no sentido do ponto
+      pelo traçado da linha, com o tempo estimado (a mesma conta de "seguir um ônibus") e a distância.
+   2) Na legenda do mapa, os itens do ao vivo (só com a camada "Ônibus da cidade" ligada). */
+var CHG_MAX_M=6000,CHG_PERTO_M=45;
+function chegandoEm(id){
+  var G=EXTS[id];if(!G)return [];var L=[];
+  LIVE.bus.forEach(function(o){var S=LV2.st[o.v],O=S&&S.obs;if(!O||O.i==null||S.s==null||!SHP[O.i])return;
+    var r=projOn(O.i,G.p);if(!r||r.d>CHG_PERTO_M*MPU)return;
+    var sg=O.sign>0?1:-1,m=(r.s-S.s)*sg/MPU;if(!(m>-15&&m<CHG_MAX_M))return;
+    if(lvV(O)<=0.3&&m>1500)return;/* parado longe (ponto final, garagem): não está chegando */
+    m=Math.max(0,m);L.push({o:o,m:m,t:m>0?segTempo(O,S.s,m):0,idade:Math.round((Date.now()-o.t)/1000)})});
+  return L.sort(function(a,b){return a.t-b.t}).slice(0,8);
+}
+function chegandoHTML(id){
+  if(!LIVE.url)return '';
+  var L=chegandoEm(id),h='<div class="chg-box" id="chgBox"><h3>Chegando agora <span class="lv-tag">ao vivo</span></h3>';
+  if(!LIVE.t)return h+'<p class="muted small keep">Buscando ônibus ao vivo…</p></div>';
+  if(!L.length)return h+'<p class="muted small keep">Nenhum ônibus ao vivo vindo para este ponto agora.'+(LIVE.err?' A prefeitura do Rio não respondeu na última tentativa.':'')+'</p></div>';
+  return h+'<ul class="xl-list chg-list">'+L.map(function(x){var Li=segLinha(x.o.l);
+    return '<li><div class="xl-row">'+extBadge(Li)+'<span class="grow"><b>'+segQuando(x.t,x.m)+'</b><small>'+(Li.d?'Para '+esc(Li.d)+' · ':'')+'a '+segM(x.m)+' · carro '+esc(x.o.v)+(x.idade>60?' · posição de '+segIdade(x.idade)+' atrás':'')+'</small></span>'+
+      '<button type="button" class="copy chg-seg" data-chgseg="'+esc(x.o.v)+'" aria-label="Seguir o ônibus '+esc(x.o.l)+', carro '+esc(x.o.v)+', no mapa">Seguir</button></div></li>'}).join('')+'</ul>'+
+    '<p class="muted small keep">Tempo estimado pela posição e velocidade do ônibus. Pode variar com o trânsito.</p></div>';
+}
+aoFazer('detalhe montado',function(){
+  if(!state.sel||state.sel.kind!=='ext'||!detail||detail.querySelector('#chgBox'))return;
+  var h=chegandoHTML(state.sel.id);if(!h)return;var a=detail.querySelector('.lv-st');
+  if(a)a.insertAdjacentHTML('afterend',h);else{var t=detail.querySelector('h2');if(t)t.insertAdjacentHTML('afterend',h)}
+});
+document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-chgseg]');if(!b)return;segSeguir(b.dataset.chgseg);
+  var m=document.querySelector('.mapwrap');if(m&&m.scrollIntoView)m.scrollIntoView({block:'nearest',behavior:'smooth'})});
+
+/* ---------- legenda: itens do ao vivo ---------- */
+(function(){
+  var lg=$('#legend');if(!lg||!LIVE.url||$('#lgVivo'))return;var ref=lg.querySelector('.hint');
+  var h='<span class="lg-vivo" id="lgVivo" role="group" aria-label="Ônibus da cidade ao vivo">'+
+    '<span><i class="lg-bus"><b>485</b></i>Ônibus ao vivo: número da linha; a ponta mostra o sentido</span>'+
+    '<span><i class="lg-bus seg"><b>485</b></i>Ônibus que você está seguindo</span>'+
+    '<span><i class="lg-bus cinza"><b>95</b></i>Linha sem horários no app</span>'+
+    '<span><i class="sw sw-ext"></i>Ponto de ônibus da cidade</span>'+
+    '<span><i class="lg-anel ok"></i>Anel verde na bússola: posições chegando</span>'+
+    '<span><i class="lg-anel lento"></i>Laranja: chegando com atraso</span>'+
+    '<span><i class="lg-anel parado"></i>Vermelho: ao vivo parado</span>'+
+    '<span>Entre uma posição e outra, o ônibus avança pela velocidade (estimativa)</span></span>';
+  if(ref)ref.insertAdjacentHTML('beforebegin',h);else lg.insertAdjacentHTML('beforeend',h);
+})();
+function lgVivoPinta(){var g=$('#lgVivo');if(g)g.hidden=!state.layers.ext}
+aoFazer('mapa atualizado',lgVivoPinta);
+lgVivoPinta();
+/* ======================= Perfil de uso: quem é você no Fundão =======================
+   Depois do primeiro login, uma folha pergunta como a pessoa usa o Fundão (estuda, mora na Vila Residencial,
+   trabalha, é paciente ou visitante). Com isso:
+   - quem mora na Vila tem a "Volta à noite" apontando para o ponto mais perto da Vila (e não para a Estação BRT);
+   - a aba Grade aparece só para quem quer (por padrão, quem estuda).
+   Guardado no aparelho em cse-uso; dá para mudar em Ajustes › Perfil. */
+var USO=null;try{USO=JSON.parse(localStorage.getItem('cse-uso')||'null')}catch(e){USO=null}
+var USO_OPC=[['estuda','Estudo na UFRJ'],['vila','Moro na Vila Residencial'],['trabalha','Trabalho no Fundão'],['visita','Sou paciente ou visitante']];
+var VILA_LL=[-22.8689,-43.2182];/* centro da Vila Residencial (ruas das flores, ponta sudeste da ilha; OpenStreetMap) */
+var USO_ST={aberto:false,antes:null,mexeuGrade:false};
+function usoRespondeu(){return !!(USO&&USO.t)}
+function usoAdiado(){return !!(USO&&USO.ate&&Date.now()<USO.ate)}
+function usoSalva(v){USO=v;try{localStorage.setItem('cse-uso',JSON.stringify(v))}catch(e){}}
+function usoMoraNaVila(){return !!(USO&&USO.vila)}
+/* ponto das linhas internas mais perto da Vila, com a caminhada (linha reta × 1,3, a 75 m/min) */
+function vilaPonto(){
+  if(vilaPonto.r)return vilaPonto.r;var p=ll2map(VILA_LL[0],VILA_LL[1]),best=null,bd=1e18;
+  Object.keys(STOPS).forEach(function(k){var q=STOPS[k].p,d=Math.hypot(q[0]-p[0],q[1]-p[1]);if(d<bd){bd=d;best=k}});
+  var m=bd/MPU*1.3;return vilaPonto.r={id:best,m:Math.round(m/10)*10,min:Math.max(1,Math.round(m/75))};
+}
+/* destino da Volta à noite: a Vila para quem mora lá (a não ser que peça a Estação), senão a Estação BRT */
+function nightDest(){return usoMoraNaVila()&&!state.nightEst?vilaPonto().id:'est'}
+function usoResumo(){if(!usoRespondeu())return 'Ainda não informado';var L=USO_OPC.filter(function(o){return USO[o[0]]}).map(function(o){return o[1]});return L.length?L.join(' · '):'Nenhuma opção marcada'}
+function usoAplicaGrade(mostra){var off=tabOff().filter(function(t){return t!=='grade'});if(!mostra)off.push('grade');
+  if(off.join()!==tabOff().join())saveTabs(tabOrder(),off)}
+function usoHTML(){
+  var u=USO||{},grade=usoRespondeu()?tabOn('grade'):true;
+  return '<div class="inst-topo"><img src="icone.svg" alt="" width="52" height="52"><div><h2 id="usoT">Como você usa o Fundão?</h2>'+
+    '<p class="inst-sub">Para o app mostrar o que serve para você. Marque o que valer.</p></div></div>'+
+    '<div class="uso-opc" role="group" aria-labelledby="usoT">'+USO_OPC.map(function(o){return '<label class="uso-o"><input type="checkbox" data-uso="'+o[0]+'"'+(u[o[0]]?' checked':'')+'><span>'+o[1]+'</span></label>'}).join('')+'</div>'+
+    '<p class="inst-dica" id="usoVila"'+(u.vila?'':' hidden')+'>A Volta à noite vai mostrar o último ônibus até o ponto mais perto da Vila ('+esc(STOPS[vilaPonto().id].short||STOPS[vilaPonto().id].name)+').</p>'+
+    '<label class="uso-o uso-g"><input type="checkbox" id="usoGrade"'+(grade?' checked':'')+'><span>Mostrar a aba Grade<small>Seu horário de aulas, com o ônibus de cada uma.</small></span></label>'+
+    '<div class="inst-acoes inst-fim"><button type="button" class="linkbtn" id="usoDepois">Agora não</button><button type="button" class="copy primary" id="usoOk">Salvar</button></div>';
+}
+function usoAbre(){
+  if(USO_ST.aberto)return;USO_ST.aberto=true;USO_ST.mexeuGrade=usoRespondeu();USO_ST.antes=document.activeElement;
+  document.body.insertAdjacentHTML('beforeend','<div class="inst-fundo" id="usoFundo"></div><div class="inst-folha" id="usoFolha" role="dialog" aria-modal="true" aria-labelledby="usoT">'+usoHTML()+'</div>');
+  requestAnimationFrame(function(){var f=$('#usoFolha');if(f){f.classList.add('on');$('#usoFundo').classList.add('on');var b=f.querySelector('input');if(b)b.focus({preventScroll:true})}});
+}
+function usoFecha(){var f=$('#usoFolha'),g=$('#usoFundo');if(f)f.remove();if(g)g.remove();USO_ST.aberto=false;try{if(USO_ST.antes&&USO_ST.antes.focus)USO_ST.antes.focus({preventScroll:true})}catch(e){}}
+function usoGuardaFolha(){
+  var v={t:Date.now()};USO_OPC.forEach(function(o){var c=document.querySelector('#usoFolha [data-uso="'+o[0]+'"]');v[o[0]]=!!(c&&c.checked)});
+  var g=$('#usoGrade').checked;usoSalva(v);usoFecha();state.nightEst=false;usoAplicaGrade(g);
+  if(!$('#pane-cfg').hidden)renderCfgKeep();refreshAll();
+  gToast(v.vila?'Pronto. A Volta à noite agora leva até a Vila Residencial.':'Pronto. Dá para mudar em Ajustes › Perfil.');
+}
+document.addEventListener('change',function(e){var t=e.target;if(!t.closest||!t.closest('#usoFolha'))return;
+  if(t.id==='usoGrade'){USO_ST.mexeuGrade=true;return}
+  if(t.dataset.uso==='vila'){var p=$('#usoVila');if(p)p.hidden=!t.checked}
+  /* enquanto a pessoa não mexer na Grade, ela acompanha "Estudo na UFRJ" (sem nada marcado, fica ligada) */
+  if(!USO_ST.mexeuGrade){var m=[].slice.call(document.querySelectorAll('#usoFolha [data-uso]')),algum=m.some(function(c){return c.checked}),est=m.filter(function(c){return c.dataset.uso==='estuda'})[0];
+    $('#usoGrade').checked=!algum||est.checked}
+});
+document.addEventListener('click',function(e){var t=e.target;if(!t.closest)return;
+  if(t.closest('#usoOk')){usoGuardaFolha();return}
+  if(t.closest('#usoDepois')||t.closest('#usoFundo')){if(!usoRespondeu())usoSalva({ate:Date.now()+7*864e5});usoFecha();return}
+  if(t.closest('[data-usoabre]')){usoAbre();return}
+  if(t.closest('[data-nightest]')){state.nightEst=!state.nightEst;refreshAll();return}
+});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&USO_ST.aberto){if(!usoRespondeu())usoSalva({ate:Date.now()+7*864e5});usoFecha()}});
+/* pergunta: logo depois do login; para quem já tinha perfil, uma vez, com a tela livre */
+function usoTalvezPergunte(){
+  if(!PERFIL||usoRespondeu()||usoAdiado()||USO_ST.aberto)return;
+  var n=0,t=setInterval(function(){if(usoRespondeu()||USO_ST.aberto||!PERFIL||++n>40){clearInterval(t);return}
+    if(instTelaLivre()&&!document.querySelector('#instFolha')){clearInterval(t);usoAbre()}},1500);
+}
+aoFazer('login fechado',function(){setTimeout(usoTalvezPergunte,600)});
+setTimeout(usoTalvezPergunte,4000);
+/* Ajustes › Perfil: resumo e botão para mudar */
+aoFazer('ajustes montados',function(){
+  var p=document.querySelector('#pane-cfg .prof');if(!p||document.querySelector('#usoCfg'))return;
+  p.insertAdjacentHTML('afterend','<div class="prof uso-cfg" id="usoCfg"><span class="grow"><b>Como você usa o Fundão</b><small>'+esc(usoResumo())+'</small></span><button class="copy" type="button" data-usoabre>'+(usoRespondeu()?'Mudar':'Responder')+'</button></div>');
+});
+/* ======================= Notificações na capa =======================
+   Na capa, abaixo do aviso do dia: o alerta de tiroteio (vermelho até 2 h, amarelo até 5 h, quando os avisos estão
+   ligados) e o estado das notificações do celular, com o botão para ligar ali mesmo. */
+var CAPA_SINO='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>';
+function capaAvisosHTML(){
+  var h='',N=tiroNivel();
+  if(N){var o=N.ult;
+    h+='<button type="button" class="cv-aviso '+N.cor+'" id="cvTiro"><span class="cv-av-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5L22 20.5H2z"/><path class="ta-x" d="M12 9.5v5.2M12 17.4v.1"/></svg></span>'+
+      '<span class="grow"><b>'+esc((N.cor==='vermelho'?'Tiroteio ':'Teve tiroteio ')+tiroHa(o.t)+(o.bairro?' em '+o.bairro:' perto das saídas'))+'</b><small>Evite a região se puder. Toque para ver. Fonte: Fogo Cruzado.</small></span></button>'}
+  if(ON_SITE&&PUSH.url){
+    if(pushIosSemInstalar())h+='<button type="button" class="cv-aviso neutro" data-instalar>'+'<span class="cv-av-ic" aria-hidden="true">'+CAPA_SINO+'</span><span class="grow"><b>Receba avisos de tiroteio</b><small>No iPhone, instale o app na Tela de Início. Toque para ver como.</small></span></button>';
+    else if(pushSuportado()){
+      if(pushLigado())h+='<p class="cv-aviso neutro ok"><span class="cv-av-ic" aria-hidden="true">'+CAPA_SINO+'</span><span class="grow"><b>Notificações ligadas</b><small>'+esc(PUSH.msg&&!PUSH.busy?PUSH.msg:'Você recebe um aviso quando há tiroteio novo perto do Fundão.')+'</small></span></p>';
+      else h+='<button type="button" class="cv-aviso neutro" id="cvPush"'+(PUSH.busy?' disabled':'')+'><span class="cv-av-ic" aria-hidden="true">'+CAPA_SINO+'</span><span class="grow"><b>'+(PUSH.busy?'Aguarde…':'Ativar notificações')+'</b><small>'+esc(PUSH.msg&&!PUSH.busy?PUSH.msg:'Aviso no celular quando houver tiroteio perto das saídas da ilha.')+'</small></span></button>'}
+  }
+  return h;
+}
+function capaAvisos(){
+  if(!cover||cover.hidden)return;var b=$('#cvAvisos');
+  if(!b){var t=$('#cvToday');if(!t)return;t.insertAdjacentHTML('afterend','<div class="cv-avisos" id="cvAvisos"></div>');b=$('#cvAvisos')}
+  var h=capaAvisosHTML();if(b.dataset.h===h)return;
+  var foco=document.activeElement&&b.contains(document.activeElement)?document.activeElement.id:'';
+  b.dataset.h=h;b.innerHTML=h;b.hidden=!h;if(foco){var f=document.getElementById(foco);if(f)f.focus({preventScroll:true})}
+  placeCoverMap();
+}
+document.addEventListener('click',function(e){var t=e.target;if(!t.closest)return;
+  if(t.closest('#cvPush')){pushLiga();capaAvisos();return}
+  if(t.closest('#cvTiro')){closeCover(function(){setTab('trajeto');var v=$('#tiroVer');if(v)v.click()})}
+});
+capaAvisos();
+setInterval(function(){if(!document.hidden)capaAvisos()},1500);
+/* ======================= Idioma: Português, English, Español =======================
+   O app é escrito em português. Com outro idioma escolhido (Ajustes › Idioma ou na capa), os textos fixos da
+   interface são trocados na tela por uma tabela (IDI_TAB: português ¦ inglês ¦ espanhol) e por padrões para os
+   textos montados ("em 5 min", "Linha 1 · sentido Gráfica"). Nomes de lugares, linhas e destinos ficam como são.
+   O que não está na tabela continua em português. Em português nada disto roda. Guardado em CFG.idioma.
+   Para traduzir mais um texto: acrescente uma linha em IDI_TAB com o texto exatamente como aparece na tela. */
+var IDI_NOMES={pt:'Português',en:'English',es:'Español'};
+var IDI_TAB=`
+Ajustes ¦ Settings ¦ Ajustes
+Siglas ¦ Acronyms ¦ Siglas
+Voltar ¦ Back ¦ Volver
+← Voltar ¦ ← Back ¦ ← Volver
+Login ¦ Login ¦ Acceso
+App ¦ App ¦ App
+Capa ¦ Cover ¦ Portada
+Gestão ¦ Admin ¦ Gestión
+UFRJ · Ilha do Fundão ¦ UFRJ · Fundão Island ¦ UFRJ · Isla de Fundão
+Para onde você vai hoje? ¦ Where are you going today? ¦ ¿A dónde vas hoy?
+Abrir o mapa ¦ Open the map ¦ Abrir el mapa
+Mapa ¦ Map ¦ Mapa
+Ônibus ¦ Buses ¦ Autobuses
+Grade ¦ Timetable ¦ Horario
+Datas ¦ Dates ¦ Fechas
+Noite ¦ Night ¦ Noche
+Trajetos ¦ Routes ¦ Trayectos
+Lugares ¦ Places ¦ Lugares
+Calendário ¦ Calendar ¦ Calendario
+Que bom te ver de novo ¦ Good to see you again ¦ Qué bueno verte de nuevo
+Usar código ¦ Use code ¦ Usar código
+Entrar ¦ Sign in ¦ Entrar
+Entrar com Google ¦ Sign in with Google ¦ Entrar con Google
+Entrar com e-mail ¦ Sign in with e-mail ¦ Entrar con correo
+Não é você? ¦ Not you? ¦ ¿No eres tú?
+Trocar de conta ¦ Switch account ¦ Cambiar de cuenta
+Primeiro acesso ¦ First time here ¦ Primer acceso
+Crie seu perfil ¦ Create your profile ¦ Crea tu perfil
+Fica salvo só neste aparelho. Da próxima vez, é só tocar para entrar. ¦ It is saved only on this device. Next time, just tap to enter. ¦ Se guarda solo en este dispositivo. La próxima vez, basta tocar para entrar.
+Como você quer ser chamado? ¦ What should we call you? ¦ ¿Cómo quieres que te llamemos?
+Código de 4 dígitos ¦ 4-digit code ¦ Código de 4 dígitos
+Código de 4 dígitos (opcional) ¦ 4-digit code (optional) ¦ Código de 4 dígitos (opcional)
+Criar perfil e entrar ¦ Create profile and enter ¦ Crear perfil y entrar
+Entrar sem perfil (só consultar) ¦ Enter without a profile (view only) ¦ Entrar sin perfil (solo consultar)
+Criar perfil ¦ Create profile ¦ Crear perfil
+Criar conta ¦ Create account ¦ Crear cuenta
+Já tenho conta ¦ I have an account ¦ Ya tengo cuenta
+E-mail ¦ E-mail ¦ Correo
+Senha ¦ Password ¦ Contraseña
+Esqueci a senha ¦ Forgot my password ¦ Olvidé la contraseña
+Sair ¦ Sign out ¦ Salir
+Tiroteios perto das saídas ¦ Shootings near the exits ¦ Tiroteos cerca de las salidas
+Evite a região se puder. ¦ Avoid the area if you can. ¦ Evita la zona si puedes.
+Evite a região se puder. Toque para ver. Fonte: Fogo Cruzado. ¦ Avoid the area if you can. Tap to see. Source: Fogo Cruzado. ¦ Evita la zona si puedes. Toca para ver. Fuente: Fogo Cruzado.
+Fonte: Fogo Cruzado. Não é alerta oficial. Emergência: 190. ¦ Source: Fogo Cruzado. Not an official alert. Emergency: 190. ¦ Fuente: Fogo Cruzado. No es una alerta oficial. Emergencia: 190.
+Ver detalhes ¦ See details ¦ Ver detalles
+Ocultar este alerta ¦ Hide this alert ¦ Ocultar esta alerta
+Ativar notificações ¦ Turn on notifications ¦ Activar notificaciones
+Aviso no celular quando houver tiroteio perto das saídas da ilha. ¦ A phone alert when there is a shooting near the island exits. ¦ Aviso en el móvil cuando haya un tiroteo cerca de las salidas de la isla.
+Notificações ligadas ¦ Notifications on ¦ Notificaciones activadas
+Você recebe um aviso quando há tiroteio novo perto do Fundão. ¦ You get an alert when there is a new shooting near Fundão. ¦ Recibes un aviso cuando hay un tiroteo nuevo cerca de Fundão.
+Receba avisos de tiroteio ¦ Get shooting alerts ¦ Recibe avisos de tiroteo
+No iPhone, instale o app na Tela de Início. Toque para ver como. ¦ On iPhone, add the app to the Home Screen. Tap to see how. ¦ En iPhone, instala la app en la pantalla de inicio. Toca para ver cómo.
+Previsão indisponível ¦ Forecast unavailable ¦ Pronóstico no disponible
+Não deu para falar com o serviço de previsão agora. ¦ Could not reach the forecast service right now. ¦ No se pudo conectar con el servicio de pronóstico ahora.
+Tentar de novo ¦ Try again ¦ Reintentar
+aberto ¦ open ¦ abierto
+Wi-Fi aberto ¦ Open Wi-Fi ¦ Wi-Fi abierto
+Serviços ¦ Services ¦ Servicios
+Todos ¦ All ¦ Todos
+Comer ¦ Food ¦ Comer
+Banco ¦ Bank ¦ Banco
+Saúde ¦ Health ¦ Salud
+Papelaria e correio ¦ Stationery and post ¦ Papelería y correo
+Táxi e bicicleta ¦ Taxi and bikes ¦ Taxi y bicicleta
+Buscar ônibus ¦ Find a bus ¦ Buscar autobús
+Ruas ao redor: ¦ Surrounding streets: ¦ Calles alrededor:
+colaboradores do ¦ contributors ¦ colaboradores de
+Legenda ¦ Legend ¦ Leyenda
+Parada ¦ Stop ¦ Parada
+Parada selecionada ¦ Selected stop ¦ Parada seleccionada
+Parada de várias linhas ¦ Stop served by several lines ¦ Parada de varias líneas
+Wi-Fi aberto (mais barras, sinal melhor) ¦ Open Wi-Fi (more bars, better signal) ¦ Wi-Fi abierto (más barras, mejor señal)
+Guarita (segurança) ¦ Guard post (security) ¦ Garita (seguridad)
+Aviso de aluno ¦ Student report ¦ Aviso de estudiante
+Você (localização) ¦ You (location) ¦ Tú (ubicación)
+Rosa dos ventos: orientação aproximada ¦ Compass rose: approximate orientation ¦ Rosa de los vientos: orientación aproximada
+Ônibus ao vivo: número da linha; a ponta mostra o sentido ¦ Live bus: line number; the tip shows the direction ¦ Autobús en vivo: número de línea; la punta muestra el sentido
+Ônibus que você está seguindo ¦ Bus you are following ¦ Autobús que estás siguiendo
+Linha sem horários no app ¦ Line with no timetable in the app ¦ Línea sin horarios en la app
+Ponto de ônibus da cidade ¦ City bus stop ¦ Parada de autobús de la ciudad
+Anel verde na bússola: posições chegando ¦ Green ring on the compass: positions arriving ¦ Anillo verde en la brújula: posiciones llegando
+Laranja: chegando com atraso ¦ Orange: arriving late ¦ Naranja: llegando con retraso
+Vermelho: ao vivo parado ¦ Red: live data stopped ¦ Rojo: en vivo detenido
+Entre uma posição e outra, o ônibus avança pela velocidade (estimativa) ¦ Between positions, the bus moves by its speed (estimate) ¦ Entre una posición y otra, el autobús avanza según su velocidad (estimación)
+Arraste para mover · pinça para zoom ¦ Drag to move · pinch to zoom ¦ Arrastra para mover · pellizca para ampliar
+Planta: ETU/UFRJ (levantamento cadastral) ¦ Site plan: ETU/UFRJ (cadastral survey) ¦ Plano: ETU/UFRJ (levantamiento catastral)
+Linhas internas da UFRJ ¦ UFRJ campus bus lines ¦ Líneas internas de la UFRJ
+Seu trajeto ¦ Your route ¦ Tu trayecto
+De ¦ From ¦ Desde
+Para ¦ To ¦ Hasta
+passa até ¦ passes within ¦ pasa en hasta
+agora ¦ now ¦ ahora
+mais provável no meio ¦ most likely in the middle ¦ más probable en el medio
+Embarque em ¦ Board at ¦ Sube en
+entre ¦ between ¦ entre
+Depois ¦ Later ¦ Después
+Outras linhas ¦ Other lines ¦ Otras líneas
+Outras ¦ Others ¦ Otras
+Avisar alguém ¦ Tell someone ¦ Avisar a alguien
+Mensagem pronta com o ônibus e a hora de chegada ¦ Ready-made message with the bus and arrival time ¦ Mensaje listo con el autobús y la hora de llegada
+Estou saindo ¦ I'm leaving ¦ Estoy saliendo
+Cheguei ¦ I've arrived ¦ Llegué
+Ônibus atrasou ¦ Bus is late ¦ El autobús se retrasó
+Copiar mensagem ¦ Copy message ¦ Copiar mensaje
+Abrir no WhatsApp ¦ Open in WhatsApp ¦ Abrir en WhatsApp
+Copiar ¦ Copy ¦ Copiar
+Volta à noite ¦ Getting back at night ¦ Vuelta de noche
+Último ônibus, guaritas e telefone da segurança ¦ Last bus, guard posts and security phone numbers ¦ Último autobús, garitas y teléfono de seguridad
+Wi-Fi aberto perto do destino ¦ Open Wi-Fi near your destination ¦ Wi-Fi abierto cerca del destino
+Como chegar à Ilha do Fundão ¦ How to get to Fundão Island ¦ Cómo llegar a la Isla de Fundão
+Metrô ¦ Metro ¦ Metro
+Desça na estação Fundão – Cidade Universitária e pegue a linha interna na Estação de Integração. ¦ Get off at Fundão – Cidade Universitária station and take the campus bus at the Integration Station. ¦ Baja en la estación Fundão – Cidade Universitária y toma la línea interna en la Estación de Integración.
+Ônibus da cidade ¦ City buses ¦ Autobuses de la ciudad
+Ao vivo: ¦ Live: ¦ En vivo:
+ao vivo ¦ live ¦ en vivo
+Centro ¦ Downtown ¦ Centro
+Zona Sul ¦ South Zone ¦ Zona Sur
+Zona Norte ¦ North Zone ¦ Zona Norte
+Zona Oeste ¦ West Zone ¦ Zona Oeste
+Outros destinos ¦ Other destinations ¦ Otros destinos
+sem mais saídas hoje ¦ no more departures today ¦ sin más salidas hoy
+Destino ¦ Destination ¦ Destino
+Avisos dos alunos ¦ Student reports ¦ Avisos de estudiantes
+Ao vivo · últimas 4 horas ¦ Live · last 4 hours ¦ En vivo · últimas 4 horas
+Nenhum aviso agora. Viu fila grande no RU, ônibus lotado ou Wi-Fi fora do ar? Avise os colegas. ¦ No reports right now. Seen a long queue at the cafeteria, a packed bus or Wi-Fi down? Tell your colleagues. ¦ Ningún aviso ahora. ¿Viste una fila larga en el comedor, un autobús lleno o el Wi-Fi caído? Avisa a tus compañeros.
+Crie seu perfil para enviar avisos. ¦ Create your profile to send reports. ¦ Crea tu perfil para enviar avisos.
+Sem perfil, o app só mostra as informações. ¦ Without a profile, the app only shows information. ¦ Sin perfil, la app solo muestra la información.
+Guia de prédios ¦ Building guide ¦ Guía de edificios
+Institutos, bibliotecas e horários de funcionamento ¦ Institutes, libraries and opening hours ¦ Institutos, bibliotecas y horarios
+Transporte integrado ¦ Campus transport ¦ Transporte integrado
+Linhas internas ¦ Campus lines ¦ Líneas internas
+Toque numa linha para ver o itinerário, ou numa parada do mapa para ver os próximos horários. ¦ Tap a line to see its route, or a stop on the map to see the next departures. ¦ Toca una línea para ver el recorrido, o una parada del mapa para ver los próximos horarios.
+Sobre o protótipo e as fontes ¦ About the prototype and sources ¦ Sobre el prototipo y las fuentes
+Linha, destino ou número do carro ¦ Line, destination or bus number ¦ Línea, destino o número del coche
+Linha, destino ou carro ¦ Line, destination or bus ¦ Línea, destino o coche
+Digite a linha para ver os outros. ¦ Type the line to see the others. ¦ Escribe la línea para ver los demás.
+Só aparecem os ônibus da cidade na região do Fundão. ¦ Only city buses around Fundão are shown. ¦ Solo aparecen los autobuses de la ciudad en la zona de Fundão.
+Fechar a busca ¦ Close search ¦ Cerrar la búsqueda
+Sem horários no app · ¦ No timetable in the app · ¦ Sin horarios en la app ·
+Parar de seguir ¦ Stop following ¦ Dejar de seguir
+Voltar ao ônibus ¦ Back to the bus ¦ Volver al autobús
+Chegando agora ¦ Arriving now ¦ Llegando ahora
+chegando ¦ arriving ¦ llegando
+menos de 1 min ¦ less than 1 min ¦ menos de 1 min
+Seguir ¦ Follow ¦ Seguir
+Nenhum ônibus ao vivo vindo para este ponto agora. ¦ No live bus heading to this stop right now. ¦ Ningún autobús en vivo viene hacia esta parada ahora.
+Tempo estimado pela posição e velocidade do ônibus. Pode variar com o trânsito. ¦ Time estimated from the bus position and speed. It may vary with traffic. ¦ Tiempo estimado por la posición y velocidad del autobús. Puede variar con el tráfico.
+Buscando ônibus ao vivo… ¦ Looking for live buses… ¦ Buscando autobuses en vivo…
+Sair daqui ¦ Leave from here ¦ Salir de aquí
+Ir para cá ¦ Go here ¦ Ir aquí
+Wi-Fi aberto por perto ¦ Open Wi-Fi nearby ¦ Wi-Fi abierto cerca
+Sugerir correção ¦ Suggest a correction ¦ Sugerir corrección
+Ônibus da cidade nesta parada ¦ City buses at this stop ¦ Autobuses de la ciudad en esta parada
+← Todas as linhas ¦ ← All lines ¦ ← Todas las líneas
+Segurança ¦ Safety ¦ Seguridad
+Onde você está? ¦ Where are you? ¦ ¿Dónde estás?
+Você já está na Estação BRT. ¦ You are already at the BRT Station. ¦ Ya estás en la Estación BRT.
+Daqui saem o BRT e os ônibus para fora da ilha. ¦ The BRT and buses off the island leave from here. ¦ De aquí salen el BRT y los autobuses hacia fuera de la isla.
+Você já está no ponto mais perto da Vila Residencial. ¦ You are already at the stop closest to Vila Residencial. ¦ Ya estás en la parada más cercana a la Vila Residencial.
+Último horário de cada linha aqui ¦ Last departure of each line here ¦ Último horario de cada línea aquí
+Ainda há tempo ¦ Still time ¦ Aún hay tiempo
+Encerrado ¦ Ended ¦ Terminado
+Avise alguém de confiança ¦ Tell someone you trust ¦ Avisa a alguien de confianza
+Telefones da segurança ¦ Security phone numbers ¦ Teléfonos de seguridad
+Polícia Militar ¦ Military Police ¦ Policía Militar
+Em caso de violência ¦ In case of violence ¦ En caso de violencia
+Salve esses números no celular antes de precisar. Se a ligação não abrir pelo botão, copie o número. ¦ Save these numbers on your phone before you need them. If the call does not open from the button, copy the number. ¦ Guarda estos números en el móvil antes de necesitarlos. Si la llamada no se abre con el botón, copia el número.
+Guaritas ¦ Guard posts ¦ Garitas
+Dicas da Prefeitura Universitária ¦ Tips from the Campus Administration ¦ Consejos de la Prefectura Universitaria
+Evite chegar ou sair do campus sozinho tarde da noite; combine de ir junto com colegas. ¦ Avoid arriving at or leaving campus alone late at night; arrange to go with colleagues. ¦ Evita llegar o salir del campus solo de noche; ponte de acuerdo para ir con compañeros.
+Espere o ônibus em ponto movimentado e iluminado, sem deixar o celular à mostra. ¦ Wait for the bus at a busy, well-lit stop, keeping your phone out of sight. ¦ Espera el autobús en una parada concurrida e iluminada, sin dejar el móvil a la vista.
+Hoje vou sair da ilha: ver a volta para a Estação BRT ¦ I'm leaving the island today: show the way back to the BRT Station ¦ Hoy salgo de la isla: ver la vuelta a la Estación BRT
+Ver a volta para a Vila Residencial ¦ Show the way back to Vila Residencial ¦ Ver la vuelta a la Vila Residencial
+Minha grade ¦ My timetable ¦ Mi horario
+Próxima aula ¦ Next class ¦ Próxima clase
+Semana ¦ Week ¦ Semana
+Segunda ¦ Monday ¦ Lunes
+Terça ¦ Tuesday ¦ Martes
+Quarta ¦ Wednesday ¦ Miércoles
+Quinta ¦ Thursday ¦ Jueves
+Sexta ¦ Friday ¦ Viernes
+Adicionar aula ¦ Add class ¦ Añadir clase
+Salvar aula ¦ Save class ¦ Guardar clase
+Disciplina ¦ Course ¦ Asignatura
+Prédio ¦ Building ¦ Edificio
+Sala ¦ Room ¦ Aula
+Dias ¦ Days ¦ Días
+Início ¦ Start ¦ Inicio
+Fim ¦ End ¦ Fin
+Calendário acadêmico ¦ Academic calendar ¦ Calendario académico
+Próximos prazos ¦ Upcoming deadlines ¦ Próximos plazos
+Próximos feriados ¦ Upcoming holidays ¦ Próximos feriados
+Fila do RU agora ¦ Cafeteria queue now ¦ Fila del comedor ahora
+Configurar eduroam ¦ Set up eduroam ¦ Configurar eduroam
+Ver tutorial ¦ See tutorial ¦ Ver tutorial
+Aparência ¦ Appearance ¦ Apariencia
+Mapa, avisos e perfil ¦ Map, alerts and profile ¦ Mapa, avisos y perfil
+Tema ¦ Theme ¦ Tema
+Sempre escuro ¦ Always dark ¦ Siempre oscuro
+Sempre claro ¦ Always light ¦ Siempre claro
+Do aparelho ¦ Device setting ¦ Del dispositivo
+Pelo horário ¦ By time of day ¦ Según la hora
+Plano de fundo ¦ Background ¦ Fondo
+Fonte ¦ Font ¦ Fuente
+Tamanho do texto ¦ Text size ¦ Tamaño del texto
+Pequeno ¦ Small ¦ Pequeño
+Normal ¦ Normal ¦ Normal
+Grande ¦ Large ¦ Grande
+Muito grande ¦ Very large ¦ Muy grande
+Desempenho ¦ Performance ¦ Rendimiento
+Automático ¦ Automatic ¦ Automático
+Leve ¦ Light ¦ Ligero
+Intermediário ¦ Balanced ¦ Intermedio
+Completo ¦ Full ¦ Completo
+Conta ¦ Account ¦ Cuenta
+Alertas ¦ Alerts ¦ Alertas
+Segurança no caminho ¦ Safety on the way ¦ Seguridad en el camino
+Tiroteios perto das saídas do Fundão ¦ Shootings near the Fundão exits ¦ Tiroteos cerca de las salidas de Fundão
+Notificar tiroteios novos ¦ Notify me of new shootings ¦ Notificar tiroteos nuevos
+Avisa no celular quando o Fogo Cruzado registra tiroteio perto das saídas da ilha, mesmo com o app fechado. ¦ Alerts your phone when Fogo Cruzado reports a shooting near the island exits, even with the app closed. ¦ Avisa en el móvil cuando Fogo Cruzado registra un tiroteo cerca de las salidas de la isla, incluso con la app cerrada.
+Mandar um teste ¦ Send a test ¦ Enviar una prueba
+Fale com a gente ¦ Talk to us ¦ Habla con nosotros
+Instalar o app ¦ Install the app ¦ Instalar la app
+Ver o passo a passo ¦ See the steps ¦ Ver el paso a paso
+Rede e Wi-Fi ¦ Network and Wi-Fi ¦ Red y Wi-Fi
+Simular horário ¦ Simulate time ¦ Simular hora
+Agora ¦ Now ¦ Ahora
+Avisos e notificações ¦ Alerts and notifications ¦ Avisos y notificaciones
+Perfil ¦ Profile ¦ Perfil
+Nenhum perfil salvo neste aparelho. ¦ No profile saved on this device. ¦ Ningún perfil guardado en este dispositivo.
+Os ajustes ficam salvos neste aparelho. ¦ Settings are saved on this device. ¦ Los ajustes se guardan en este dispositivo.
+Tela e navegação ¦ Screen and navigation ¦ Pantalla y navegación
+Modo simplificado ¦ Simplified mode ¦ Modo simplificado
+Horário dos ônibus ¦ Bus times ¦ Horario de autobuses
+Previsão do tempo ¦ Weather forecast ¦ Pronóstico del tiempo
+Abas do app ¦ App tabs ¦ Pestañas de la app
+Mostrar ¦ Show ¦ Mostrar
+Idioma ¦ Language ¦ Idioma
+Os nomes de lugares e linhas ficam em português. Alguns textos ainda não foram traduzidos. ¦ Place and line names stay in Portuguese. Some texts are not translated yet. ¦ Los nombres de lugares y líneas quedan en portugués. Algunos textos aún no están traducidos.
+Como você usa o Fundão? ¦ How do you use Fundão? ¦ ¿Cómo usas Fundão?
+Como você usa o Fundão ¦ How you use Fundão ¦ Cómo usas Fundão
+Para o app mostrar o que serve para você. Marque o que valer. ¦ So the app shows what is useful to you. Tick all that apply. ¦ Para que la app muestre lo que te sirve. Marca lo que corresponda.
+Estudo na UFRJ ¦ I study at UFRJ ¦ Estudio en la UFRJ
+Moro na Vila Residencial ¦ I live in Vila Residencial ¦ Vivo en la Vila Residencial
+Trabalho no Fundão ¦ I work at Fundão ¦ Trabajo en Fundão
+Sou paciente ou visitante ¦ I'm a patient or visitor ¦ Soy paciente o visitante
+Mostrar a aba Grade ¦ Show the Timetable tab ¦ Mostrar la pestaña Horario
+Seu horário de aulas, com o ônibus de cada uma. ¦ Your class schedule, with the bus for each one. ¦ Tu horario de clases, con el autobús de cada una.
+Agora não ¦ Not now ¦ Ahora no
+Salvar ¦ Save ¦ Guardar
+Mudar ¦ Change ¦ Cambiar
+Responder ¦ Answer ¦ Responder
+Ainda não informado ¦ Not answered yet ¦ Aún sin responder
+Instale o Chega aí ¦ Install Chega aí ¦ Instala Chega aí
+Ícone na tela inicial, tela cheia e funciona mesmo sem internet. ¦ Home screen icon, full screen, and it works even offline. ¦ Icono en la pantalla de inicio, pantalla completa y funciona incluso sin internet.
+Não mostrar mais ¦ Don't show again ¦ No mostrar más
+Instalar o app ¦ Install the app ¦ Instalar la app
+Fechar ajustes ¦ Close settings ¦ Cerrar ajustes
+Aproximar ¦ Zoom in ¦ Acercar
+Afastar ¦ Zoom out ¦ Alejar
+Onde estou ¦ Where I am ¦ Dónde estoy
+Mostrar onde estou ¦ Show where I am ¦ Mostrar dónde estoy
+Ver o campus inteiro ¦ See the whole campus ¦ Ver todo el campus
+Busque ponto, prédio ou sigla ¦ Search stop, building or acronym ¦ Busca parada, edificio o sigla
+Inverter origem e destino ¦ Swap origin and destination ¦ Invertir origen y destino
+Ônibus gratuitos da UFRJ, paradas e trajetos ¦ Free UFRJ buses, stops and routes ¦ Autobuses gratuitos de la UFRJ, paradas y trayectos
+Linhas municipais e BRT, com posição ao vivo ¦ City lines and BRT, with live position ¦ Líneas municipales y BRT, con posición en vivo
+`;
+/* textos montados: [padrão sobre o texto em português, inglês, espanhol]; $1, $2… são os trechos que ficam como vieram */
+var IDI_PAD=[
+  [/^Linha (\S+) · sentido (.+)$/,'Line $1 · towards $2','Línea $1 · sentido $2'],
+  [/^Linha (\S+) · (.+)$/,'Line $1 · $2','Línea $1 · $2'],
+  [/^Linha (\S+)$/,'Line $1','Línea $1'],
+  [/^Sentido (.+)$/,'Towards $1','Sentido $1'],
+  [/^em (\d+(?:–\d+)?) min$/,'in $1 min','en $1 min'],
+  [/^até (\d+) min$/,'up to $1 min','hasta $1 min'],
+  [/^há (\d+) (s|min|h)$/,'$1 $2 ago','hace $1 $2'],
+  [/^(\d+) ao vivo$/,'$1 live','$1 en vivo'],
+  [/^(\d+) ônibus ao vivo$/,'$1 live buses','$1 autobuses en vivo'],
+  [/^Carro (\S+) · parado · há (.+)$/,'Bus $1 · stopped · $2 ago','Coche $1 · parado · hace $2'],
+  [/^Carro (\S+) · (\d+) km\/h · há (.+)$/,'Bus $1 · $2 km/h · $3 ago','Coche $1 · $2 km/h · hace $3'],
+  [/^chega (\d\d:\d\d)$/,'arrives $1','llega $1'],
+  [/^Faltam (\d+) min$/,'$1 min left','Faltan $1 min'],
+  [/^· cerca de (\d+) min$/,'· about $1 min','· unos $1 min'],
+  [/^· depois (.+)$/,'· then $1','· luego $1'],
+  [/^Tiroteio há (.+?) em (.+)$/,'Shooting $1 ago in $2','Tiroteo hace $1 en $2'],
+  [/^Teve tiroteio há (.+?) em (.+)$/,'Shooting reported $1 ago in $2','Hubo un tiroteo hace $1 en $2'],
+  [/^Tiroteio há (.+?) perto das saídas$/,'Shooting $1 ago near the exits','Tiroteo hace $1 cerca de las salidas'],
+  [/^Teve tiroteio há (.+?) perto das saídas$/,'Shooting reported $1 ago near the exits','Hubo un tiroteo hace $1 cerca de las salidas'],
+  [/^(\d+) registros? nas últimas (\d+) h · último há (.+)$/,'$1 report(s) in the last $2 h · latest $3 ago','$1 registro(s) en las últimas $2 h · último hace $3'],
+  [/^Para (.+) · a (.+) · carro (\S+)$/,'To $1 · $2 away · bus $3','Hacia $1 · a $2 · coche $3'],
+  [/^a (\d.+?) · carro (\S+)$/,'$1 away · bus $2','a $1 · coche $2'],
+  [/^Próximo: (\S+) para (.+) agora$/,'Next: $1 to $2 now','Próximo: $1 hacia $2 ahora'],
+  [/^Próximo: (\S+) para (.+) em (\d+) min$/,'Next: $1 to $2 in $3 min','Próximo: $1 hacia $2 en $3 min'],
+  [/^(\d+) ônibus na região do Fundão · atualizado há (\d+ \w+).*$/,'$1 buses around Fundão · updated $2 ago','$1 autobuses en la zona de Fundão · actualizado hace $2'],
+  [/^Em (\d+) dias$/,'In $1 days','En $1 días'],
+  [/^Chega em (.+) entre$/,'Arrives at $1 between','Llega a $1 entre'],
+  [/^Último ônibus daqui para a Estação BRT$/,'Last bus from here to the BRT Station','Último autobús desde aquí a la Estación BRT'],
+  [/^Último ônibus daqui para a Vila Residencial \(ponto (.+)\)$/,'Last bus from here to Vila Residencial ($1 stop)','Último autobús desde aquí a la Vila Residencial (parada $1)'],
+  [/^Seguir o ônibus (\S+), carro (\S+), no mapa$/,'Follow bus $1, vehicle $2, on the map','Seguir el autobús $1, coche $2, en el mapa']
+];
+var IDI={on:false,mapa:null,obs:null,feito:new WeakMap()},IDI_ATR=['aria-label','title','placeholder'];
+function idiAtual(){return IDI_NOMES[CFG.idioma]?CFG.idioma:'pt'}
+function idiMapa(){
+  if(IDI.mapa)return IDI.mapa;var M=IDI.mapa=new Map();
+  IDI_TAB.split('\n').forEach(function(l){var p=l.split('¦');if(p.length===3)M.set(p[0].trim(),[p[1].trim(),p[2].trim()])});return M;
+}
+/* tradução de um texto em português para o idioma atual (ou null se não há) */
+function idiTraduz(t){
+  var k=idiAtual()==='en'?0:1,r=idiMapa().get(t);if(r)return r[k];
+  for(var i=0;i<IDI_PAD.length;i++){var P=IDI_PAD[i];if(P[0].test(t))return t.replace(P[0],P[1+k])}
+  return null;
+}
+function idiTexto(n){
+  var v=n.nodeValue,f=IDI.feito.get(n);
+  if(f&&f.tr===v){if(f.l===idiAtual())return;v=f.pt}/* já traduzido: parte do original (troca de idioma) */
+  var t=v.replace(/\s+/g,' ').trim();if(t.length<2){return}
+  if(idiAtual()==='pt'){if(f&&f.tr===n.nodeValue)n.nodeValue=f.pt;IDI.feito.delete(n);return}
+  var r=idiTraduz(t);if(r==null)return;
+  var novo=v.replace(/^(\s*)[\s\S]*?(\s*)$/,function(_,a,b){return a+r+b});
+  IDI.feito.set(n,{pt:v,tr:novo,l:idiAtual()});if(n.nodeValue!==novo)n.nodeValue=novo;
+}
+function idiAtributos(e){
+  for(var i=0;i<IDI_ATR.length;i++){var a=IDI_ATR[i],v=e.getAttribute(a);if(!v)continue;
+    var g=e.__idi||(e.__idi={}),f=g[a];if(f&&f.tr===v){if(f.l===idiAtual())continue;v=f.pt}
+    if(idiAtual()==='pt'){if(f){e.setAttribute(a,f.pt);delete g[a]}continue}
+    var r=idiTraduz(v.replace(/\s+/g,' ').trim());if(r==null)continue;g[a]={pt:v,tr:r,l:idiAtual()};e.setAttribute(a,r)}
+}
+function idiFora(e){return !e||!e.closest||!!e.closest('script,style,#world,textarea,[contenteditable],[data-idi-nao]')}
+function idiVarre(raiz){
+  if(raiz.nodeType===3){if(!idiFora(raiz.parentElement))idiTexto(raiz);return}
+  if(raiz.nodeType!==1||idiFora(raiz))return;
+  var w=document.createTreeWalker(raiz,NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT),n=raiz;
+  while(n){if(n.nodeType===3){if(!idiFora(n.parentElement))idiTexto(n)}else if(n.hasAttribute&&(n.hasAttribute('aria-label')||n.hasAttribute('title')||n.hasAttribute('placeholder'))&&!idiFora(n))idiAtributos(n);n=w.nextNode()}
+}
+function idiLiga(){
+  document.documentElement.lang=idiAtual()==='pt'?'pt-BR':idiAtual();
+  idiVarre(document.body);
+  if(idiAtual()==='pt'){if(IDI.obs){IDI.obs.disconnect();IDI.obs=null}return}
+  if(IDI.obs)return;
+  IDI.obs=new MutationObserver(function(L){for(var i=0;i<L.length;i++){var m=L[i];
+    if(m.type==='characterData')idiVarre(m.target);
+    else if(m.type==='attributes'){if(!idiFora(m.target))idiAtributos(m.target)}
+    else for(var j=0;j<m.addedNodes.length;j++)idiVarre(m.addedNodes[j])}});
+  IDI.obs.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:IDI_ATR});
+}
+function idiEscolhe(l){if(!IDI_NOMES[l]||l===idiAtual())return;CFG.idioma=l;saveCfg();idiLiga();idiPinta()}
+function idiBotoes(){return Object.keys(IDI_NOMES).map(function(l){return '<button type="button" data-idioma="'+l+'" lang="'+l+'" aria-pressed="'+(l===idiAtual())+'">'+IDI_NOMES[l]+'</button>'}).join('')}
+function idiPinta(){document.querySelectorAll('[data-idioma]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.idioma===idiAtual()))})}
+document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-idioma]');if(b)idiEscolhe(b.dataset.idioma)});
+/* Ajustes: no começo da folha */
+aoFazer('ajustes montados',function(){
+  var r=$('#cfgR')||document.querySelector('#pane-cfg .cfgsheet');if(!r||r.querySelector('#idiSec'))return;
+  r.insertAdjacentHTML('afterbegin','<div id="idiSec" class="idi-sec"><div><p class="eyebrow">Ajustes</p><h2>Idioma</h2></div>'+
+    '<div class="seg chips" role="group" aria-label="Idioma" data-idi-nao>'+idiBotoes()+'</div>'+
+    '<p class="muted small keep">Os nomes de lugares e linhas ficam em português. Alguns textos ainda não foram traduzidos.</p></div>');
+});
+/* capa: quem não lê português escolhe antes de entrar */
+(function(){var s=document.querySelector('#cover .cv-sheet .eyebrow');if(s&&!$('#cvIdioma'))s.insertAdjacentHTML('afterend','<div class="cv-idioma seg chips" id="cvIdioma" role="group" aria-label="Idioma / Language" data-idi-nao>'+idiBotoes()+'</div>')})();
+if(idiAtual()!=='pt')idiLiga();
 /* ======================= Início: a aba pedida no endereço =======================
    Fica por último, depois que todas as partes carregaram: abrir uma aba desenha a tela inteira dela
    (Lugares, por exemplo, usa o Wi-Fi e o eduroam, definidos em partes posteriores). Abrir antes disso

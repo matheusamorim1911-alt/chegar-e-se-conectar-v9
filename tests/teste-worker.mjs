@@ -1,5 +1,5 @@
 // Testa o Worker sem internet: simula a API da prefeitura com uma amostra e confere o filtro.
-import worker, { filtrar, fcFiltrar, fcHora, extrairLinhas, naIlha, contarFora, endpointValido, jwtVapid, vapid, avisaTiroteios } from '../worker/gps-fundao.js';
+import worker, { filtrar, fcFiltrar, fcHora, extrairLinhas, naIlha, contarFora, linhaDeVerdade, completar, endpointValido, jwtVapid, vapid, avisaTiroteios } from '../worker/gps-fundao.js';
 let falhou = false; const ok = (c, m) => { console.log((c ? 'ok   ' : 'FALHA') + '  ' + m); if (!c) falhou = true; };
 const agora = Date.parse('2026-11-07T10:15:00-03:00');
 const amostra = [
@@ -102,6 +102,28 @@ const ordena = L => JSON.stringify(L.slice().sort((a, b) => a.v < b.v ? -1 : 1))
 for (const [nome, fmt] of [['números', o => ({ ...o, latitude: +String(o.latitude).replace(',', '.'), longitude: +String(o.longitude).replace(',', '.') })], ['texto com vírgula', o => ({ ...o, latitude: String(o.latitude).replace('.', ','), longitude: String(o.longitude).replace('.', ',') })]]) {
   const T = JSON.stringify([...outras, ...cidade.slice(0, 50).map((o, i) => ({ ...o, latitude: -22.80 - i / 1000, longitude: -43.30 + i / 500 }))].map(fmt));
   ok(ordena(filtrar(extrairLinhas(T), agora)) === ordena(filtrar(JSON.parse(T), agora)), 'leitura leve acha as outras linhas da ilha (' + nome + ')');
+}
+// ---------- códigos que não são linha e resposta parcial ----------
+ok(['GARAGEM', 'APOIO', 'MANUTENCAO', 'TR', '0', '00', ''].every(l => !linhaDeVerdade(l)) && ['474', 'SVA485', 'ESP01', '2343', '95'].every(linhaDeVerdade), 'códigos de fora de serviço (GARAGEM, APOIO, TR, 0…) não contam como linha');
+const fs2 = filtrar([{ id_veiculo: 'G1', servico: 'GARAGEM', latitude: -22.8586, longitude: -43.2318, datetime: t30 }, { id_veiculo: 'G2', servico: '0', latitude: -22.8586, longitude: -43.2318, datetime: t30 },
+  { id_veiculo: 'G3', servico: '95', latitude: -22.8650, longitude: -43.2550, datetime: t30 }], agora);
+ok(fs2.length === 1 && fs2[0].v === 'G3' && !fs2[0].f, 'ônibus fora de serviço na ilha não aparecem; 95 (vista todo dia) entra também nos acessos');
+const cp = completar([{ v: 'A', t: 1000e3 }], [{ v: 'A', t: 900e3 }, { v: 'B', t: 900e3 }, { v: 'C', t: 500e3 }], 1000e3);
+ok(cp.map(o => o.v).join() === 'A,B' && cp[0].t === 1000e3, 'resposta parcial: completa com os ônibus guardados ainda válidos');
+{ const g3 = new Map(); globalThis.caches = { default: { match: async r => g3.get(r.url)?.clone() ?? null, put: async (r, v) => { g3.set(r.url, v); } } };
+  const agoraIso = () => new Date(Date.now() - 3 * 3600e3 - 30e3).toISOString().slice(0, 19) + 'Z';
+  const vai = async () => { const cx = { esperas: [], waitUntil(p) { this.esperas.push(p); } }; const r = await worker.fetch(new Request('https://x.workers.dev/'), {}, cx); await Promise.all(cx.esperas); g3.delete('https://cache.local/gps-fundao'); return r.json(); };
+  globalThis.fetch = async u => new Response(JSON.stringify(u.includes('sppo') ? [{ id_veiculo: 'S1', servico: '321', latitude: -22.8394, longitude: -43.2396, datetime: agoraIso() }] : [{ id_veiculo: 'E1', servico: '95', latitude: -22.8394, longitude: -43.2396, datetime: agoraIso() }]));
+  const c1 = await vai();
+  let pedidos = 0;
+  globalThis.fetch = async u => { if (u.includes('sppo')) { pedidos++; return new Response('erro', { status: 500 }); } return new Response(JSON.stringify([{ id_veiculo: 'E1', servico: '95', latitude: -22.8400, longitude: -43.2396, datetime: agoraIso() }])); };
+  const c2 = await vai();
+  ok(c1.onibus.length === 2 && !c1.parcial && c2.parcial === true && c2.onibus.map(o => o.v).sort().join() === 'E1,S1', 'prefeitura do Rio com erro 500 nos ônibus comuns: eles continuam no mapa com a última posição');
+  ok(pedidos === 2, 'erro 500: tenta mais uma vez antes de desistir');
+  let vez = 0;
+  globalThis.fetch = async u => { if (u.includes('sppo') && vez++ === 0) return new Response('erro', { status: 500 }); return new Response(JSON.stringify(u.includes('sppo') ? [{ id_veiculo: 'S1', servico: '321', latitude: -22.8394, longitude: -43.2396, datetime: agoraIso() }] : [])); };
+  const c3 = await vai();
+  ok(!c3.parcial && c3.onibus.some(o => o.v === 'S1'), 'erro 500 que passa na segunda tentativa: resposta completa');
 }
 // ---------- registro das tentativas com a prefeitura (aba Saúde) ----------
 const g2 = new Map();

@@ -21,6 +21,10 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `16-anel-ao-vivo.css`: anel ao redor da bússola com o estado dos ônibus ao vivo
 - `17-instalar.css`: folha do convite para instalar o app
 - `18-avisos-tiroteio.css`: notificações de tiroteio em Ajustes
+- `19-chegando-e-legenda.css`: ônibus chegando e legenda do ao vivo
+- `20-perfil-de-uso.css`: folha do perfil de uso
+- `21-capa-avisos.css`: avisos na capa
+- `22-idioma.css`: botões de idioma
 
 ## Código (js/)
 - `01-nucleo.js`: pontos de extensão (etapas), modo do site, ajustes salvos e utilidades básicas
@@ -55,4 +59,8 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `30-anel-ao-vivo.js`: anel ao redor da bússola: gira verde (ou laranja, com atraso) enquanto chegam posições ao vivo; vermelho e parado quando o Worker para de responder
 - `31-instalar.js`: convite com o passo a passo para instalar o app no iPhone e no Android (uma vez por sessão, adiável)
 - `32-avisos-tiroteio.js`: notificação no celular de tiroteio novo perto das saídas da ilha (Web Push pelo Worker), ligada em Ajustes › Segurança no caminho
+- `33-chegando-e-legenda.js`: "Chegando agora" (ônibus ao vivo vindo para o ponto, com tempo estimado) e os itens do ao vivo na legenda
+- `34-perfil-de-uso.js`: folha "Como você usa o Fundão?" depois do login (estuda, mora na Vila, trabalha, visita); define a Volta à noite para a Vila e se a aba Grade aparece
+- `35-capa-avisos.js`: na capa, o alerta de tiroteio e o botão para ligar as notificações do celular
+- `36-idioma.js`: escolha do idioma (Português, English, Español) em Ajustes e na capa; troca os textos fixos da tela por uma tabela e por padrões
 - `99-inicio.js`: abre a aba pedida no endereço (#predios, #grade…) depois que tudo carregou; fica sempre por último

@@ -1,0 +1,17 @@
+/* ônibus chegando (painel do ponto) e itens do ao vivo na legenda */
+.chg-box{margin:10px 0 4px;padding:12px 14px;border-radius:16px;border:1px solid var(--lg-rim2,var(--line));background:var(--surface-2,transparent)}
+.chg-box h3{margin:0 0 8px;font-size:15px;display:flex;align-items:center;gap:8px}
+.chg-box p{margin:6px 0 0}
+.chg-list{margin:0}
+.chg-list b{font-size:16px}
+.chg-seg{flex:none;min-height:36px}
+.legend .lg-vivo{display:flex;flex-wrap:wrap;gap:6px 18px;flex-basis:100%;padding-top:6px;border-top:1px dashed var(--mc-line)}
+.legend .lg-vivo[hidden]{display:none}
+.lg-bus{position:relative;width:20px;height:20px;border-radius:50%;background:#2F7BF6;border:1.5px solid #fff;display:inline-grid;place-items:center;flex:none;margin-top:3px}
+.lg-bus b{font:700 7.5px/1 var(--f-body);color:#fff;letter-spacing:-.2px}
+.lg-bus::before{content:"";position:absolute;left:50%;top:-6px;margin-left:-4px;border:4px solid transparent;border-top:0;border-bottom:5px solid var(--mc-ink)}
+.lg-bus.seg{border:2.5px solid #FFD24A}
+.lg-bus.cinza{background:#5B6B7A}
+.lg-anel{width:13px;height:13px;border-radius:50%;border:2.5px solid #34C759;border-right-color:transparent}
+.lg-anel.lento{border-color:#FF9F0A;border-right-color:transparent}
+.lg-anel.parado{border-color:#FF453A}
