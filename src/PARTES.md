@@ -63,4 +63,5 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `34-perfil-de-uso.js`: folha "Como você usa o Fundão?" depois do login (estuda, mora na Vila, trabalha, visita); define a Volta à noite para a Vila e se a aba Grade aparece
 - `35-capa-avisos.js`: na capa, o alerta de tiroteio e o botão para ligar as notificações do celular
 - `36-idioma.js`: escolha do idioma (Português, English, Español) em Ajustes e na capa; troca os textos fixos da tela por uma tabela e por padrões
+- `37-idioma-textos.js`: segunda parte da tabela de tradução e padrões (datas, Ajustes, Lugares, Grade, Calendário, Wi-Fi, eduroam)
 - `99-inicio.js`: abre a aba pedida no endereço (#predios, #grade…) depois que tudo carregou; fica sempre por último
