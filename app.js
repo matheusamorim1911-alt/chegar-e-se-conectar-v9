@@ -3327,7 +3327,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261112-1546';
+var APP_VERSION='20261112-1604';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -5814,7 +5814,7 @@ var SD_STATUS={success:'deram certo',exceededResources:'passaram do limite de pr
 var SD_NAO_FALHA={success:1,clientDisconnected:1};
 function sdHora(t){return new Date(t).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
 function sdMotivo(e){var F=(e.fontes||[]).filter(function(f){return !f.ok});if(!F.length)return e.r==='ok'?'deu certo':'sem detalhe';
-  return F.map(function(f){return (f.f==='sppo'?'ônibus':f.f==='brt'?'BRT':f.f)+': '+(f.motivo||'falhou')}).join('; ')}
+  return F.map(function(f){return (f.f==='sppo'?'ônibus':f.f==='brt'?'BRT':f.f)+': '+(f.motivo||f.motivo_rt||'falhou')}).join('; ')}
 function sdRegistro(){var L=((SAUDE.sd||{}).registro||[]).slice().reverse();
   return {n:L.length,ok:L.filter(function(e){return e.r==='ok'}).length,falhas:L.filter(function(e){return e.r!=='ok'}),todas:L}}
 function sdVivoHTML(){
@@ -5850,7 +5850,7 @@ function sdVivoHTML(){
       (med!=null?'a prefeitura do Rio costuma responder em '+(med/1000).toFixed(1).replace('.',',')+' s.':'')+'</p>';
     if(R.falhas.length)h+='<ul class="sd-causas">'+R.falhas.slice(0,8).map(function(e){return '<li><b>'+sdHora(e.t)+'</b> '+esc(sdMotivo(e))+(e.r==='reserva'?' (usou a cópia guardada)':e.r==='falhou'?' (sem dados)':'')+'.</li>'}).join('')+'</ul>';
   }
-  return h+sdForaHTML(d)+sdPushHTML(d);
+  return h+sdViaHTML(d)+sdForaHTML(d)+sdPushHTML(d);
 }
 /* 4) notificações de tiroteio (src/js/32-avisos-tiroteio.js): aparelhos inscritos e o último envio */
 function sdPushHTML(d){
@@ -5861,6 +5861,17 @@ function sdPushHTML(d){
   var E=P.ultimoEnvio;
   return h+'<p class="sd-res"><b>'+P.assinantes+(P.maisDe?' ou mais':'')+' aparelho'+(P.assinantes===1?'':'s')+' recebe'+(P.assinantes===1?'':'m')+' os avisos.</b></p>'+
     '<p class="muted small keep">'+(E?'Último aviso às '+sdHora(E.t)+': '+E.enviados+' entregue'+(E.enviados===1?'':'s')+' ao serviço de notificações'+(E.falhas?', '+E.falhas+' com falha':'')+(E.removidos?', '+E.removidos+' inscrição(ões) vencida(s) apagada(s)':'')+'.':'Nenhum aviso enviado ainda.')+'</p>';
+}
+/* 2b) de onde vieram as posições: GTFS Realtime (API atual) ou a API antiga em JSON, que sai do ar em 30/11/2026 */
+function sdViaHTML(d){
+  var L=(d.registro||[]).slice().reverse(),h='<h3 class="gh sd-sec">Fonte das posições</h3>';
+  if(!L.length)return '';
+  var ult=L[0];if(!(ult.fontes||[]).some(function(f){return 'via' in f||'motivo_rt' in f}))return h+'<p class="muted small keep">Publique o Worker de novo: a API antiga da prefeitura do Rio (JSON) sai do ar em 30/11/2026 e o Worker novo usa o GTFS Realtime.</p>';
+  var nome={sppo:'Ônibus',brt:'BRT'};
+  return h+'<ul class="sd-causas">'+(ult.fontes||[]).map(function(f){
+    var via=f.via==='gtfs-rt'?'GTFS Realtime (API atual)':f.via==='json-antigo'?'API antiga em JSON, que sai do ar em 30/11/2026':'nenhuma respondeu';
+    return '<li><b>'+(nome[f.f]||esc(f.f))+':</b> '+via+(f.via!=='gtfs-rt'&&f.motivo_rt?'. O GTFS Realtime falhou: '+esc(f.motivo_rt):'')+(f.rotas&&f.rotas.length?'. Exemplos de route_id sem linha: '+f.rotas.slice(0,5).map(esc).join(', '):'')+(f.desloc_h?'. Hora corrigida em '+f.desloc_h+' h':'')+'.</li>'}).join('')+'</ul>'+
+    ((ult.fontes||[]).some(function(f){return f.via==='json-antigo'})?'<p class="muted small keep">Mande essa linha para quem cuida do app: com os exemplos de route_id dá para ajustar o Worker antes de a API antiga sair do ar.</p>':'');
 }
 /* 3) linhas que não estão na lista do app mas tiveram ônibus dentro da ilha hoje (o Worker passou a incluí-las) */
 function sdForaHTML(d){

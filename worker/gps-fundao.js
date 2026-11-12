@@ -38,7 +38,12 @@ export function naIlha(la, lo) {
   }
   return true;
 }
-const FONTES = ['https://dados.mobilidade.rio/gps/sppo', 'https://dados.mobilidade.rio/gps/brt'];
+// Fontes: GTFS Realtime da prefeitura do Rio (CC BY 4.0, sem chave; limite de 60 pedidos/min). As APIs antigas em JSON
+// (/gps/sppo e /gps/brt) foram marcadas como descontinuadas em 07/10/2026 e saem do ar até 30/11/2026: enquanto
+// existirem, o Worker volta a elas se o GTFS Realtime falhar ou vier num formato que ele não reconhece.
+const FONTES = [
+  { f: 'sppo', rt: 'https://dados.mobilidade.rio/gtfs/realtime/onibus/vehicle-positions', antiga: 'https://dados.mobilidade.rio/gps/sppo' },
+  { f: 'brt', rt: 'https://dados.mobilidade.rio/gtfs/realtime/brt/vehicle-positions', antiga: 'https://dados.mobilidade.rio/gps/brt' }];
 // JANELA_MIN: período pedido à prefeitura do Rio. Os ônibus mandam posição a cada ~30 s e chegam com ~11 s de atraso,
 // então 1,5 min basta para ter todos; um período maior aumenta a resposta (cidade inteira) e o Worker pode
 // estourar o limite de processamento do plano grátis da Cloudflare nos horários de pico.
@@ -57,6 +62,78 @@ function horaRio(v) {
 }
 const num = v => typeof v === 'number' ? v : parseFloat(String(v ?? '').replace(',', '.'));
 const pega = (o, ks) => { for (const k of ks) if (o[k] != null && o[k] !== '') return o[k]; };
+
+// ---------- GTFS Realtime (protobuf) ----------
+// O código da linha vem no route_id do GTFS da prefeitura do Rio: "O0321AAA0A" é a 321, "O0803AAP0A" é a SP803.
+// ROTAS traz os route_id das variantes (gerado por tools/gtfs_fundao.py a partir do GTFS; o resto sai pela regra).
+// ROTAS-INICIO
+const ROTAS = {};
+// ROTAS-FIM
+const VARIANTE = { AAA: '', AAP: 'SP' };
+export function linhaDaRota(rid) {
+  if (!rid) return '';
+  if (ROTAS[rid]) return ROTAS[rid];
+  const m = /^[A-Z](\d{3,4})([A-Z]{3})\d[A-Z]$/.exec(rid);
+  if (m) { const n = String(+m[1]); return m[2] in VARIANTE ? VARIANTE[m[2]] + n : n; }
+  return /^[A-Z]{0,3}\d{1,4}[A-Z]?$/.test(rid) ? rid : '';
+}
+// Lê um FeedMessage com VehiclePosition. Só os textos de quem está na região do Fundão viram string (CPU).
+// Devolve registros no mesmo formato da API antiga, para o filtro de sempre.
+export function lerGtfsRt(buf) {
+  const b = buf instanceof Uint8Array ? buf : new Uint8Array(buf), dv = new DataView(b.buffer, b.byteOffset, b.byteLength), dec = new TextDecoder();
+  let i = 0;
+  const vi = () => { let v = 0, m = 1, c; do { c = b[i++]; v += (c & 127) * m; m *= 128; } while (c & 128); return v; };
+  const pula = w => { if (w === 0) vi(); else if (w === 1) i += 8; else if (w === 2) { const n = vi(); i += n; } else if (w === 5) i += 4; else throw new Error('protobuf inválido'); };
+  const out = [], CX = AREA, pend = [];
+  let resolvidos = 0, total = 0, ts = 0;
+  const desconhecidas = new Map();
+  while (i < b.length) {
+    const k = vi(), f = k >>> 3, w = k & 7;
+    if (f === 1 && w === 2) { const n = vi(), fim = i + n; while (i < fim) { const k2 = vi(); if ((k2 >>> 3) === 3 && (k2 & 7) === 0) ts = vi(); else pula(k2 & 7); } i = fim; continue; }
+    if (f !== 2 || w !== 2) { pula(w); continue; }
+    const fimE = (n => i + n)(vi());
+    let veh = null;
+    while (i < fimE) {
+      const k2 = vi();
+      if ((k2 >>> 3) === 4 && (k2 & 7) === 2) {
+        const fimV = (n => i + n)(vi()); veh = { la: NaN, lo: NaN, br: 0, sp: 0, t: 0, rid: null, vid: null, lab: null };
+        while (i < fimV) {
+          const k3 = vi(), f3 = k3 >>> 3, w3 = k3 & 7;
+          if (f3 === 1 && w3 === 2) { const fimT = (n => i + n)(vi()); while (i < fimT) { const k4 = vi(); if ((k4 >>> 3) === 5 && (k4 & 7) === 2) { const n = vi(); veh.rid = [i, n]; i += n; } else pula(k4 & 7); } i = fimT; }
+          else if (f3 === 8 && w3 === 2) { const fimD = (n => i + n)(vi()); while (i < fimD) { const k4 = vi(), f4 = k4 >>> 3; if ((f4 === 1 || f4 === 2) && (k4 & 7) === 2) { const n = vi(); veh[f4 === 1 ? 'vid' : 'lab'] = [i, n]; i += n; } else pula(k4 & 7); } i = fimD; }
+          else if (f3 === 2 && w3 === 2) { const fimP = (n => i + n)(vi()); while (i < fimP) { const k4 = vi(), f4 = k4 >>> 3, w4 = k4 & 7;
+              if (w4 === 5) { const x = dv.getFloat32(i, true); i += 4; if (f4 === 1) veh.la = x; else if (f4 === 2) veh.lo = x; else if (f4 === 3) veh.br = x; else if (f4 === 5) veh.sp = x; }
+              else if (w4 === 1 && f4 === 1) { veh.la = dv.getFloat64(i, true); i += 8; } else if (w4 === 1 && f4 === 2) { veh.lo = dv.getFloat64(i, true); i += 8; } else pula(w4); } i = fimP; }
+          else if (f3 === 5 && w3 === 0) veh.t = vi();
+          else pula(w3);
+        }
+        i = fimV;
+      } else pula(k2 & 7);
+    }
+    i = fimE;
+    if (!veh) continue;
+    total++;
+    const str = r => r ? dec.decode(b.subarray(r[0], r[0] + r[1])) : '';
+    // a linha só é lida de quem está na caixa do Fundão e acessos, mas a amostra que mede o formato vale para todos
+    const dentro = veh.la >= CX.latMin && veh.la <= CX.latMax && veh.lo >= CX.lonMin && veh.lo <= CX.lonMax;
+    if (!dentro && total % 20) continue;
+    const rid = str(veh.rid), linha = linhaDaRota(rid);
+    if (!dentro) { if (linha) resolvidos += 20; else if (rid && desconhecidas.size < 8) desconhecidas.set(rid, 1); continue; }
+    if (linha) resolvidos++; else if (rid && desconhecidas.size < 8) desconhecidas.set(rid, 1);
+    pend.push({ id_veiculo: str(veh.vid) || str(veh.lab), servico: linha || rid, latitude: veh.la, longitude: veh.lo, sp: veh.sp, direcao: veh.br, t: veh.t * 1000 });
+  }
+  return { lista: pend, total, resolvidos: Math.min(resolvidos, total), desconhecidas: [...desconhecidas.keys()], ts: ts * 1000 };
+}
+// Ajustes que dependem do lote inteiro: a velocidade deveria vir em m/s, mas a da prefeitura do Rio parece vir em km/h
+// (se a maioria dos que andam passa de 25, é km/h); e, se as horas vierem 3 h deslocadas (relógio de Brasília marcado
+// como UTC, como no Fogo Cruzado e na API antiga), corrige.
+export function ajustarRt(lista, agora) {
+  const v = lista.map(o => o.sp).filter(x => x > 0.5).sort((a, b) => a - b), p90 = v.length ? v[Math.floor(v.length * 0.9)] : 0;
+  const kmh = p90 > 25;
+  const d = lista.map(o => agora - o.t).sort((a, b) => a - b), med = d.length ? d[Math.floor(d.length / 2)] : 0;
+  const desloc = med > 2.5 * 3600e3 && med < 3.5 * 3600e3 ? 3 * 3600e3 : med < -2.5 * 3600e3 && med > -3.5 * 3600e3 ? -3 * 3600e3 : 0;
+  return { lista: lista.map(o => ({ id_veiculo: o.id_veiculo, servico: o.servico, latitude: o.latitude, longitude: o.longitude, velocidade: kmh ? o.sp : o.sp * 3.6, direcao: o.direcao, datahora: o.t + desloc })), kmh, desloc };
+}
 
 export function filtrar(lista, agora) {
   const porOnibus = new Map();
@@ -154,6 +231,8 @@ async function lerFora(agora) {
 function motivoErro(e) {
   const m = String(e && (e.name === 'TimeoutError' ? 'tempo' : e.message) || e);
   if (m === 'tempo' || /timed? ?out|aborted/i.test(m)) return 'a prefeitura do Rio não respondeu em 8 s';
+  if (/^formato/.test(m)) return 'a prefeitura do Rio mudou o formato das posições: ' + m.replace(/^formato: /, '');
+  if (/protobuf/i.test(m)) return 'a prefeitura do Rio mandou posições ilegíveis (protobuf)';
   if (/json|unexpected|parse/i.test(m)) return 'a prefeitura do Rio mandou uma resposta que não é JSON';
   return 'erro de rede: ' + m.slice(0, 80);
 }
@@ -163,20 +242,38 @@ function motivoHttp(st) {
 async function buscar(agora) {
   const q = `?dataInicial=${dataRio(agora - JANELA_MIN * 60e3)}&dataFinal=${dataRio(agora)}`;
   const fontes = [];
-  const partes = await Promise.all(FONTES.map(async u => {
-    const f = { f: u.split('/').pop(), ok: false }, t0 = Date.now(); fontes.push(f);
+  const pede = async (u, f) => {
+    const go = () => fetch(u, { headers: { 'user-agent': 'chega-ai-ufrj (UFRJ)' }, signal: AbortSignal.timeout(8000) });
+    let r = await go();
+    // erro no servidor da prefeitura do Rio (HTTP 5xx): costuma passar na segunda tentativa
+    if (r.status >= 500) { f.de_novo = r.status; await new Promise(ok => setTimeout(ok, 400)); r = await go(); }
+    f.http = r.status; return r;
+  };
+  const partes = await Promise.all(FONTES.map(async F => {
+    const f = { f: F.f, ok: false }, t0 = Date.now(); fontes.push(f);
     try {
-      const pede = () => fetch(u + q, { headers: { 'user-agent': 'chega-ai-ufrj (UFRJ)' }, signal: AbortSignal.timeout(8000) });
-      let r = await pede();
-      // erro no servidor da prefeitura do Rio (HTTP 5xx): costuma passar na segunda tentativa
-      if (r.status >= 500) { f.de_novo = r.status; await new Promise(ok => setTimeout(ok, 400)); r = await pede(); }
-      f.http = r.status;
+      // 1) GTFS Realtime
+      try {
+        const r = await pede(F.rt, f);
+        if (!r.ok) throw new Error(motivoHttp(r.status));
+        const buf = await r.arrayBuffer(); f.kb = Math.round(buf.byteLength / 1024);
+        const L = lerGtfsRt(buf);
+        f.n = L.total;
+        if (L.desconhecidas.length) f.rotas = L.desconhecidas;
+        if (L.total > 30 && L.resolvidos < L.total * 0.5) throw new Error('formato: a linha não veio no route_id (ex.: ' + (L.desconhecidas[0] || 'vazio') + ')');
+        const A = ajustarRt(L.lista, agora);
+        if (A.desloc) f.desloc_h = A.desloc / 3600e3;
+        f.via = 'gtfs-rt'; f.ok = true; return A.lista;
+      } catch (e) { f.motivo_rt = String(e.message || e).slice(0, 120); if (/^a prefeitura/.test(f.motivo_rt)) f.motivo = f.motivo_rt; else f.motivo = motivoErro(e); }
+      // 2) API antiga em JSON (até 30/11/2026)
+      if (!F.antiga) return [];
+      const r = await pede(F.antiga + q, f);
       if (!r.ok) { f.motivo = motivoHttp(r.status); return []; }
       const texto = await r.text();
       f.kb = Math.round(texto.length / 1024);
       let lista = extrairLinhas(texto);
       if (!lista) { const d = JSON.parse(texto); lista = Array.isArray(d) ? d : (d.veiculos || d.data || []); }
-      f.ok = true; f.n = lista.length; return lista;
+      f.via = 'json-antigo'; delete f.motivo; f.ok = true; f.n = lista.length; return lista;
     } catch (e) { f.motivo = motivoErro(e); return []; }
     finally { f.ms = Date.now() - t0; }
   }));

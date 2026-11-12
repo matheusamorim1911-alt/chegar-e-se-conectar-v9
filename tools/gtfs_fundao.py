@@ -119,3 +119,17 @@ _w=open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _lw=set(re.findall(r"'([^']+)'",re.search(r"const LINHAS = new Set\(\[(.*?)\]\)",_w).group(1)))
 _fal=sorted({l['n'] for l in out['lines']}-_lw)
 if _fal:print('ATENÇÃO: linhas fora de LINHAS no Worker:',', '.join(_fal))
+# GTFS Realtime: o Worker tira a linha do route_id ("O0321AAA0A" → 321, "O0803AAP0A" → SP803). As rotas que fogem
+# dessa regra (variantes SN, SV, SR…, BRT) vão para ROTAS, entre as marcas ROTAS-INICIO e ROTAS-FIM do Worker.
+# Depois de rodar, publique o Worker de novo.
+_VAR={'AAA':'','AAP':'SP'}
+def _regra(rid):
+  m=re.match(r'^[A-Z](\d{3,4})([A-Z]{3})\d[A-Z]$',rid)
+  if m: n=str(int(m.group(1))); return (_VAR[m.group(2)]+n) if m.group(2) in _VAR else n
+  return rid if re.match(r'^[A-Z]{0,3}\d{1,4}[A-Z]?$',rid) else ''
+_rot={k:v['route_short_name'] for k,v in R.items() if v['route_short_name'] and _regra(k)!=v['route_short_name']}
+_wf=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'worker','gps-fundao.js')
+_ini,_fim='// ROTAS-INICIO\n','// ROTAS-FIM\n'
+_a=_w.index(_ini)+len(_ini);_b=_w.index(_fim)
+_novo=_w[:_a]+'const ROTAS = '+json.dumps(dict(sorted(_rot.items())),ensure_ascii=False,separators=(',',':'))+';\n'+_w[_b:]
+if _novo!=_w: open(_wf,'w',encoding='utf-8').write(_novo); print('Worker: %d rotas fora da regra gravadas em ROTAS. Publique o Worker de novo.'%len(_rot))
