@@ -55,6 +55,16 @@ const { chromium } = require('playwright');const servir=require('./servidor');co
  ok(e.length===0,'sem erros de JavaScript '+JSON.stringify(e));await c.close();
  // 5) sem notificações no navegador: o alerta vale com o app aberto
  [c,p,e,posts]=await abre({semPush:true});
- await p.click('#alvTrajeto');await p.waitForTimeout(300);await p.click('#alvOk');await p.waitForTimeout(900);
- ok(posts.length===0&&/enquanto o app estiver aberto/.test(await toast(p))&&await p.evaluate(()=>JSON.parse(localStorage.getItem('cse-alertas-onibus')).length===1),'sem notificações: avisa que vale com o app aberto');await c.close();
+ await p.click('#alvTrajeto');await p.waitForTimeout(300);await p.click('#alvOk');await p.waitForTimeout(9500);
+ await p.click('#tab-cfg');await p.waitForTimeout(600);
+ ok(posts.length===0&&/Por enquanto, só com o app aberto\. \S/.test(await p.textContent('#alvCfg'))&&await p.evaluate(()=>JSON.parse(localStorage.getItem('cse-alertas-onibus')).length===1),'sem notificações: avisa que vale com o app aberto');await c.close();
+ // 6) Worker antigo (sem a rota dos alertas): diz o motivo e deixa tentar de novo
+ [c,p,e,posts]=await abre();
+ await c.route('**workers.dev/push/alertas',r=>r.fulfill({status:404,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:'{"erro":"rota desconhecida"}'}));
+ await p.click('#alvTrajeto');await p.waitForTimeout(300);await p.click('#alvOk');await p.waitForTimeout(1200);
+ ok(/Worker precisa ser publicado de novo na Cloudflare/.test(await toast(p)),'Worker sem a rota dos alertas: explica o motivo');
+ await p.click('#tab-cfg');await p.waitForTimeout(600);
+ ok(/Por enquanto, só com o app aberto/.test(await p.textContent('#alvCfg'))&&!!(await p.$('#alvCfg [data-alvtenta]')),'Ajustes mostra o motivo e o botão Tentar de novo');
+ await c.unroute('**workers.dev/push/alertas');await p.click('#alvCfg [data-alvtenta]');await p.waitForTimeout(1200);
+ ok(/Os avisos chegam mesmo com o app fechado/.test(await p.textContent('#alvCfg'))&&!(await p.$('#alvCfg .alv-aviso')),'depois de publicar o Worker, Tentar de novo liga o aviso com o app fechado');await c.close();
  await b.close();srv.close();process.exit(falhou?1:0)})();

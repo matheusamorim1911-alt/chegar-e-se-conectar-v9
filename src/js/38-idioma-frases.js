@@ -507,6 +507,20 @@ Parada ¦ Stop ¦ Parada
 , segurança ¦ , security ¦ , seguridad
 Wi-Fi aberto: ¦ Open Wi-Fi: ¦ Wi-Fi abierto:
 Estação BRT ¦ BRT Station ¦ Estación BRT
+Por enquanto, só com o app aberto. ¦ For now, only with the app open. ¦ Por ahora, solo con la app abierta.
+Alerta criado. Por enquanto ele avisa só com o app aberto. ¦ Alert created. For now it only notifies you with the app open. ¦ Alerta creada. Por ahora solo avisa con la app abierta.
+No protótipo do claude.ai as notificações não funcionam. Abra o app pelo site. ¦ Notifications do not work in the claude.ai prototype. Open the app on the website. ¦ En el prototipo de claude.ai las notificaciones no funcionan. Abre la app en el sitio.
+Este navegador não recebe notificações de sites. ¦ This browser cannot receive notifications from websites. ¦ Este navegador no recibe notificaciones de sitios web.
+As notificações estão bloqueadas para este site. Libere nos ajustes do navegador e toque em Tentar de novo. ¦ Notifications are blocked for this site. Allow them in the browser settings and tap Try again. ¦ Las notificaciones están bloqueadas para este sitio. Permítelas en los ajustes del navegador y toca Reintentar.
+Falta permitir as notificações. Toque em Tentar de novo e aceite o pedido. ¦ Notifications are not allowed yet. Tap Try again and accept the request. ¦ Falta permitir las notificaciones. Toca Reintentar y acepta la solicitud.
+As notificações ainda não foram ativadas no servidor do app (falta o KV PUSH no Worker). ¦ Notifications have not been enabled on the app server yet. ¦ Las notificaciones aún no están activadas en el servidor de la app.
+O servidor do app ainda não aceita alertas de ônibus: o Worker precisa ser publicado de novo na Cloudflare. ¦ The app server does not accept bus alerts yet: it needs to be updated. ¦ El servidor de la app aún no acepta alertas de autobús: hay que actualizarlo.
+O app ainda não terminou de se instalar neste navegador. Recarregue a página e toque em Tentar de novo. ¦ The app has not finished installing in this browser. Reload the page and tap Try again. ¦ La app aún no terminó de instalarse en este navegador. Recarga la página y toca Reintentar.
+O navegador não conseguiu assinar as notificações. Confira a conexão e toque em Tentar de novo. ¦ The browser could not subscribe to notifications. Check your connection and tap Try again. ¦ El navegador no pudo suscribirse a las notificaciones. Revisa la conexión y toca Reintentar.
+Não achei o traçado da linha neste ponto: este alerta só avisa com o app aberto. ¦ Could not find the line's route at this stop: this alert only works with the app open. ¦ No encontré el recorrido de la línea en esta parada: esta alerta solo avisa con la app abierta.
+Sem conexão com o servidor do app. Toque em Tentar de novo. ¦ No connection to the app server. Tap Try again. ¦ Sin conexión con el servidor de la app. Toca Reintentar.
+Pronto. Os avisos chegam mesmo com o app fechado. ¦ Done. Alerts arrive even with the app closed. ¦ Listo. Los avisos llegan incluso con la app cerrada.
+Ainda não deu. Tente de novo mais tarde. ¦ Still not working. Try again later. ¦ Aún no funcionó. Inténtalo más tarde.
 Avisar quando o ônibus estiver chegando ¦ Alert me when the bus is arriving ¦ Avisar cuando el autobús esté llegando
 Avisar quando um ônibus estiver chegando ¦ Alert me when a bus is arriving ¦ Avisar cuando un autobús esté llegando
 Meus alertas de ônibus ¦ My bus alerts ¦ Mis alertas de autobús

@@ -1933,3 +1933,5 @@ p.cv-aviso{cursor:default}
 .alv-novo{display:grid;gap:8px;margin-top:10px}
 .alv-novo select{width:100%;min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font:inherit;padding:0 12px;margin-top:4px}
 .alv-novo .copy{justify-self:start}
+.alv-aviso{margin:8px 0;padding:10px 12px;border-radius:12px;background:var(--warn-bg);color:var(--ink);font-size:14px;line-height:1.4}
+.alv-aviso .linkbtn{padding:0;min-height:0;font-size:14px}
