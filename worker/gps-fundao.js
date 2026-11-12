@@ -263,6 +263,7 @@ async function buscar(agora) {
         if (L.total > 30 && L.resolvidos < L.total * 0.5) throw new Error('formato: a linha não veio no route_id (ex.: ' + (L.desconhecidas[0] || 'vazio') + ')');
         const A = ajustarRt(L.lista, agora);
         if (A.desloc) f.desloc_h = A.desloc / 3600e3;
+        if (L.ts) f.ts = L.ts + A.desloc;
         f.via = 'gtfs-rt'; f.ok = true; return A.lista;
       } catch (e) { f.motivo_rt = String(e.message || e).slice(0, 120); if (/^a prefeitura/.test(f.motivo_rt)) f.motivo = f.motivo_rt; else f.motivo = motivoErro(e); }
       // 2) API antiga em JSON (até 30/11/2026)
@@ -278,6 +279,17 @@ async function buscar(agora) {
     finally { f.ms = Date.now() - t0; }
   }));
   return { onibus: filtrar(partes.flat(), agora), falhou: fontes.every(f => !f.ok), parcial: fontes.some(f => !f.ok), fontes };
+}
+// Quanto tempo guardar esta resposta: a prefeitura do Rio também guarda a dela por ~10 s; pela hora em que ela gerou
+// o feed (cabeçalho do GTFS Realtime), a próxima versão sai perto de ts + 10 s. Guardar só até lá faz o Worker pedir
+// logo depois que a prefeitura atualiza, em vez de num momento qualquer (até 10 s de atraso a menos). Sem essa hora
+// (API antiga) ou com uma hora estranha, guarda CACHE_S.
+export function validade(fontes, agora) {
+  const ts = Math.max(0, ...fontes.filter(f => f.ok && f.ts).map(f => f.ts));
+  if (!ts || Math.abs(agora - ts) > 60e3) return CACHE_S * 1000;
+  let fim = ts + CACHE_S * 1000 + 500;
+  while (fim < agora + 2000) fim += CACHE_S * 1000;
+  return Math.min(CACHE_S * 1000, fim - agora);
 }
 // registro das últimas tentativas de falar com a prefeitura do Rio (para a aba Saúde): fica no cache deste data center
 const REGISTRO = 'https://cache.local/gps-registro', REGISTRO_N = 60;
@@ -505,7 +517,7 @@ async function saudePush(env) {
 
 export default {
   async fetch(req, env, ctx) {
-    const cors = { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET, POST', 'access-control-allow-headers': 'content-type', 'content-type': 'application/json; charset=utf-8' };
+    const cors = { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET, POST', 'access-control-allow-headers': 'content-type', 'access-control-expose-headers': 'x-prox, x-cache', 'content-type': 'application/json; charset=utf-8' };
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
     const caminho = new URL(req.url).pathname.replace(/\/$/, '');
     if (caminho.startsWith('/push/')) return rotaPush(caminho, req, env, cors);
@@ -514,7 +526,11 @@ export default {
     const chave = new Request('https://cache.local/gps-fundao');
     const cache = caches.default;
     const guardado = await cache.match(chave);
-    if (guardado) return new Response(guardado.body, { headers: { ...cors, 'x-cache': 'hit' } });
+    // x-prox: em quantos ms sai a próxima posição nova (o app marca o próximo pedido para logo depois)
+    if (guardado) {
+      const fim = +guardado.headers.get('x-fim') || 0, prox = fim ? Math.max(0, fim - Date.now()) : CACHE_S * 1000;
+      return new Response(guardado.body, { headers: { ...cors, 'x-cache': 'hit', 'x-prox': String(prox) } });
+    }
     const reserva = new Request('https://cache.local/gps-fundao-reserva');
     const agora = Date.now();
     let onibus = [], falhou = true, parcial = false, fontes = [];
@@ -522,7 +538,7 @@ export default {
     if (falhou) {
       const velho = await cache.match(reserva);
       ctx.waitUntil(registrar({ t: agora, r: velho ? 'reserva' : 'falhou', fontes }).catch(() => {}));
-      if (velho) return new Response(velho.body, { headers: { ...cors, 'x-cache': 'antiga' } });
+      if (velho) return new Response(velho.body, { headers: { ...cors, 'x-cache': 'antiga', 'x-prox': '5000' } });
       /* sem cópia guardada: responde que falhou (com CORS), em vez de deixar o app sem resposta */
       return new Response(JSON.stringify({ t: agora, fonte: 'SMTR / Prefeitura do Rio (dados.mobilidade.rio)', onibus: [], falhou: true }), { headers: { ...cors, 'cache-control': 'no-store' } });
     }
@@ -535,8 +551,9 @@ export default {
     ctx.waitUntil(registrar({ t: agora, r: fontes.every(f => f.ok) ? 'ok' : 'parcial', n: onibus.length, fontes, ...(Object.keys(fora).length ? { fora } : {}) }).catch(() => {}));
     ctx.waitUntil(registrarFora(fora, agora).catch(() => {}));
     const corpo = JSON.stringify({ t: agora, fonte: 'SMTR / Prefeitura do Rio (dados.mobilidade.rio)', onibus, ...(parcial ? { parcial: true } : {}) });
-    const resp = new Response(corpo, { headers: { ...cors, 'cache-control': `public, max-age=${CACHE_S}` } });
-    ctx.waitUntil(cache.put(chave, resp.clone()));
+    const ms = validade(fontes, agora), fim = agora + ms;
+    const resp = new Response(corpo, { headers: { ...cors, 'x-prox': String(ms) } });
+    ctx.waitUntil(cache.put(chave, new Response(corpo, { headers: { 'content-type': 'application/json', 'cache-control': `public, max-age=${Math.max(1, Math.round(ms / 1000))}`, 'x-fim': String(fim) } })));
     if (!falhou) ctx.waitUntil(cache.put(reserva, new Response(corpo, { headers: { 'content-type': 'application/json', 'cache-control': `public, max-age=${RESERVA_S}` } })));
     return resp;
   },

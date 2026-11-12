@@ -1,5 +1,5 @@
 // Testa o Worker sem internet: simula a API da prefeitura com uma amostra e confere o filtro.
-import worker, { lerGtfsRt, ajustarRt, linhaDaRota, filtrar, fcFiltrar, fcHora, extrairLinhas, naIlha, contarFora, linhaDeVerdade, completar, endpointValido, jwtVapid, vapid, avisaTiroteios } from '../worker/gps-fundao.js';
+import worker, { validade, lerGtfsRt, ajustarRt, linhaDaRota, filtrar, fcFiltrar, fcHora, extrairLinhas, naIlha, contarFora, linhaDeVerdade, completar, endpointValido, jwtVapid, vapid, avisaTiroteios } from '../worker/gps-fundao.js';
 // A maior parte dos testes simula a API antiga (JSON): o GTFS Realtime responde 404 e o Worker volta a ela.
 // Os testes do GTFS Realtime (no fim) ligam RT_MODO.
 let RT_MODO = false, _f;
@@ -271,6 +271,21 @@ ok(linhaDaRota('O0321AAA0A') === '321' && linhaDaRota('O0803AAP0A') === 'SP803' 
   const grande = feed(Array.from({ length: 11000 }, (_, k) => veiculo('Z' + k, 'O0' + (100 + k % 900) + 'AAA0A', -22.9 - (k % 100) / 1000, -43.3 - (k % 70) / 1000, 30, 0, ts)), ts);
   const T = []; for (let r = 0; r < 30; r++) { const t0 = performance.now(); lerGtfsRt(grande); T.push(performance.now() - t0); } T.sort((a, b) => a - b);
   ok(T[15] < 15, 'GTFS-RT: lê o feed da cidade (' + Math.round(grande.length / 1024) + ' KB) em ' + T[15].toFixed(1) + ' ms (mediana)');
+  // sincronia: a resposta vale até logo depois da próxima atualização da prefeitura do Rio
+  const ag2 = 1794510000000;
+  ok(validade([{ ok: true, ts: ag2 - 3000 }], ag2) === 7500 && validade([{ ok: true }], ag2) === 10000 && validade([{ ok: true, ts: ag2 - 300e3 }], ag2) === 10000,
+    'sincronia: guarda até 0,5 s depois da próxima versão da prefeitura do Rio (no mínimo 2 s; sem hora, 10 s)');
+  ok(validade([{ ok: true, ts: ag2 - 9000 }], ag2) === 10000 && validade([{ ok: true, ts: ag2 - 1000 }], ag2) === 9500, 'sincronia: perto de virar, espera a versão seguinte');
+  RT_MODO = true;
+  let pedidosRt = 0; const tsF = Math.floor((Date.now() - 4000) / 1000);
+  globalThis.fetch = async u => { pedidosRt++; return /realtime\/onibus/.test(u) ? new Response(feed([veiculo('A1', 'O0321AAA0A', -22.8394, -43.2396, 36, 90, tsF)], tsF)) : new Response(feed([], tsF)); };
+  const guard = new Map(); globalThis.caches = { default: { match: async r => guard.get(r.url)?.clone() ?? null, put: async (r, v) => { guard.set(r.url, v); } } };
+  const cxs = { esperas: [], waitUntil(p) { this.esperas.push(p); } };
+  const s1 = await worker.fetch(new Request('https://x.workers.dev/'), {}, cxs); await Promise.all(cxs.esperas);
+  const p1 = +s1.headers.get('x-prox');
+  const s2 = await worker.fetch(new Request('https://x.workers.dev/'), {}, { waitUntil() {} });
+  const p2 = +s2.headers.get('x-prox');
+  ok(p1 > 5000 && p1 <= 7000 && s2.headers.get('x-cache') === 'hit' && p2 <= p1 && p2 > p1 - 1000 && /x-prox/.test(s1.headers.get('access-control-expose-headers')), 'Worker diz ao app quando sai a próxima posição (x-prox), também na cópia guardada');
   RT_MODO = false;
 }
 process.exit(falhou ? 1 : 0);
