@@ -203,7 +203,7 @@ function eduHTML(){
     '<ol class="steps">'+EDU.map(function(s,i){
       return '<li class="'+(eduDone[i]?'done':'')+'"><input type="checkbox" id="edu'+i+'" data-edu="'+i+'"'+(eduDone[i]?' checked':'')+' aria-label="Marcar passo '+(i+1)+' como feito"><label class="st-t" for="edu'+i+'">'+(i+1)+'. '+s.t+'</label><div class="st-b">'+s.b.map(function(x){return '<span>'+x+'</span>'}).join('')+'</div></li>';
     }).join('')+'</ol>'+
-    '<details class="det"><summary>Sem o app (conexão manual)</summary><p class="small muted">Use só dentro da UFRJ, onde a rede é genuína. Escolha a rede eduroam, digite o e-mail completo e a senha, e toque em “Confiar” no certificado.</p></details>'+
+    '<details class="det"><summary>Sem o app (conexão manual)</summary><p class="small muted">Escolha a rede eduroam e digite o e-mail completo e a senha. Os valores certos (PEAP, MSCHAPv2 e o domínio eduroam.ufrj.br) estão em Lugares › Wi-Fi › Configurar eduroam › Configurar à mão. Se o celular pedir para confiar num certificado, só aceite se for de eduroam.ufrj.br.</p></details>'+
     '<details class="det"><summary>Onde tem eduroam?</summary><p class="small muted">Veja os locais no <a href="https://monitor.eduroam.org/map_service_loc.php" target="_blank" rel="noopener">mapa do eduroam</a> ou no app eduroam Companion. Problemas com a senha: <a href="https://servicos.tic.ufrj.br/" target="_blank" rel="noopener">Central de Serviços da TIC/UFRJ</a>.</p></details>';
 }
 var KEY='cse-ufrj-ratings-v1',PKEY='cse-ufrj-prefs-v1';

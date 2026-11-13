@@ -247,7 +247,7 @@ function eduHTML(){
     '<ol class="steps">'+EDU.map(function(s,i){
       return '<li class="'+(eduDone[i]?'done':'')+'"><input type="checkbox" id="edu'+i+'" data-edu="'+i+'"'+(eduDone[i]?' checked':'')+' aria-label="Marcar passo '+(i+1)+' como feito"><label class="st-t" for="edu'+i+'">'+(i+1)+'. '+s.t+'</label><div class="st-b">'+s.b.map(function(x){return '<span>'+x+'</span>'}).join('')+'</div></li>';
     }).join('')+'</ol>'+
-    '<details class="det"><summary>Sem o app (conexão manual)</summary><p class="small muted">Use só dentro da UFRJ, onde a rede é genuína. Escolha a rede eduroam, digite o e-mail completo e a senha, e toque em “Confiar” no certificado.</p></details>'+
+    '<details class="det"><summary>Sem o app (conexão manual)</summary><p class="small muted">Escolha a rede eduroam e digite o e-mail completo e a senha. Os valores certos (PEAP, MSCHAPv2 e o domínio eduroam.ufrj.br) estão em Lugares › Wi-Fi › Configurar eduroam › Configurar à mão. Se o celular pedir para confiar num certificado, só aceite se for de eduroam.ufrj.br.</p></details>'+
     '<details class="det"><summary>Onde tem eduroam?</summary><p class="small muted">Veja os locais no <a href="https://monitor.eduroam.org/map_service_loc.php" target="_blank" rel="noopener">mapa do eduroam</a> ou no app eduroam Companion. Problemas com a senha: <a href="https://servicos.tic.ufrj.br/" target="_blank" rel="noopener">Central de Serviços da TIC/UFRJ</a>.</p></details>';
 }
 var KEY='cse-ufrj-ratings-v1',PKEY='cse-ufrj-prefs-v1';
@@ -3332,7 +3332,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261113-1649';
+var APP_VERSION='20261113-1801';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -4807,7 +4807,7 @@ function eduCfgHTML(inTut){
     '<li class="'+(c1?'done':'')+'"><span class="n">1</span><div><b class="keep">Cadastre seu e-mail no eduroam</b><p class="small keep">Na Intranet UFRJ, com CPF e senha. A ativação leva até 24 h.</p><div class="row"><a class="copy" href="https://intranet.ufrj.br/atualizar-email-eduroam" target="_blank" rel="noopener">Abrir a Intranet</a>'+(c1?'<span class="pill good">Feito</span>':'<button type="button" class="copy" data-edustep="0">Já cadastrei</button>')+'</div></div></li>'+
     '<li class="'+(c2?'done':'')+'"><span class="n">2</span><div><b class="keep">Instale o app oficial do eduroam</b><p class="small keep">'+(EDUC.plat?'Para':'Detectamos')+': <b>'+a[0]+'</b>. O geteduroam configura a rede e o certificado sozinho.</p><a class="educfg-app" href="'+a[1]+'" target="_blank" rel="noopener" data-eduapp><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span>'+a[2]+'<small>'+a[3]+'</small></span></a><p class="small keep">Outro aparelho? '+outros+'</p></div></li>'+
     '<li><span class="n">3</span><div><b class="keep">No app, escolha a UFRJ</b><p class="small keep">Busque “UFRJ”. Usuário: o e-mail do passo 1. Senha: a da Intranet. Depois toque em Conectar e Permitir.</p></div></li>'+
-    '</ol>'+
+    '</ol>'+(typeof eduPerfilHTML==='function'?eduPerfilHTML(pl):'')+
     '<div class="row"><button type="button" class="copy primary" data-educheck'+(EDUC.busy?' disabled':'')+'>'+(EDUC.busy?'Verificando…':'Verificar minha conexão')+'</button>'+(inTut?'':'<button type="button" class="linkbtn" data-wedu>Tutorial completo</button>')+'</div>'+
     (EDUC.msg?'<p class="small keep educfg-r '+EDUC.tone+'" role="status">'+esc(EDUC.msg)+'</p>':'')+'</div>';
 }
@@ -7999,6 +7999,32 @@ Prova salva. ¦ Exam saved. ¦ Examen guardado.
 Prova apagada. ¦ Exam deleted. ¦ Examen borrado.
 Apagar esta prova ¦ Delete this exam ¦ Borrar este examen
 Prova salva. A data já passou: ela está em "Provas que já passaram". ¦ Exam saved. The date has passed: it is under "Past exams". ¦ Examen guardado. La fecha ya pasó: está en "Exámenes pasados".
+Ou sem instalar app: ¦ Or without installing an app: ¦ O sin instalar app:
+abra no Safari, toque em Permitir e depois em Ajustes › Perfil baixado › Instalar. ¦ open it in Safari, tap Allow and then Settings › Profile Downloaded › Install. ¦ ábrelo en Safari, toca Permitir y luego Ajustes › Perfil descargado › Instalar.
+abra o arquivo e instale em Ajustes do Sistema › Privacidade e Segurança › Perfis. ¦ open the file and install it in System Settings › Privacy & Security › Profiles. ¦ abre el archivo e instálalo en Ajustes del Sistema › Privacidad y seguridad › Perfiles.
+Usuário: o e-mail do passo 1. Senha: a da Intranet. ¦ Username: the e-mail from step 1. Password: your Intranet password. ¦ Usuario: el e-mail del paso 1. Contraseña: la de la Intranet.
+Baixar o perfil da UFRJ ¦ Download the UFRJ profile ¦ Descargar el perfil de la UFRJ
+Confira seu usuário ¦ Check your username ¦ Revisa tu usuario
+Não guardamos o que você digita aqui. ¦ We do not store what you type here. ¦ No guardamos lo que escribes aquí.
+O usuário é o e-mail cadastrado no eduroam, não o CPF. ¦ The username is the e-mail registered for eduroam, not your CPF. ¦ El usuario es el e-mail registrado en eduroam, no el CPF.
+Tire os espaços do usuário. ¦ Remove the spaces from the username. ¦ Quita los espacios del usuario.
+Use o e-mail completo, com @ e o domínio (ex.: nome@gmail.com). ¦ Use the full e-mail, with @ and the domain (e.g.: name@gmail.com). ¦ Usa el e-mail completo, con @ y el dominio (ej.: nombre@gmail.com).
+Formato certo. A senha é a da Intranet UFRJ. ¦ Format OK. The password is your UFRJ Intranet password. ¦ Formato correcto. La contraseña es la de la Intranet UFRJ.
+Configurar à mão ¦ Set up manually ¦ Configurar a mano
+Segurança ¦ Security ¦ Seguridad
+Método EAP ¦ EAP method ¦ Método EAP
+Fase 2 ¦ Phase 2 ¦ Fase 2
+Domínio do servidor ¦ Server domain ¦ Dominio del servidor
+Identidade ¦ Identity ¦ Identidad
+O e-mail cadastrado ¦ Your registered e-mail ¦ El e-mail registrado
+Identidade anônima ¦ Anonymous identity ¦ Identidad anónima
+Deixe em branco ¦ Leave blank ¦ Déjalo en blanco
+No Android: Configurações › Wi-Fi › eduroam. Em "Certificado CA", escolha "Usar certificados do sistema" e preencha o domínio. ¦ On Android: Settings › Wi-Fi › eduroam. Under "CA certificate", choose "Use system certificates" and fill in the domain. ¦ En Android: Ajustes › Wi-Fi › eduroam. En "Certificado de CA", elige "Usar certificados del sistema" y completa el dominio.
+No Windows: Adicionar rede manualmente › WPA2-Enterprise › Microsoft: EAP protegido (PEAP) › EAP-MSCHAP v2. ¦ On Windows: Add a network manually › WPA2-Enterprise › Microsoft: Protected EAP (PEAP) › EAP-MSCHAP v2. ¦ En Windows: Agregar red manualmente › WPA2-Enterprise › Microsoft: EAP protegido (PEAP) › EAP-MSCHAP v2.
+No Linux (NetworkManager): Segurança "WPA e WPA2 Enterprise", autenticação "EAP protegido (PEAP)", autenticação interna MSCHAPv2 e o domínio acima. ¦ On Linux (NetworkManager): Security "WPA & WPA2 Enterprise", authentication "Protected EAP (PEAP)", inner authentication MSCHAPv2 and the domain above. ¦ En Linux (NetworkManager): Seguridad "WPA y WPA2 Enterprise", autenticación "EAP protegido (PEAP)", autenticación interna MSCHAPv2 y el dominio de arriba.
+O certificado que a UFRJ publica para o eduroam está vencido. Se o aparelho não conectar com a verificação ligada, use o app geteduroam. Não desligue a verificação: alguém pode imitar a rede e capturar sua senha. ¦ The certificate UFRJ publishes for eduroam has expired. If your device does not connect with verification on, use the geteduroam app. Do not turn verification off: someone could imitate the network and capture your password. ¦ El certificado que la UFRJ publica para eduroam está vencido. Si el dispositivo no se conecta con la verificación activada, usa la app geteduroam. No desactives la verificación: alguien podría imitar la red y capturar tu contraseña.
+Valores do perfil oficial da UFRJ no CAT do eduroam (lido em ¦ Values from the official UFRJ profile in the eduroam CAT (read on ¦ Valores del perfil oficial de la UFRJ en el CAT de eduroam (leído el
+Escolha a rede eduroam e digite o e-mail completo e a senha. Os valores certos (PEAP, MSCHAPv2 e o domínio eduroam.ufrj.br) estão em Lugares › Wi-Fi › Configurar eduroam › Configurar à mão. Se o celular pedir para confiar num certificado, só aceite se for de eduroam.ufrj.br. ¦ Choose the eduroam network and type your full e-mail and password. The right values (PEAP, MSCHAPv2 and the domain eduroam.ufrj.br) are in Places › Wi-Fi › Set up eduroam › Set up manually. If your phone asks you to trust a certificate, only accept it if it is from eduroam.ufrj.br. ¦ Elige la red eduroam y escribe el e-mail completo y la contraseña. Los valores correctos (PEAP, MSCHAPv2 y el dominio eduroam.ufrj.br) están en Lugares › Wi-Fi › Configurar eduroam › Configurar a mano. Si el celular pide confiar en un certificado, acepta solo si es de eduroam.ufrj.br.
 Não há horário de linha interna ligando esses dois pontos hoje: este alerta só avisa com o app aberto. ¦ There is no campus bus schedule linking these two stops today: this alert only works with the app open. ¦ Hoy no hay horario de línea interna que una estas dos paradas: esta alerta solo avisa con la app abierta.
 Não achei o traçado da linha neste ponto: este alerta só avisa com o app aberto. ¦ Could not find the line's route at this stop: this alert only works with the app open. ¦ No encontré el recorrido de la línea en esta parada: esta alerta solo avisa con la app abierta.
 Sem conexão com o servidor do app. Toque em Tentar de novo. ¦ No connection to the app server. Tap Try again. ¦ Sin conexión con el servidor de la app. Toca Reintentar.
@@ -8648,6 +8674,74 @@ document.addEventListener('click',function(e){var t=e.target;if(!t.closest||!t.c
 });
 document.addEventListener('submit',function(e){if(e.target.id!=='prvForm')return;e.preventDefault();prvSalva()});
 prvPinta();/* o Calendário pode já estar aberto antes desta parte carregar */
+/* ======================= eduroam: o perfil da UFRJ dentro do app =======================
+   O que o geteduroam faz (lê o perfil da instituição no CAT e configura a rede), trazido para onde um site alcança:
+   - iPhone, iPad e Mac: "Baixar o perfil da UFRJ" instala a rede direto pelo Safari (eduroam-ufrj.mobileconfig, cópia
+     do perfil oficial, assinado pelo CAT);
+   - outros aparelhos: "Configurar à mão" com os valores do perfil (método, fase 2, servidor);
+   - confere o formato do usuário antes (e-mail completo), como o geteduroam;
+   - Gestão › Saúde avisa quando os certificados do perfil vencem (hoje, os dois já venceram: a UFRJ precisa atualizar
+     o perfil no CAT). Dados em src/eduroam_ufrj.json, gerados por tools/eduroam_ufrj.py. */
+var EDU_PERFIL={
+ "fonte": "UFRJ - Universidade Federal do Rio de Janeiro (cat.eduroam.org)",
+ "lido": "2026-11-13",
+ "rede": "eduroam",
+ "seguranca": "WPA2-Enterprise",
+ "metodo": "PEAP",
+ "fase2": "MSCHAPv2",
+ "servidor": [
+  "eduroam.ufrj.br"
+ ],
+ "anonima": "",
+ "cas": [
+  {
+   "nome": "eduroam.rnp.br",
+   "ate": "2022-07-23",
+   "sha256": "32883a60855dde271b44080073bd9fd8b58859578799bb6ca59c798093ed06f9"
+  },
+  {
+   "nome": "eduroam.ufrj.br",
+   "ate": "2024-09-09",
+   "sha256": "0c8268da0d66adb4651eb4b4270d17de0432d07dde4654fed7beb41f14dc3f6a"
+  }
+ ]
+};
+var EDUP={usuario:'',msg:''};
+function eduPerfilVencido(){var h=isoToday();return (EDU_PERFIL.cas||[]).filter(function(c){return c.ate<h})}
+function eduDataBr(s){var p=String(s).split('-');return p[2]+'/'+p[1]+'/'+p[0]}
+function eduUsuarioMsg(u){
+  u=String(u||'').trim();if(!u)return '';
+  if(/^\d[\d.\-]{9,}$/.test(u))return {c:'warn',t:'O usuário é o e-mail cadastrado no eduroam, não o CPF.'};
+  if(/\s/.test(u))return {c:'warn',t:'Tire os espaços do usuário.'};
+  if(!/^[^@]+@[^@]+\.[a-z]{2,}$/i.test(u))return {c:'warn',t:'Use o e-mail completo, com @ e o domínio (ex.: nome@gmail.com).'};
+  return {c:'good',t:'Formato certo. A senha é a da Intranet UFRJ.'};
+}
+function eduPerfilHTML(pl){
+  var P=EDU_PERFIL,h='',apple=pl==='ios'||pl==='mac';
+  if(apple&&typeof ON_SITE!=='undefined'&&ON_SITE)h+='<div class="edup-apple"><p class="small keep"><b>Ou sem instalar app:</b> '+(pl==='ios'?'abra no Safari, toque em Permitir e depois em Ajustes › Perfil baixado › Instalar.':'abra o arquivo e instale em Ajustes do Sistema › Privacidade e Segurança › Perfis.')+' Usuário: o e-mail do passo 1. Senha: a da Intranet.</p>'+
+    '<a class="copy" href="eduroam-ufrj.mobileconfig" download="eduroam-UFRJ.mobileconfig" data-eduperfil>Baixar o perfil da UFRJ</a></div>';
+  var m=eduUsuarioMsg(EDUP.usuario);
+  h+='<label class="fld edup-u">Confira seu usuário<input type="email" id="eduUsuario" autocomplete="off" spellcheck="false" placeholder="nome@exemplo.com" value="'+esc(EDUP.usuario)+'"></label>'+
+    '<p class="small keep edup-m '+(m?m.c:'')+'" id="eduUsuarioMsg" role="status">'+(m?esc(m.t):'Não guardamos o que você digita aqui.')+'</p>';
+  var dl=[['Rede',P.rede],['Segurança',P.seguranca],['Método EAP',P.metodo],['Fase 2',P.fase2],['Domínio do servidor',(P.servidor||[]).join(', ')],['Identidade','O e-mail cadastrado'],['Identidade anônima',P.anonima||'Deixe em branco']];
+  var dica={android:'No Android: Configurações › Wi-Fi › eduroam. Em "Certificado CA", escolha "Usar certificados do sistema" e preencha o domínio.',
+    win:'No Windows: Adicionar rede manualmente › WPA2-Enterprise › Microsoft: EAP protegido (PEAP) › EAP-MSCHAP v2.',
+    linux:'No Linux (NetworkManager): Segurança "WPA e WPA2 Enterprise", autenticação "EAP protegido (PEAP)", autenticação interna MSCHAPv2 e o domínio acima.'}[pl]||'';
+  h+='<details class="det edup-man"><summary>Configurar à mão</summary><dl class="cred">'+dl.map(function(x){return '<dt>'+esc(x[0])+'</dt><dd class="mono">'+esc(x[1])+'</dd>'}).join('')+'</dl>'+
+    (dica?'<p class="small keep">'+esc(dica)+'</p>':'')+
+    (eduPerfilVencido().length?'<p class="small keep edup-aviso">O certificado que a UFRJ publica para o eduroam está vencido. Se o aparelho não conectar com a verificação ligada, use o app geteduroam. Não desligue a verificação: alguém pode imitar a rede e capturar sua senha.</p>':'')+
+    '<p class="muted small keep">Valores do perfil oficial da UFRJ no CAT do eduroam (lido em '+eduDataBr(P.lido)+').</p></details>';
+  return '<div class="edup">'+h+'</div>';
+}
+document.addEventListener('input',function(e){if(e.target.id!=='eduUsuario')return;EDUP.usuario=e.target.value;var m=eduUsuarioMsg(EDUP.usuario),el=$('#eduUsuarioMsg');
+  if(el){el.className='small keep edup-m '+(m?m.c:'');el.textContent=m?m.t:'Não guardamos o que você digita aqui.'}});
+/* Gestão › Saúde: validade dos certificados do perfil */
+if(typeof SAUDE_CHECKS!=='undefined')SAUDE_CHECKS.push(['eduroam','Perfil do eduroam da UFRJ (CAT)','dados embutidos no app',function(){
+  var V=eduPerfilVencido(),C=EDU_PERFIL.cas||[];
+  if(!C.length)return Promise.resolve({estado:'aviso',det:'Sem certificados no perfil.'});
+  if(V.length)return Promise.resolve({estado:'aviso',det:'Certificados vencidos no perfil que a UFRJ publica no CAT: '+V.map(function(c){return c.nome+' ('+eduDataBr(c.ate)+')'}).join(', ')+'. Peça à TIC/UFRJ para atualizar o perfil; depois baixe o .mobileconfig de novo e rode tools/eduroam_ufrj.py.'});
+  var prox=C.map(function(c){return c.ate}).sort()[0],dias=Math.floor((Date.parse(prox)-Date.now())/864e5);
+  return Promise.resolve({estado:dias<60?'aviso':'ok',det:'Certificados válidos até '+eduDataBr(prox)+'.'})}]);
 /* ======================= Início: a aba pedida no endereço =======================
    Fica por último, depois que todas as partes carregaram: abrir uma aba desenha a tela inteira dela
    (Lugares, por exemplo, usa o Wi-Fi e o eduroam, definidos em partes posteriores). Abrir antes disso
