@@ -114,9 +114,11 @@ function accSettings(){return {cfg:Object.assign({},CFG),rota:{from:state.from,t
 function applyRemote(d){
   if(!d||typeof d!=='object')return;
   var ch=false;
-  if(d.cfg&&typeof d.cfg==='object')Object.keys(CFG).forEach(function(k){if(k in d.cfg&&typeof d.cfg[k]===typeof CFG[k]&&CFG[k]!==d.cfg[k]){CFG[k]=d.cfg[k];ch=true}});
+  /* idioma escolhido neste aparelho e ainda não salvo na conta: vale o daqui */
+  var idiAqui=d.cfg&&CFG.idiomaOk&&!d.cfg.idiomaOk;
+  if(d.cfg&&typeof d.cfg==='object')Object.keys(CFG).forEach(function(k){if(idiAqui&&(k==='idioma'||k==='idiomaOk'))return;if(k in d.cfg&&typeof d.cfg[k]===typeof CFG[k]&&CFG[k]!==d.cfg[k]){CFG[k]=d.cfg[k];ch=true}});
   ACC.mute=true;
-  if(ch){saveCfg();applyBg();applyFont();applyTheme();applyCoverStyle();updateMap();drawBanner();drawShared();renderDetail();coverToday()}
+  if(ch){saveCfg();applyBg();applyFont();applyTheme();applyCoverStyle();updateMap();drawBanner();drawShared();renderDetail();coverToday();if(typeof idiAplica==='function')idiAplica()}
   if(d.rota&&STOPS[d.rota.from]&&STOPS[d.rota.to]&&d.rota.from!==d.rota.to&&(d.rota.from!==state.from||d.rota.to!==state.to)){state.from=d.rota.from;state.to=d.rota.to;savePrefs();renderPlan();updateMap()}
   if(ACC.kind==='google'&&Array.isArray(d.grade)&&d.grade.length){GRADE=d.grade.filter(function(x){return x&&x.nome}).slice(0,40);saveGrade();syncAulas();renderGrade()}
   ACC.mute=false;

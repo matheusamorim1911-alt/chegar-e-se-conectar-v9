@@ -10,7 +10,7 @@ function etapas(nome){var a=[].slice.call(arguments,1);(ETAPAS[nome]||[]).forEac
 var FBMODE=!!(window.CSE_FIREBASE&&window.CSE_FIREBASE.apiKey&&window.CSE_FIREBASE.projectId)&&!(window.claude&&typeof window.claude.use==='function');
 var LITE=(function(){try{return window.matchMedia('(pointer:coarse), (max-width:820px)').matches||(navigator.hardwareConcurrency||8)<=4||!!(navigator.connection&&navigator.connection.saveData)}catch(e){return false}})();
 document.documentElement.classList.toggle('lite',LITE);
-var CFG={cover:'folha',banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'escuro',temaV:0,bussola:false,foto:true,perf:'auto',perfV:0,bldn:true,simples:true,simplesV:0,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true,faixa:10,faixaV:0,telaCheia:null,alChuva:true,alFila:false};
+var CFG={cover:'folha',idioma:'pt',idiomaOk:false,banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'escuro',temaV:0,bussola:false,foto:true,perf:'auto',perfV:0,bldn:true,simples:true,simplesV:0,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true,faixa:10,faixaV:0,telaCheia:null,alChuva:true,alFila:false};
 try{var _c=JSON.parse(localStorage.getItem('cse-cfg'));if(_c)CFG=Object.assign(CFG,_c)}catch(e){}
 /* v22: tema escuro é o padrão; quem estava em "Do aparelho" passa para escuro uma vez (claro ou pelo horário escolhidos ficam) */
 if(CFG.temaV!==1){if(!CFG.tema||CFG.tema==='sistema')CFG.tema='escuro';CFG.temaV=1;try{localStorage.setItem('cse-cfg',JSON.stringify(CFG))}catch(e){}}
@@ -2656,9 +2656,11 @@ function accSettings(){return {cfg:Object.assign({},CFG),rota:{from:state.from,t
 function applyRemote(d){
   if(!d||typeof d!=='object')return;
   var ch=false;
-  if(d.cfg&&typeof d.cfg==='object')Object.keys(CFG).forEach(function(k){if(k in d.cfg&&typeof d.cfg[k]===typeof CFG[k]&&CFG[k]!==d.cfg[k]){CFG[k]=d.cfg[k];ch=true}});
+  /* idioma escolhido neste aparelho e ainda não salvo na conta: vale o daqui */
+  var idiAqui=d.cfg&&CFG.idiomaOk&&!d.cfg.idiomaOk;
+  if(d.cfg&&typeof d.cfg==='object')Object.keys(CFG).forEach(function(k){if(idiAqui&&(k==='idioma'||k==='idiomaOk'))return;if(k in d.cfg&&typeof d.cfg[k]===typeof CFG[k]&&CFG[k]!==d.cfg[k]){CFG[k]=d.cfg[k];ch=true}});
   ACC.mute=true;
-  if(ch){saveCfg();applyBg();applyFont();applyTheme();applyCoverStyle();updateMap();drawBanner();drawShared();renderDetail();coverToday()}
+  if(ch){saveCfg();applyBg();applyFont();applyTheme();applyCoverStyle();updateMap();drawBanner();drawShared();renderDetail();coverToday();if(typeof idiAplica==='function')idiAplica()}
   if(d.rota&&STOPS[d.rota.from]&&STOPS[d.rota.to]&&d.rota.from!==d.rota.to&&(d.rota.from!==state.from||d.rota.to!==state.to)){state.from=d.rota.from;state.to=d.rota.to;savePrefs();renderPlan();updateMap()}
   if(ACC.kind==='google'&&Array.isArray(d.grade)&&d.grade.length){GRADE=d.grade.filter(function(x){return x&&x.nome}).slice(0,40);saveGrade();syncAulas();renderGrade()}
   ACC.mute=false;
@@ -3329,7 +3331,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261113-1552';
+var APP_VERSION='20261113-1613';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -6880,7 +6882,12 @@ function idiLiga(){
 function idiEscolhe(l){if(!IDI_NOMES[l]||l===idiAtual())return;CFG.idioma=l;saveCfg();idiLiga();idiPinta()}
 function idiBotoes(){return Object.keys(IDI_NOMES).map(function(l){return '<button type="button" data-idioma="'+l+'" lang="'+l+'" aria-pressed="'+(l===idiAtual())+'">'+IDI_NOMES[l]+'</button>'}).join('')}
 function idiPinta(){document.querySelectorAll('[data-idioma]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.idioma===idiAtual()))})}
-document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-idioma]');if(b)idiEscolhe(b.dataset.idioma)});
+document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-idioma]');if(!b)return;
+  var l=b.dataset.idioma,capa=!!b.closest('#cvIdioma');
+  if(!CFG.idiomaOk){CFG.idiomaOk=true;if(l===idiAtual())saveCfg()}
+  idiEscolhe(l);
+  /* na capa: mostra a escolha um instante e some */
+  if(capa){var c=$('#cvIdioma');if(c){c.classList.add('saindo');setTimeout(function(){var d=$('#cvIdioma');if(d)d.remove();if(typeof placeCoverMap==='function')placeCoverMap()},700)}}});
 /* Ajustes: no começo da folha */
 aoFazer('ajustes montados',function(){
   var r=$('#cfgR')||document.querySelector('#pane-cfg .cfgsheet');if(!r||r.querySelector('#idiSec'))return;
@@ -6888,8 +6895,15 @@ aoFazer('ajustes montados',function(){
     '<div class="seg chips" role="group" aria-label="Idioma" data-idi-nao>'+idiBotoes()+'</div>'+
     '<p class="muted small keep">Os nomes de lugares e linhas ficam em português. Alguns textos ainda não foram traduzidos.</p></div>');
 });
-/* capa: quem não lê português escolhe antes de entrar */
-(function(){var s=document.querySelector('#cover .cv-sheet .eyebrow');if(s&&!$('#cvIdioma'))s.insertAdjacentHTML('afterend','<div class="cv-idioma seg chips" id="cvIdioma" role="group" aria-label="Idioma / Language" data-idi-nao>'+idiBotoes()+'</div>')})();
+/* capa: a escolha do idioma aparece só até a pessoa escolher uma vez (CFG.idiomaOk, guardado no aparelho e na conta) */
+if(CFG.idioma&&CFG.idioma!=='pt')CFG.idiomaOk=true;/* quem já tinha trocado antes desta versão já escolheu */
+function idiCapa(){
+  var c=$('#cvIdioma');if(CFG.idiomaOk){if(c)c.remove();return}
+  var s=document.querySelector('#cover .cv-sheet .eyebrow');if(s&&!c)s.insertAdjacentHTML('afterend','<div class="cv-idioma seg chips" id="cvIdioma" role="group" aria-label="Idioma / Language" data-idi-nao>'+idiBotoes()+'</div>');
+}
+idiCapa();
+/* ajustes vindos da conta (outro aparelho): aplica o idioma e esconde a escolha da capa */
+function idiAplica(){idiLiga();idiPinta();idiCapa()}
 if(idiAtual()!=='pt')idiLiga();
 /* ======================= Idioma: mais textos (continuação de 36-idioma.js) =======================
    Segunda parte da tabela português ¦ inglês ¦ espanhol e dos padrões: Ajustes, Lugares, Grade, Calendário,

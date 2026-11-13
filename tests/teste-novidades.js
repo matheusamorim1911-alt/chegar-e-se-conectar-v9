@@ -59,6 +59,8 @@ const { chromium } = require('playwright');const servir=require('./servidor');co
  [c,p,e]=await abre({cfg:{cover:'folha'},espera:3000,w:390});
  await p.click('#cvIdioma [data-idioma="en"]');await p.waitForTimeout(400);
  ok(await p.evaluate(()=>document.documentElement.lang==='en'&&/Open the map/.test(document.getElementById('cover').textContent)&&/Where are you going today\?/.test(document.getElementById('cover').textContent)),'inglês escolhido na capa traduz a capa');
+ await p.waitForTimeout(700);
+ ok(!(await p.$('#cvIdioma'))&&await p.evaluate(()=>JSON.parse(localStorage.getItem('cse-cfg')).idiomaOk===true),'depois da escolha, as opções de idioma somem da capa e a resposta fica guardada');
  await p.click('[data-cv="mapa"]');await p.waitForTimeout(1500);
  ok(await p.evaluate(()=>document.getElementById('tab-trajeto').textContent.trim()==='Routes'&&/Your route/.test(document.getElementById('pane-trajeto').textContent)&&document.getElementById('segBtn').textContent.trim()==='Find a bus'),'abas e painel em inglês');
  ok(await p.evaluate(()=>/Line 1 · towards |Line \d/.test(document.getElementById('pane-trajeto').textContent)&&JSON.parse(localStorage.getItem('cse-cfg')).idioma==='en'),'textos montados ("Linha 1 · sentido …") também; a escolha fica guardada');
@@ -66,6 +68,16 @@ const { chromium } = require('playwright');const servir=require('./servidor');co
  ok(await p.evaluate(()=>document.getElementById('tab-trajeto').textContent.trim()==='Trayectos'&&document.documentElement.lang==='es'),'troca para espanhol sem recarregar');
  await p.click('#idiSec [data-idioma="pt"]');await p.waitForTimeout(400);
  ok(await p.evaluate(()=>document.getElementById('tab-trajeto').textContent.trim()==='Trajetos'&&document.documentElement.lang==='pt-BR'&&document.querySelector('#idiSec h2').textContent==='Idioma'),'volta para português');
+ ok(e.length===0,'sem erros de JavaScript '+JSON.stringify(e));
+ await p.reload();await p.waitForTimeout(2500);
+ ok(!(await p.$('#cvIdioma'))&&await p.evaluate(()=>document.documentElement.lang==='pt-BR'),'abrindo de novo, a capa não pergunta o idioma outra vez');await c.close();
+ // escolher o português (que já estava) também conta como resposta
+ [c,p,e]=await abre({cfg:{cover:'folha'},espera:3000,w:390});
+ await p.click('#cvIdioma [data-idioma="pt"]');await p.waitForTimeout(900);
+ ok(!(await p.$('#cvIdioma'))&&await p.evaluate(()=>JSON.parse(localStorage.getItem('cse-cfg')).idiomaOk===true&&document.documentElement.lang==='pt-BR'),'escolher português na capa também guarda a resposta');
+ // quem já tinha trocado o idioma antes desta versão não é perguntado
+ await c.close();[c,p,e]=await abre({cfg:{cover:'folha',idioma:'es'},espera:3000,w:390});
+ ok(!(await p.$('#cvIdioma'))&&await p.evaluate(()=>document.documentElement.lang==='es'),'quem já usava outro idioma não vê a pergunta');
  ok(e.length===0,'sem erros de JavaScript '+JSON.stringify(e));await c.close();
  // portal da UFRJ na capa: só para quem disse que estuda na UFRJ
  [c,p,e]=await abre({cfg:{cover:'folha'},uso:{estuda:true,t:1},espera:3500});

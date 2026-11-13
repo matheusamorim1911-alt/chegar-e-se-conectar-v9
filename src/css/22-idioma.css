@@ -2,3 +2,7 @@
 .idi-sec{display:flex;flex-direction:column;gap:10px;margin-bottom:6px}
 .cv-idioma{align-self:flex-start;margin:0}
 .cv-idioma button{min-height:32px;padding:0 12px;font-size:13px}
+
+.cv-idioma{transition:opacity .5s}
+.cv-idioma.saindo{opacity:0}
+.lowgfx .cv-idioma{transition:none}
