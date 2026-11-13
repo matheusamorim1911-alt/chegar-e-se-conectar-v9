@@ -492,6 +492,10 @@ async function rotaPush(caminho, req, env, cors) {
     if (!m || !m.metadata) return resp({ erro: 'não assinado' }, 404);
     if (m.metadata.teste && Date.now() - m.metadata.teste < 60e3) return resp({ erro: 'espere um minuto' }, 429);
     await env.PUSH.put(k, '1', { metadata: { ...m.metadata, teste: Date.now() } });
+    // o texto do teste vai pelo mesmo caminho dos avisos de ônibus: o aparelho o busca em /push/aviso
+    const ta = (await env.PUSH.get('alst', 'json')) || {}; ta.msgs = ta.msgs || {};
+    ta.msgs[k] = { t: 'Chega aí UFRJ', c: 'Aviso de teste: as notificações de tiroteio estão ligadas.', tag: 'teste', exp: Date.now() + 10 * 60e3 };
+    await env.PUSH.put('alst', JSON.stringify(ta));
     const st = await enviaPush(e, await vapid(env), {}, Date.now());
     if (st === 404 || st === 410) await env.PUSH.delete(k);
     return resp({ ok: st >= 200 && st < 300, status: st });
