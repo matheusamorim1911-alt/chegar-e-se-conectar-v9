@@ -562,6 +562,11 @@ Aviso já ligado para o carro ¦ Alert already on for car ¦ Aviso ya activado p
 Avisar uma vez quando o carro ¦ Alert me once when car ¦ Avisar una vez cuando el coche
 Ônibus da UFRJ passa em ¦ UFRJ bus passes in ¦ Autobús de la UFRJ pasa en
 O servidor do app ainda não aceita avisos de ônibus: o Worker precisa ser publicado de novo na Cloudflare. ¦ The app server does not accept bus alerts yet: the Worker needs to be published again on Cloudflare. ¦ El servidor de la app aún no acepta avisos de autobús: hay que publicar el Worker de nuevo en Cloudflare.
+Todas ¦ All ¦ Todas
+Linhas internas ¦ Campus lines ¦ Líneas internas
+Linhas da cidade ¦ City lines ¦ Líneas de la ciudad
+Portal da UFRJ ¦ UFRJ portal ¦ Portal de la UFRJ
+Abre o acesso ao portal em outra aba. ¦ Opens the portal sign-in in another tab. ¦ Abre el acceso al portal en otra pestaña.
 Não há horário de linha interna ligando esses dois pontos hoje: este alerta só avisa com o app aberto. ¦ There is no campus bus schedule linking these two stops today: this alert only works with the app open. ¦ Hoy no hay horario de línea interna que una estas dos paradas: esta alerta solo avisa con la app abierta.
 Não achei o traçado da linha neste ponto: este alerta só avisa com o app aberto. ¦ Could not find the line's route at this stop: this alert only works with the app open. ¦ No encontré el recorrido de la línea en esta parada: esta alerta solo avisa con la app abierta.
 Sem conexão com o servidor do app. Toque em Tentar de novo. ¦ No connection to the app server. Tap Try again. ¦ Sin conexión con el servidor de la app. Toca Reintentar.

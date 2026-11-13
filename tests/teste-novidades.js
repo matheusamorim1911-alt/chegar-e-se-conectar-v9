@@ -8,7 +8,7 @@ const { chromium } = require('playwright');const servir=require('./servidor');co
    await c.route('**workers.dev/push/**',r=>r.fulfill({contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:'{"disponivel":false}'}));
    await c.route('**workers.dev/',r=>{const dt=Date.now()-am.t-15000;r.fulfill({contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify({t:Date.now(),onibus:am.onibus.map(x=>({...x,t:x.t+dt}))})})});
    await c.addInitScript(o=>{if(sessionStorage.j)return;sessionStorage.j=1;localStorage.setItem('cse-cfg',JSON.stringify(Object.assign({cover:'none',login:false,banner:false,flow:false},o.cfg||{})));
-     localStorage.setItem('cse-instalar',JSON.stringify({nunca:true}));if(o.ext)localStorage.setItem('cse-lay-ext','1');if(o.perfil)localStorage.setItem('cse-perfil',JSON.stringify({name:'Ana',pin:null}));
+     localStorage.setItem('cse-instalar',JSON.stringify({nunca:true}));if(o.ext)localStorage.setItem('cse-lay-ext','1');if(o.uso)localStorage.setItem('cse-uso',JSON.stringify(o.uso));if(o.perfil)localStorage.setItem('cse-perfil',JSON.stringify({name:'Ana',pin:null}));
      if(o.push){window.Notification=function(){};Object.defineProperty(Notification,'permission',{get:()=>'default'});Notification.requestPermission=async()=>'denied';window.PushManager=function(){};
        Object.defineProperty(navigator,'serviceWorker',{value:{ready:new Promise(()=>{}),register:()=>Promise.resolve({}),addEventListener(){}}})}},o);
    const p=await c.newPage();const e=[];p.on('pageerror',x=>e.push(x.message));await p.goto('http://localhost:8824/');await p.waitForTimeout(o.espera||2500);return [c,p,e]}
@@ -51,9 +51,7 @@ const { chromium } = require('playwright');const servir=require('./servidor');co
  [c,p,e]=await abre({cfg:{cover:'folha',tiroteios:true},tiro:true,push:true,espera:4000,w:390});
  const cv=await p.textContent('#cvAvisos');
  ok(/Tiroteio há 3\d min em Maré/.test(cv)&&await p.evaluate(()=>document.getElementById('cvTiro').classList.contains('vermelho')),'capa mostra o tiroteio recente em vermelho');
- ok(/Ativar notificações/.test(cv),'capa oferece ligar as notificações');
- await p.click('#cvPush');await p.waitForTimeout(1200);
- ok(/bloqueadas para este site/.test(await p.textContent('#cvAvisos')),'capa: sem permissão, explica');
+ ok(!(await p.$('#cvPush'))&&!/notificações/i.test(cv),'capa: sem o botão das notificações (ficam em Ajustes)');
  await p.click('#cvTiro');await p.waitForTimeout(1500);
  ok(await p.evaluate(()=>document.getElementById('cover').hidden&&!!document.getElementById('fdTiro')&&document.getElementById('fdTiro').open),'tocar no alerta da capa abre os detalhes em Trajetos');
  ok(e.length===0,'sem erros de JavaScript '+JSON.stringify(e));await c.close();
@@ -68,5 +66,14 @@ const { chromium } = require('playwright');const servir=require('./servidor');co
  ok(await p.evaluate(()=>document.getElementById('tab-trajeto').textContent.trim()==='Trayectos'&&document.documentElement.lang==='es'),'troca para espanhol sem recarregar');
  await p.click('#idiSec [data-idioma="pt"]');await p.waitForTimeout(400);
  ok(await p.evaluate(()=>document.getElementById('tab-trajeto').textContent.trim()==='Trajetos'&&document.documentElement.lang==='pt-BR'&&document.querySelector('#idiSec h2').textContent==='Idioma'),'volta para português');
+ ok(e.length===0,'sem erros de JavaScript '+JSON.stringify(e));await c.close();
+ // portal da UFRJ na capa: só para quem disse que estuda na UFRJ
+ [c,p,e]=await abre({cfg:{cover:'folha'},uso:{estuda:true,t:1},espera:3500});
+ const por=await p.$('#cvPortal');
+ ok(!!por&&await por.getAttribute('href')==='https://portal.ufrj.br/Portal/acesso?cid=8475'&&await por.getAttribute('target')==='_blank'&&/noopener/.test(await por.getAttribute('rel')),'capa: quem estuda na UFRJ vê o botão do portal, que abre em outra aba');
+ ok(await p.$eval('#cvPortal',x=>{const s=getComputedStyle(x);return s.backgroundColor==='rgba(0, 0, 0, 0)'&&/52, 199, 89/.test(s.color)})&&await p.$eval('#cvPortal .cv-av-ic svg',x=>!!x),'o botão é transparente, verde e tem ícone (sem o brasão)');
+ await c.close();
+ [c,p,e]=await abre({cfg:{cover:'folha'},uso:{vila:true,t:1},espera:3500});
+ ok(!(await p.$('#cvPortal')),'capa: quem não marcou "Estudo na UFRJ" não vê o botão');
  ok(e.length===0,'sem erros de JavaScript '+JSON.stringify(e));await c.close();
  await b.close();srv.close();process.exit(falhou?1:0)})();

@@ -31,3 +31,6 @@
 .alv-ed:focus-visible{outline:2px solid var(--press);outline-offset:2px}
 .alv-item .alv-nota{color:var(--ink-2);font-style:italic}
 .alv-msg:empty{display:none}
+.alv-lt{margin:8px 0 0}
+.alv-lin{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.alv-lin button{min-width:44px}

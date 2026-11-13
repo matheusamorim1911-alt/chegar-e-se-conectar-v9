@@ -36,8 +36,12 @@ function alvPonto(k){return alvPontos().filter(function(p){return p.k===k})[0]||
 function alvPontoDe(a){return alvPontos().filter(function(p){return (a.st&&p.st===a.st)||(!a.st&&a.gr&&p.gr===a.gr)})[0]||null}
 function alvNome(a){var p=alvPontoDe(a);return p?p.name:(a.nome||'ponto')}
 function alvLinhasDoPonto(id){return EXT.lines.filter(function(L){return L.st.some(function(s){return s[0]===id})}).map(function(L){return L.n}).filter(function(n,i,A){return A.indexOf(n)===i})}
+/* linhas internas que passam na parada (ids de LINES), em ordem */
+function alvLinhasInternasDe(st){return Object.keys(LINES).filter(function(lid){return LINES[lid].trips.some(function(tr){return tr.passes.some(function(p){return p.stop===st})})}).sort(function(a,b){return a.localeCompare(b,'pt-BR',{numeric:true})})}
+function alvLinhasCidadeDe(gr){return alvLinhasDoPonto(gr).sort(function(a,b){return String(a).localeCompare(String(b),'pt-BR',{numeric:true})})}
 function alvResumo(a){
-  var q=a.int&&a.ext?'Internos e da cidade':a.int?'Internos da UFRJ':'Da cidade';
+  var li=a.li||[],lc=a.lc||[],pi='Internos da UFRJ'+(li.length?': '+li.join(', '):''),pc='Da cidade'+(lc.length?': '+lc.join(', '):'');
+  var q=a.int&&a.ext?pi+' · '+pc:a.int?pi:pc;
   return {t:alvNome(a),s:q+' · '+a.min+' min antes · '+(a.dias==='uteis'?'dias úteis':'todos os dias')+', '+a.hDe+'–'+a.hAte};
 }
 /* ---------- o que vai para o Worker ---------- */
@@ -64,9 +68,9 @@ function alvCorredores(a,todas){
   return out;
 }
 /* horários estimados (minuto do dia) em que as linhas internas passam na parada, e se todas são só de dias úteis */
-function alvHoras(st){
+function alvHoras(st,linhas){
   var H={},uteis=true;
-  Object.keys(LINES).forEach(function(lid){var L=LINES[lid];if(!L||L.susp)return;L.trips.forEach(function(tr){
+  Object.keys(LINES).forEach(function(lid){var L=LINES[lid];if(!L||L.susp||(linhas&&linhas.length&&linhas.indexOf(lid)<0))return;L.trips.forEach(function(tr){
     for(var i=0;i<tr.passes.length;i++){if(tr.passes[i].stop!==st)continue;
       tr.deps.forEach(function(d){var m=Math.round(d+tr.passes[i].off);if(m>=0&&m<1440){H[m]=1;if(!L.weekdays)uteis=false}});break}})});
   return {h:Object.keys(H).map(Number).sort(function(x,y){return x-y}),uteis:uteis};
@@ -76,10 +80,10 @@ function alvServidor(){
   var S=[];ALV.falhas={};
   ALV.lista.forEach(function(a){
     if(a.on===false)return;var nome=alvNome(a),base={min:a.min,nome:nome,dias:a.dias==='uteis'?[1,2,3,4,5]:[0,1,2,3,4,5,6],de:alvMinDia(a.hDe),ate:alvMinDia(a.hAte)};
-    if(a.ext&&a.gr){var cor=alvCorredores({ponto:a.gr,linhas:[]});
-      if(cor.length)S.push(Object.assign({id:a.id+'c',tipo:'c',l:[],cor:cor},base));else ALV.falhas[a.id]='tracado'}
-    if(a.int&&a.st){var H=alvHoras(a.st);
-      if(H.h.length){var o=Object.assign({id:a.id+'i',tipo:'i',txt:'Ônibus da UFRJ',horas:H.h},base);if(H.uteis&&a.dias!=='uteis')o.dias=[1,2,3,4,5];S.push(o)}else ALV.falhas[a.id]='horarios'}
+    if(a.ext&&a.gr){var cor=alvCorredores({ponto:a.gr,linhas:a.lc||[]});
+      if(cor.length)S.push(Object.assign({id:a.id+'c',tipo:'c',l:a.lc||[],cor:cor},base));else ALV.falhas[a.id]='tracado'}
+    if(a.int&&a.st){var H=alvHoras(a.st,a.li);
+      if(H.h.length){var o=Object.assign({id:a.id+'i',tipo:'i',txt:(a.li||[]).length===1?'Linha '+a.li[0]:'Ônibus da UFRJ',horas:H.h},base);if(H.uteis&&a.dias!=='uteis')o.dias=[1,2,3,4,5];S.push(o)}else ALV.falhas[a.id]='horarios'}
   });
   alvVivosUma().forEach(function(a){var cor=alvCorredores(a);
     if(cor.length)S.push({id:a.id,tipo:'c',uma:1,fim:a.fim,min:a.min,nome:alvNome({gr:a.ponto,nome:a.nome}),l:a.linhas,v:a.carro,cor:cor});else ALV.falhas[a.id]='tracado'});
@@ -146,11 +150,11 @@ function alvConfere(){
   ALV.lista.forEach(function(a){
     if(a.on===false||!alvNaHora(a))return;
     if(a.ext&&a.gr){
-      var x=chegandoEm(a.gr).filter(function(x){return x.t<=a.min*60})[0];
+      var x=chegandoEm(a.gr).filter(function(x){return x.t<=a.min*60&&(!(a.lc||[]).length||a.lc.indexOf(x.o.l)>=0)})[0];
       if(x){var m=Math.round(x.t/60);alvDispara(a.id+'|'+x.o.v,x.o.l+' chega em '+(m?'~'+m+' min':'instantes'),'Em '+alvNome(a)+', a '+segM(x.m)+'. Carro '+x.o.v+'.',a)}
     }
     if(a.int&&a.st){
-      var H=alvHoras(a.st),dia=new Date().getDay();if(H.uteis&&(dia===0||dia===6))return;
+      var H=alvHoras(a.st,a.li),dia=new Date().getDay();if(H.uteis&&(dia===0||dia===6))return;
       var h=H.h.filter(function(h){return h-now>=0&&h-now<=a.min})[0];
       if(h!=null){var d=h-now;alvDispara(a.id+'|'+h,'Ônibus da UFRJ passa em '+(d?'~'+d+' min':'instantes'),'Em '+alvNome(a)+'. Horário estimado.',a)}
     }
@@ -171,11 +175,16 @@ function alvNovoId(){return 'a'+Date.now().toString(36)+Math.floor(Math.random()
 /* ---------- formulário (em Ajustes) ---------- */
 function alvFormNovo(k){
   var p=alvPonto(k)||alvPontos()[0]||{st:'',gr:''};
-  return {id:'',k:p.k,int:!!p.st,ext:!!p.gr,min:5,dias:'uteis',hDe:'06:00',hAte:'23:00'};
+  return {id:'',k:p.k,int:!!p.st,ext:!!p.gr,li:[],lc:[],min:5,dias:'uteis',hDe:'06:00',hAte:'23:00'};
 }
-function alvFormEditar(a){var p=alvPontoDe(a);return {id:a.id,k:p?p.k:'',int:!!a.int,ext:!!a.ext,min:a.min,dias:a.dias,hDe:a.hDe,hAte:a.hAte}}
-function alvLeForm(){var F=ALV.form;if(!F)return;var s=$('#alvPonto');if(s&&s.value!==F.k){F.k=s.value;var p=alvPonto(F.k);if(p){F.int=!!p.st;F.ext=!!p.gr}}
+function alvFormEditar(a){var p=alvPontoDe(a);return {id:a.id,k:p?p.k:'',int:!!a.int,ext:!!a.ext,li:(a.li||[]).slice(),lc:(a.lc||[]).slice(),min:a.min,dias:a.dias,hDe:a.hDe,hAte:a.hAte}}
+function alvLeForm(){var F=ALV.form;if(!F)return;var s=$('#alvPonto');if(s&&s.value!==F.k){F.k=s.value;var p=alvPonto(F.k);if(p){F.int=!!p.st;F.ext=!!p.gr;F.li=[];F.lc=[]}}
   var d=$('#alvDe'),a=$('#alvAte');if(d&&d.value)F.hDe=d.value;if(a&&a.value)F.hAte=a.value}
+function alvChipsLinhas(k,L,sel,titulo){
+  if(!L.length)return '';
+  return '<p class="balvo-t alv-lt">'+titulo+'</p><div class="seg chips alv-lin" role="group" aria-label="'+titulo+'"><button type="button" data-alvl="'+k+'|" aria-pressed="'+(!sel.length)+'">Todas</button>'+
+    L.map(function(n){var t=k==='lc'?segLinha(n):null;return '<button type="button" data-alvl="'+k+'|'+esc(n)+'" aria-pressed="'+(sel.indexOf(String(n))>=0)+'"'+(t&&t.d?' title="'+esc(t.d)+'"':'')+'>'+esc(n)+'</button>'}).join('')+'</div>';
+}
 function alvFormHTML(F){
   var P=alvPontos(),p=alvPonto(F.k)||P[0];if(p&&!alvPonto(F.k))F.k=p.k;
   var tem=function(x){return '<span class="alv-par">'+(x?'':' · não há neste ponto')+'</span>'};
@@ -183,6 +192,7 @@ function alvFormHTML(F){
     '<div class="alv-f"><p class="balvo-t"><b>Quais ônibus</b></p><div class="seg chips" role="group" aria-label="Quais ônibus">'+
       '<button type="button" data-alvint aria-pressed="'+(!!F.int&&!!p.st)+'"'+(p.st?'':' disabled')+'>Internos da UFRJ</button>'+
       '<button type="button" data-alvext aria-pressed="'+(!!F.ext&&!!p.gr)+'"'+(p.gr?'':' disabled')+'>Da cidade</button></div>'+
+      (F.int&&p.st?alvChipsLinhas('li',alvLinhasInternasDe(p.st),F.li,'Linhas internas'):'')+(F.ext&&p.gr?alvChipsLinhas('lc',alvLinhasCidadeDe(p.gr),F.lc,'Linhas da cidade'):'')+
       (p.st&&p.gr?'':'<p class="muted small keep">'+(p.st?'Neste ponto só passam ônibus internos.':'Neste ponto só passam ônibus da cidade.')+'</p>')+'</div>'+
     '<div class="alv-f"><p class="balvo-t"><b>Avisar com antecedência de</b></p><div class="seg chips" role="group" aria-label="Antecedência">'+ALV_MIN.map(function(m){return '<button type="button" data-alvmin="'+m+'" aria-pressed="'+(F.min===m)+'">'+m+' min</button>'}).join('')+'</div></div>'+
     '<div class="alv-f"><p class="balvo-t"><b>Dias e horário</b></p><div class="seg chips" role="group" aria-label="Dias"><button type="button" data-alvd="uteis" aria-pressed="'+(F.dias==='uteis')+'">Dias úteis</button><button type="button" data-alvd="todos" aria-pressed="'+(F.dias==='todos')+'">Todos os dias</button></div>'+
@@ -193,7 +203,7 @@ function alvSalvaForm(){
   alvLeForm();var F=ALV.form,p=alvPonto(F.k);if(!p)return;
   var inte=!!F.int&&!!p.st,ext=!!F.ext&&!!p.gr;
   if(!inte&&!ext){gToast('Escolha internos da UFRJ, da cidade ou os dois.');return}
-  var a={id:F.id||alvNovoId(),st:p.st,gr:p.gr,nome:p.name,int:inte,ext:ext,min:F.min,dias:F.dias,hDe:F.hDe,hAte:F.hAte,on:true};
+  var a={id:F.id||alvNovoId(),st:p.st,gr:p.gr,nome:p.name,int:inte,ext:ext,li:inte?(F.li||[]).slice():[],lc:ext?(F.lc||[]).slice():[],min:F.min,dias:F.dias,hDe:F.hDe,hAte:F.hAte,on:true};
   if(F.id)ALV.lista=ALV.lista.map(function(x){return x.id===F.id?Object.assign(x,a):x});else ALV.lista.push(a);
   ALV.form=null;ALV.msg='';alvGuarda();
   alvSincroniza(true).then(function(ok){gToast(ok?'Aviso salvo. Você recebe mesmo com o app fechado.':'Aviso salvo. Por enquanto ele avisa só com o app aberto. '+alvMotivoTxt());alvPinta()});
@@ -245,6 +255,8 @@ document.addEventListener('click',function(e){var t=e.target;if(!t.closest)retur
   if((b=t.closest('[data-alvsino]'))){var p=b.dataset.alvsino.split('|');alvSininho(p[0],p[1],p[2]);return}
   if(!t.closest('#alvsec'))return;
   if(t.closest('[data-alvnovo]')){ALV.form=alvFormNovo('');alvPinta();return}
+  if((b=t.closest('[data-alvl]'))){alvLeForm();var q=b.dataset.alvl.split('|'),F=ALV.form,A=F[q[0]];
+    if(!q[1])F[q[0]]=[];else{var i=A.indexOf(q[1]);if(i<0)A.push(q[1]);else A.splice(i,1)}alvPinta();return}
   if(t.closest('[data-alvint]')){alvLeForm();ALV.form.int=!ALV.form.int;alvPinta();return}
   if(t.closest('[data-alvext]')){alvLeForm();ALV.form.ext=!ALV.form.ext;alvPinta();return}
   if((b=t.closest('[data-alvmin]'))){alvLeForm();ALV.form.min=+b.dataset.alvmin;alvPinta();return}
