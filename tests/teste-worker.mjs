@@ -226,6 +226,7 @@ const veiculo = (id, rid, la, lo, sp, br, tSeg) => pb.m(2, [...pb.s(1, 'e' + id)
   ...pb.u(5, tSeg), ...pb.m(8, [...pb.s(1, id), ...pb.s(2, id)]), ...pb.s(7, 'parada-x')])]);
 const feed = (L, tSeg) => new Uint8Array([...pb.m(1, [...pb.s(1, '2.0'), ...pb.u(3, tSeg)]), ...L.flat()]);
 ok(linhaDaRota('O0321AAA0A') === '321' && linhaDaRota('O0803AAP0A') === 'SP803' && linhaDaRota('O0485AAA0A') === '485' && linhaDaRota('O0328ZZZ0A') === '328' && linhaDaRota('8f1e-uuid') === '', 'GTFS-RT: linha tirada do route_id da prefeitura do Rio');
+ok(linhaDaRota('O0665AAVAA') === 'SVA665' && linhaDaRota('O0665AAVBA') === 'SVB665' && linhaDaRota('O0854AAAAA') === '854' && linhaDaRota('O0326AAPBA') === 'SPB326' && linhaDaRota('20000611130') === '61' && linhaDaRota('20000421110') === '42', 'GTFS-RT: variantes (SVA, SVB, SPB) e BRT (route_id numérico) vêm de ROTAS, tirado do routes.txt');
 { const ag = Date.now(), ts = Math.floor((ag - 25e3) / 1000);
   const longe = Array.from({ length: 60 }, (_, k) => veiculo('C' + k, 'O0' + (100 + k) + 'AAA0A', -22.95, -43.35, 30, 0, ts));
   const F = feed([veiculo('A1', 'O0321AAA0A', -22.8394, -43.2396, 36, 90, ts), veiculo('A2', 'O0803AAP0A', -22.8586, -43.2318, 0, 0, ts), veiculo('N1', 'O0474AAA0A', -22.8586, -43.2318, 20, 180, ts), ...longe], ts);
