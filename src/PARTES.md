@@ -29,6 +29,7 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `24-importar-grade.css`: botão e folha de importar a grade horária (PDF)
 - `25-provas.css`: Minhas provas no Calendário
 - `26-eduroam-perfil.css`: perfil do eduroam da UFRJ (instalar, à mão, conferir usuário)
+- `27-favoritos.css`: favoritos (Trajetos, capa e estrela nos painéis)
 
 ## Código (js/)
 - `01-nucleo.js`: pontos de extensão (etapas), modo do site, ajustes salvos e utilidades básicas
@@ -73,4 +74,5 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `40-importar-grade.js`: importar a grade horária do portal da UFRJ (PDF lido no aparelho com pdf.js; conferência com prédio, bloco e sala)
 - `41-provas.js`: Minhas provas no Calendário (disciplina, o que é, data, horário e local; salvas nos ajustes e na conta)
 - `42-eduroam-perfil.js`: o perfil do eduroam da UFRJ no app (perfil para iPhone/Mac, configuração à mão, formato do usuário, validade dos certificados em Saúde)
+- `43-favoritos.js`: favoritos de pontos e linhas por categoria (Casa, Trabalho, Estudos ou própria), com o próximo ônibus, no topo de Trajetos e na capa
 - `99-inicio.js`: abre a aba pedida no endereço (#predios, #grade…) depois que tudo carregou; fica sempre por último
