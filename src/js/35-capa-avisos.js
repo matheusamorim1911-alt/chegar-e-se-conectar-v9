@@ -8,6 +8,7 @@ function capaAvisosHTML(){
   if(N){var o=N.ult;
     h+='<button type="button" class="cv-aviso '+N.cor+'" id="cvTiro"><span class="cv-av-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5L22 20.5H2z"/><path class="ta-x" d="M12 9.5v5.2M12 17.4v.1"/></svg></span>'+
       '<span class="grow"><b>'+esc((N.cor==='vermelho'?'Tiroteio ':'Teve tiroteio ')+tiroHa(o.t)+(o.bairro?' em '+o.bairro:' perto das saídas'))+'</b><small>Evite a região se puder. Toque para ver. Fonte: Fogo Cruzado.</small></span></button>'}
+  if(typeof favCapaHTML==='function')h+=favCapaHTML();/* favoritos (parte 43) */
   /* quem disse que estuda na UFRJ: atalho para o portal (sem o brasão: o app não é oficial) */
   if(typeof USO!=='undefined'&&USO&&USO.estuda)h+='<a class="cv-aviso cv-portal" id="cvPortal" href="'+PORTAL_UFRJ+'" target="_blank" rel="noopener noreferrer"><span class="cv-av-ic" aria-hidden="true">'+CAPA_BECA+'</span><span class="grow"><b>Portal da UFRJ</b><small>Abre o acesso ao portal em outra aba.</small></span></a>';
   return h;

@@ -634,6 +634,33 @@ No Linux (NetworkManager): Segurança "WPA e WPA2 Enterprise", autenticação "E
 O certificado que a UFRJ publica para o eduroam está vencido. Se o aparelho não conectar com a verificação ligada, use o app geteduroam. Não desligue a verificação: alguém pode imitar a rede e capturar sua senha. ¦ The certificate UFRJ publishes for eduroam has expired. If your device does not connect with verification on, use the geteduroam app. Do not turn verification off: someone could imitate the network and capture your password. ¦ El certificado que la UFRJ publica para eduroam está vencido. Si el dispositivo no se conecta con la verificación activada, usa la app geteduroam. No desactives la verificación: alguien podría imitar la red y capturar tu contraseña.
 Valores do perfil oficial da UFRJ no CAT do eduroam (lido em ¦ Values from the official UFRJ profile in the eduroam CAT (read on ¦ Valores del perfil oficial de la UFRJ en el CAT de eduroam (leído el
 Escolha a rede eduroam e digite o e-mail completo e a senha. Os valores certos (PEAP, MSCHAPv2 e o domínio eduroam.ufrj.br) estão em Lugares › Wi-Fi › Configurar eduroam › Configurar à mão. Se o celular pedir para confiar num certificado, só aceite se for de eduroam.ufrj.br. ¦ Choose the eduroam network and type your full e-mail and password. The right values (PEAP, MSCHAPv2 and the domain eduroam.ufrj.br) are in Places › Wi-Fi › Set up eduroam › Set up manually. If your phone asks you to trust a certificate, only accept it if it is from eduroam.ufrj.br. ¦ Elige la red eduroam y escribe el e-mail completo y la contraseña. Los valores correctos (PEAP, MSCHAPv2 y el dominio eduroam.ufrj.br) están en Lugares › Wi-Fi › Configurar eduroam › Configurar a mano. Si el celular pide confiar en un certificado, acepta solo si es de eduroam.ufrj.br.
+Meus favoritos ¦ My favorites ¦ Mis favoritos
+Adicionar ¦ Add ¦ Añadir
+Guarde pontos e linhas que você usa em Casa, Trabalho, Estudos ou numa categoria sua. Toque na estrela no painel de um ponto ou de uma linha, ou em Adicionar. ¦ Save stops and lines you use under Home, Work, Studies or a category of your own. Tap the star on a stop or line panel, or Add. ¦ Guarda paradas y líneas que usas en Casa, Trabajo, Estudios o en una categoría tuya. Toca la estrella en el panel de una parada o línea, o Añadir.
+Ponto ¦ Stop ¦ Parada
+Linha da UFRJ ¦ UFRJ line ¦ Línea de la UFRJ
+Linha da cidade ¦ City line ¦ Línea de la ciudad
+Linha ¦ Line ¦ Línea
+Categoria ¦ Category ¦ Categoría
+Ou crie uma ¦ Or create one ¦ O crea una
+Ex.: Academia ¦ E.g.: Gym ¦ Ej.: Gimnasio
+Salvar favorito ¦ Save favorite ¦ Guardar favorito
+Casa ¦ Home ¦ Casa
+Trabalho ¦ Work ¦ Trabajo
+Estudos ¦ Studies ¦ Estudios
+Favoritar ¦ Add to favorites ¦ Añadir a favoritos
+Nos favoritos · ¦ In favorites · ¦ En favoritos ·
+Tirar dos favoritos ¦ Remove from favorites ¦ Quitar de favoritos
+sem mais ônibus hoje ¦ no more buses today ¦ no hay más autobuses hoy
+suspensa ¦ suspended ¦ suspendida
+só em dias úteis ¦ weekdays only ¦ solo días hábiles
+Próxima saída ¦ Next departure ¦ Próxima salida
+Favoritos ¦ Favorites ¦ Favoritos
+Já está nos favoritos. ¦ Already in favorites. ¦ Ya está en favoritos.
+Tirado dos favoritos. ¦ Removed from favorites. ¦ Quitado de favoritos.
+Guardado em ¦ Saved in ¦ Guardado en
+Você já tem 12 favoritos. Tire um para guardar outro. ¦ You already have 12 favorites. Remove one to save another. ¦ Ya tienes 12 favoritos. Quita uno para guardar otro.
+O que guardar ¦ What to save ¦ Qué guardar
 Não há horário de linha interna ligando esses dois pontos hoje: este alerta só avisa com o app aberto. ¦ There is no campus bus schedule linking these two stops today: this alert only works with the app open. ¦ Hoy no hay horario de línea interna que una estas dos paradas: esta alerta solo avisa con la app abierta.
 Não achei o traçado da linha neste ponto: este alerta só avisa com o app aberto. ¦ Could not find the line's route at this stop: this alert only works with the app open. ¦ No encontré el recorrido de la línea en esta parada: esta alerta solo avisa con la app abierta.
 Sem conexão com o servidor do app. Toque em Tentar de novo. ¦ No connection to the app server. Tap Try again. ¦ Sin conexión con el servidor de la app. Toca Reintentar.

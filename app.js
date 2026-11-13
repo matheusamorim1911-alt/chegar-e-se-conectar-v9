@@ -10,7 +10,7 @@ function etapas(nome){var a=[].slice.call(arguments,1);(ETAPAS[nome]||[]).forEac
 var FBMODE=!!(window.CSE_FIREBASE&&window.CSE_FIREBASE.apiKey&&window.CSE_FIREBASE.projectId)&&!(window.claude&&typeof window.claude.use==='function');
 var LITE=(function(){try{return window.matchMedia('(pointer:coarse), (max-width:820px)').matches||(navigator.hardwareConcurrency||8)<=4||!!(navigator.connection&&navigator.connection.saveData)}catch(e){return false}})();
 document.documentElement.classList.toggle('lite',LITE);
-var CFG={cover:'folha',idioma:'pt',idiomaOk:false,provas:[],banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'escuro',temaV:0,bussola:false,foto:true,perf:'auto',perfV:0,bldn:true,simples:true,simplesV:0,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true,faixa:10,faixaV:0,telaCheia:null,alChuva:true,alFila:false};
+var CFG={cover:'folha',idioma:'pt',idiomaOk:false,provas:[],favs:[],banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'escuro',temaV:0,bussola:false,foto:true,perf:'auto',perfV:0,bldn:true,simples:true,simplesV:0,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true,faixa:10,faixaV:0,telaCheia:null,alChuva:true,alFila:false};
 try{var _c=JSON.parse(localStorage.getItem('cse-cfg'));if(_c)CFG=Object.assign(CFG,_c)}catch(e){}
 /* v22: tema escuro é o padrão; quem estava em "Do aparelho" passa para escuro uma vez (claro ou pelo horário escolhidos ficam) */
 if(CFG.temaV!==1){if(!CFG.tema||CFG.tema==='sistema')CFG.tema='escuro';CFG.temaV=1;try{localStorage.setItem('cse-cfg',JSON.stringify(CFG))}catch(e){}}
@@ -2659,7 +2659,7 @@ function applyRemote(d){
   var ch=false;
   /* idioma escolhido neste aparelho e ainda não salvo na conta: vale o daqui */
   var idiAqui=d.cfg&&CFG.idiomaOk&&!d.cfg.idiomaOk;
-  if(d.cfg&&typeof d.cfg==='object')Object.keys(CFG).forEach(function(k){if(idiAqui&&(k==='idioma'||k==='idiomaOk'))return;if(k==='provas'){if(Array.isArray(d.cfg.provas)&&typeof prvJunta==='function'&&prvJunta(d.cfg.provas))ch=true;return}if(k in d.cfg&&typeof d.cfg[k]===typeof CFG[k]&&CFG[k]!==d.cfg[k]){CFG[k]=d.cfg[k];ch=true}});
+  if(d.cfg&&typeof d.cfg==='object')Object.keys(CFG).forEach(function(k){if(idiAqui&&(k==='idioma'||k==='idiomaOk'))return;if(k==='favs'){if(Array.isArray(d.cfg.favs)&&typeof favJunta==='function'&&favJunta(d.cfg.favs))ch=true;return}if(k==='provas'){if(Array.isArray(d.cfg.provas)&&typeof prvJunta==='function'&&prvJunta(d.cfg.provas))ch=true;return}if(k in d.cfg&&typeof d.cfg[k]===typeof CFG[k]&&CFG[k]!==d.cfg[k]){CFG[k]=d.cfg[k];ch=true}});
   ACC.mute=true;
   if(ch){saveCfg();applyBg();applyFont();applyTheme();applyCoverStyle();updateMap();drawBanner();drawShared();renderDetail();coverToday();if(typeof idiAplica==='function')idiAplica()}
   if(d.rota&&STOPS[d.rota.from]&&STOPS[d.rota.to]&&d.rota.from!==d.rota.to&&(d.rota.from!==state.from||d.rota.to!==state.to)){state.from=d.rota.from;state.to=d.rota.to;savePrefs();renderPlan();updateMap()}
@@ -3332,7 +3332,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261113-1812';
+var APP_VERSION='20261113-1823';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -6508,6 +6508,7 @@ function capaAvisosHTML(){
   if(N){var o=N.ult;
     h+='<button type="button" class="cv-aviso '+N.cor+'" id="cvTiro"><span class="cv-av-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5L22 20.5H2z"/><path class="ta-x" d="M12 9.5v5.2M12 17.4v.1"/></svg></span>'+
       '<span class="grow"><b>'+esc((N.cor==='vermelho'?'Tiroteio ':'Teve tiroteio ')+tiroHa(o.t)+(o.bairro?' em '+o.bairro:' perto das saídas'))+'</b><small>Evite a região se puder. Toque para ver. Fonte: Fogo Cruzado.</small></span></button>'}
+  if(typeof favCapaHTML==='function')h+=favCapaHTML();/* favoritos (parte 43) */
   /* quem disse que estuda na UFRJ: atalho para o portal (sem o brasão: o app não é oficial) */
   if(typeof USO!=='undefined'&&USO&&USO.estuda)h+='<a class="cv-aviso cv-portal" id="cvPortal" href="'+PORTAL_UFRJ+'" target="_blank" rel="noopener noreferrer"><span class="cv-av-ic" aria-hidden="true">'+CAPA_BECA+'</span><span class="grow"><b>Portal da UFRJ</b><small>Abre o acesso ao portal em outra aba.</small></span></a>';
   return h;
@@ -8025,6 +8026,33 @@ No Linux (NetworkManager): Segurança "WPA e WPA2 Enterprise", autenticação "E
 O certificado que a UFRJ publica para o eduroam está vencido. Se o aparelho não conectar com a verificação ligada, use o app geteduroam. Não desligue a verificação: alguém pode imitar a rede e capturar sua senha. ¦ The certificate UFRJ publishes for eduroam has expired. If your device does not connect with verification on, use the geteduroam app. Do not turn verification off: someone could imitate the network and capture your password. ¦ El certificado que la UFRJ publica para eduroam está vencido. Si el dispositivo no se conecta con la verificación activada, usa la app geteduroam. No desactives la verificación: alguien podría imitar la red y capturar tu contraseña.
 Valores do perfil oficial da UFRJ no CAT do eduroam (lido em ¦ Values from the official UFRJ profile in the eduroam CAT (read on ¦ Valores del perfil oficial de la UFRJ en el CAT de eduroam (leído el
 Escolha a rede eduroam e digite o e-mail completo e a senha. Os valores certos (PEAP, MSCHAPv2 e o domínio eduroam.ufrj.br) estão em Lugares › Wi-Fi › Configurar eduroam › Configurar à mão. Se o celular pedir para confiar num certificado, só aceite se for de eduroam.ufrj.br. ¦ Choose the eduroam network and type your full e-mail and password. The right values (PEAP, MSCHAPv2 and the domain eduroam.ufrj.br) are in Places › Wi-Fi › Set up eduroam › Set up manually. If your phone asks you to trust a certificate, only accept it if it is from eduroam.ufrj.br. ¦ Elige la red eduroam y escribe el e-mail completo y la contraseña. Los valores correctos (PEAP, MSCHAPv2 y el dominio eduroam.ufrj.br) están en Lugares › Wi-Fi › Configurar eduroam › Configurar a mano. Si el celular pide confiar en un certificado, acepta solo si es de eduroam.ufrj.br.
+Meus favoritos ¦ My favorites ¦ Mis favoritos
+Adicionar ¦ Add ¦ Añadir
+Guarde pontos e linhas que você usa em Casa, Trabalho, Estudos ou numa categoria sua. Toque na estrela no painel de um ponto ou de uma linha, ou em Adicionar. ¦ Save stops and lines you use under Home, Work, Studies or a category of your own. Tap the star on a stop or line panel, or Add. ¦ Guarda paradas y líneas que usas en Casa, Trabajo, Estudios o en una categoría tuya. Toca la estrella en el panel de una parada o línea, o Añadir.
+Ponto ¦ Stop ¦ Parada
+Linha da UFRJ ¦ UFRJ line ¦ Línea de la UFRJ
+Linha da cidade ¦ City line ¦ Línea de la ciudad
+Linha ¦ Line ¦ Línea
+Categoria ¦ Category ¦ Categoría
+Ou crie uma ¦ Or create one ¦ O crea una
+Ex.: Academia ¦ E.g.: Gym ¦ Ej.: Gimnasio
+Salvar favorito ¦ Save favorite ¦ Guardar favorito
+Casa ¦ Home ¦ Casa
+Trabalho ¦ Work ¦ Trabajo
+Estudos ¦ Studies ¦ Estudios
+Favoritar ¦ Add to favorites ¦ Añadir a favoritos
+Nos favoritos · ¦ In favorites · ¦ En favoritos ·
+Tirar dos favoritos ¦ Remove from favorites ¦ Quitar de favoritos
+sem mais ônibus hoje ¦ no more buses today ¦ no hay más autobuses hoy
+suspensa ¦ suspended ¦ suspendida
+só em dias úteis ¦ weekdays only ¦ solo días hábiles
+Próxima saída ¦ Next departure ¦ Próxima salida
+Favoritos ¦ Favorites ¦ Favoritos
+Já está nos favoritos. ¦ Already in favorites. ¦ Ya está en favoritos.
+Tirado dos favoritos. ¦ Removed from favorites. ¦ Quitado de favoritos.
+Guardado em ¦ Saved in ¦ Guardado en
+Você já tem 12 favoritos. Tire um para guardar outro. ¦ You already have 12 favorites. Remove one to save another. ¦ Ya tienes 12 favoritos. Quita uno para guardar otro.
+O que guardar ¦ What to save ¦ Qué guardar
 Não há horário de linha interna ligando esses dois pontos hoje: este alerta só avisa com o app aberto. ¦ There is no campus bus schedule linking these two stops today: this alert only works with the app open. ¦ Hoy no hay horario de línea interna que una estas dos paradas: esta alerta solo avisa con la app abierta.
 Não achei o traçado da linha neste ponto: este alerta só avisa com o app aberto. ¦ Could not find the line's route at this stop: this alert only works with the app open. ¦ No encontré el recorrido de la línea en esta parada: esta alerta solo avisa con la app abierta.
 Sem conexão com o servidor do app. Toque em Tentar de novo. ¦ No connection to the app server. Tap Try again. ¦ Sin conexión con el servidor de la app. Toca Reintentar.
@@ -8742,6 +8770,146 @@ if(typeof SAUDE_CHECKS!=='undefined')SAUDE_CHECKS.push(['eduroam','Perfil do edu
   if(V.length)return Promise.resolve({estado:'aviso',det:'Certificados vencidos no perfil que a UFRJ publica no CAT: '+V.map(function(c){return c.nome+' ('+eduDataBr(c.ate)+')'}).join(', ')+'. Peça à TIC/UFRJ para atualizar o perfil; depois baixe o .mobileconfig de novo e rode tools/eduroam_ufrj.py.'});
   var prox=C.map(function(c){return c.ate}).sort()[0],dias=Math.floor((Date.parse(prox)-Date.now())/864e5);
   return Promise.resolve({estado:dias<60?'aviso':'ok',det:'Certificados válidos até '+eduDataBr(prox)+'.'})}]);
+/* ======================= Favoritos: pontos e linhas por categoria =======================
+   O aluno guarda pontos de ônibus (parada da UFRJ e/ou ponto da cidade) e linhas (internas e da cidade) em categorias
+   (Casa, Trabalho, Estudos ou uma com o nome que quiser). Aparecem no topo de Trajetos, por categoria, com o próximo
+   ônibus de cada um (horário das internas; ao vivo ou pelo horário nas da cidade), e os 3 primeiros na capa.
+   Favoritar: estrela no painel do ponto ou da linha interna, ou "Adicionar" em Meus favoritos.
+   Guardados nos ajustes (CFG.favs: {id, t:'p'|'i'|'c', ref, cat, ts}): no aparelho e na conta. Apagar deixa {id, x:1}
+   para não voltar quando a conta junta as listas (favJunta, chamada em applyRemote). */
+var FAV={max:12,cats:['Casa','Trabalho','Estudos'],filtro:'',form:null,sel:null};
+function favLista(){return (Array.isArray(CFG.favs)?CFG.favs:[]).filter(function(f){return f&&!f.x&&f.ref&&favValido(f)})}
+function favValido(f){if(f.t==='p')return !!alvPonto(f.ref);if(f.t==='i')return !!LINES[f.ref];if(f.t==='c')return !!favLinhaCidade(f.ref);return false}
+function favLinhaCidade(n){return EXT.lines.filter(function(L){return L.n===n})[0]||null}
+function favGuarda(){var L=(CFG.favs||[]).slice();if(L.length>40)L=L.filter(function(f){return !f.x}).concat(L.filter(function(f){return f.x}).slice(-10));CFG.favs=L;saveCfg()}
+function favJunta(R){
+  var M={},mudou=false;(CFG.favs||[]).forEach(function(f){if(f&&f.id)M[f.id]=f});
+  R.forEach(function(f){if(!f||!f.id)return;var a=M[f.id];
+    if(!a||(f.x&&!a.x)||(!a.x&&!f.x&&(f.ts||0)>(a.ts||0))){M[f.id]=f;mudou=true}});
+  if(mudou){CFG.favs=Object.keys(M).map(function(k){return M[k]});setTimeout(favPinta,0)}
+  return mudou;
+}
+function favDe(t,ref){return favLista().filter(function(f){return f.t===t&&f.ref===ref})[0]||null}
+function favCats(){var C=FAV.cats.slice();favLista().forEach(function(f){if(C.indexOf(f.cat)<0)C.push(f.cat)});return C}
+function favNome(f){
+  if(f.t==='p'){var p=alvPonto(f.ref);return p?p.name:''}
+  if(f.t==='i')return 'Linha '+f.ref+' · '+LINES[f.ref].name;
+  var L=favLinhaCidade(f.ref);return L?L.n+' · '+L.d:'';
+}
+/* o próximo ônibus de cada favorito, em texto curto */
+function favProxInternas(st,now){
+  var R=[];Object.keys(LINES).forEach(function(lid){var L=LINES[lid];if(L.susp||!nightOK(lid))return;var best=null;
+    L.trips.forEach(function(tr){for(var i=0;i<tr.passes.length;i++){if(tr.passes[i].stop!==st)continue;
+      tr.deps.forEach(function(d){var m=d+tr.passes[i].off;if(m>=now-0.5&&(best==null||m<best))best=m});break}});
+    if(best!=null)R.push({lid:lid,m:best})});
+  return R.sort(function(a,b){return a.m-b.m});
+}
+function favEm(m,now){var a=Math.round(m-now);return a<=1?'agora':a<60?'em '+a+' min':'às '+fmt(m)}
+function favProx(f,now){
+  if(f.t==='p'){var p=alvPonto(f.ref),out=[];if(!p)return '';
+    if(p.st){var I=favProxInternas(p.st,now)[0];if(I)out.push(badge(I.lid)+' '+favEm(I.m,now))}
+    if(p.gr){var V=typeof chegandoEm==='function'?chegandoEm(p.gr)[0]:null;
+      if(V)out.push(extBadge(segLinha(V.o.l))+' '+segQuando(V.t,V.m)+' <span class="lv-tag">ao vivo</span>');
+      else{var bx=null;EXT.lines.forEach(function(L){if(!L.st.some(function(s){return s[0]===p.gr}))return;var n=extNext(L,p.gr,now,1)[0];if(n!=null&&(!bx||n<bx.m))bx={L:L,m:n}});
+        if(bx)out.push(extBadge(bx.L)+' '+favEm(bx.m,now))}}
+    return out.length?out.join(' · '):'<span class="muted">sem mais ônibus hoje</span>';
+  }
+  if(f.t==='i'){var L=LINES[f.ref];if(L.susp)return '<span class="muted">suspensa</span>';if(!nightOK(f.ref))return '<span class="muted">só em dias úteis</span>';
+    var nx=null;L.trips.forEach(function(tr){tr.deps.forEach(function(d){if(d>=now-0.5&&(nx==null||d<nx))nx=d})});
+    return nx!=null?'Próxima saída '+favEm(nx,now):'<span class="muted">sem mais saídas hoje</span>'}
+  var C=favLinhaCidade(f.ref),vivos=liveCount(C.n),n2=extToday(C)?extNext(C,C.st[0][0],now,1)[0]:null;
+  return (n2!=null?'Próxima saída '+favEm(n2,now):'<span class="muted">'+(extToday(C)?'sem mais saídas hoje':'não circula hoje')+'</span>')+(vivos?' · <span class="lv-tag">'+vivos+' ao vivo</span>':'');
+}
+function favItem(f,now){
+  var ic=f.t==='p'?'<span class="fav-ic" aria-hidden="true">P</span>':f.t==='i'?badge(f.ref):extBadge(favLinhaCidade(f.ref));
+  return '<li class="fav-it"><button type="button" class="fav-ir" data-favir="'+esc(f.id)+'">'+ic+'<span class="grow"><b>'+esc(f.t==='p'?favNome(f):f.t==='i'?LINES[f.ref].name:favLinhaCidade(f.ref).d)+'</b><small>'+favProx(f,now)+'</small></span></button>'+
+    '<button type="button" class="alv-x" data-favdel="'+esc(f.id)+'" aria-label="Tirar dos favoritos">×</button></li>';
+}
+/* ---------- Meus favoritos (topo de Trajetos) ---------- */
+function favFormHTML(){
+  var F=FAV.form,P=alvPontos();
+  var ops=F.t==='p'?P.map(function(p){return '<option value="'+esc(p.k)+'"'+(p.k===F.ref?' selected':'')+'>'+esc(p.name)+'</option>'}).join(''):
+    F.t==='i'?Object.keys(LINES).map(function(l){return '<option value="'+esc(l)+'"'+(l===F.ref?' selected':'')+'>Linha '+esc(l)+' · '+esc(LINES[l].name)+'</option>'}).join(''):
+    EXT.lines.slice().sort(function(a,b){return String(a.n).localeCompare(String(b.n),'pt-BR',{numeric:true})}).map(function(L){return '<option value="'+esc(L.n)+'"'+(L.n===F.ref?' selected':'')+'>'+esc(L.n)+' · '+esc(L.d)+'</option>'}).join('');
+  return '<div class="fav-form" id="favForm"><div class="seg chips" role="group" aria-label="O que guardar">'+[['p','Ponto'],['i','Linha da UFRJ'],['c','Linha da cidade']].map(function(x){return '<button type="button" data-favt="'+x[0]+'" aria-pressed="'+(F.t===x[0])+'">'+x[1]+'</button>'}).join('')+'</div>'+
+    '<label class="fld">'+(F.t==='p'?'Ponto':'Linha')+'<select id="favRef">'+ops+'</select></label>'+favCatsHTML(F.cat)+
+    '<div class="row gbtns"><button type="button" class="copy primary" id="favSalvar">Salvar favorito</button><button type="button" class="copy" id="favCancela">Cancelar</button></div></div>';
+}
+function favCatsHTML(cat){
+  return '<p class="balvo-t"><b>Categoria</b></p><div class="seg chips fav-cats" role="group" aria-label="Categoria">'+favCats().map(function(c){return '<button type="button" data-favcat="'+esc(c)+'" aria-pressed="'+(c===cat)+'">'+esc(c)+'</button>'}).join('')+'</div>'+
+    '<label class="fld fav-nova">Ou crie uma<input type="text" id="favCatNova" maxlength="20" placeholder="Ex.: Academia"></label>';
+}
+function favHTML(){
+  var L=favLista(),now=nowMin(),C=favCats().filter(function(c){return L.some(function(f){return f.cat===c})});
+  if(FAV.filtro&&C.indexOf(FAV.filtro)<0)FAV.filtro='';
+  var h='<div class="fav-box" id="favBox"><div class="fav-topo"><h3>Meus favoritos</h3>'+(!FAV.form&&L.length<FAV.max?'<button type="button" class="linkbtn" id="favNovo">Adicionar</button>':'')+'</div>';
+  if(!L.length&&!FAV.form)h+='<p class="muted small keep">Guarde pontos e linhas que você usa em Casa, Trabalho, Estudos ou numa categoria sua. Toque na estrela no painel de um ponto ou de uma linha, ou em Adicionar.</p>';
+  if(C.length>1)h+='<div class="seg chips fav-filtro" role="group" aria-label="Categoria"><button type="button" data-favf="" aria-pressed="'+!FAV.filtro+'">Todos</button>'+C.map(function(c){return '<button type="button" data-favf="'+esc(c)+'" aria-pressed="'+(FAV.filtro===c)+'">'+esc(c)+'</button>'}).join('')+'</div>';
+  C.filter(function(c){return !FAV.filtro||c===FAV.filtro}).forEach(function(c){
+    h+='<p class="eyebrow fav-cat">'+esc(c)+'</p><ul class="fav-lista">'+L.filter(function(f){return f.cat===c}).map(function(f){return favItem(f,now)}).join('')+'</ul>'});
+  if(FAV.form)h+=favFormHTML();
+  return h+'</div>';
+}
+function favPinta(){
+  if(typeof plan==='undefined'||!plan)return;var b=$('#favBox'),foco=document.activeElement&&b&&b.contains(document.activeElement)&&document.activeElement.tagName==='INPUT';if(foco)return;
+  var t=document.createElement('div');t.innerHTML=favHTML();if(b){b.replaceWith(t.firstChild);return}
+  plan.insertAdjacentElement('afterbegin',t.firstChild);
+}
+aoFazer('trajeto montado',favPinta);favPinta();/* Trajetos já foi montado antes desta parte carregar */
+setInterval(function(){if(!document.hidden)favPinta()},30000);
+/* ---------- capa: os 3 primeiros ---------- */
+function favCapaHTML(){
+  var L=favLista().slice(0,3);if(!L.length)return '';var now=nowMin();
+  return '<div class="cv-favs"><p class="cv-fav-t">Favoritos</p>'+L.map(function(f){return '<button type="button" class="cv-aviso cv-fav" data-favir="'+esc(f.id)+'"><span class="grow"><b>'+esc(favNome(f))+'</b><small>'+favProx(f,now).replace(/<[^>]+>/g,'')+'</small></span></button>'}).join('')+'</div>';
+}
+/* ---------- abrir um favorito ---------- */
+function favAbre(id){
+  var f=favLista().filter(function(x){return x.id===id})[0];if(!f)return;
+  var vai=function(){
+    if(f.t==='p'){var p=alvPonto(f.ref);if(!p)return;setTab('trajeto');if(p.st){if(!state.layers.bus)setLayer('bus',$('#chBus'));select('stop',p.st,true)}else select('ext',p.gr,true);return}
+    if(f.t==='i'){setTab('trajeto');if(!state.layers.bus)setLayer('bus',$('#chBus'));select('line',f.ref,true);return}
+    setTab('trajeto');EXTSEL.g=null;EXTSEL.ln=f.ref;try{localStorage.setItem('cse-fold-ext','1')}catch(e){}extRepaint();var d=$('#fdExt');if(d){d.open=true;d.scrollIntoView({block:'start',behavior:'smooth'})}};
+  if(cover&&!cover.hidden&&typeof closeCover==='function')closeCover(vai);else vai();
+}
+/* ---------- estrela nos painéis ---------- */
+function favEstrela(t,ref){var f=favDe(t,ref);
+  return '<div class="fav-estrela" id="favEstrela">'+(f?'<button type="button" class="copy fav-on" data-favdel="'+esc(f.id)+'"><span aria-hidden="true">★</span> Nos favoritos · '+esc(f.cat)+'</button>':
+    FAV.sel&&FAV.sel.t===t&&FAV.sel.ref===ref?'<div class="fav-escolhe">'+favCatsHTML('')+'<div class="row gbtns"><button type="button" class="copy" id="favEstCancela">Cancelar</button></div></div>':
+    '<button type="button" class="copy" data-favstar="'+t+'|'+esc(ref)+'"><span aria-hidden="true">☆</span> Favoritar</button>')+'</div>';
+}
+function favDoPainel(){var s=state.sel;if(!s)return null;
+  if(s.kind==='stop'){var p=alvPontos().filter(function(x){return x.st===s.id})[0];return p?{t:'p',ref:p.k}:null}
+  if(s.kind==='ext'){var q=alvPontos().filter(function(x){return x.gr===s.id})[0];return q?{t:'p',ref:q.k}:null}
+  if(s.kind==='line'&&LINES[s.id])return {t:'i',ref:s.id};return null}
+aoFazer('detalhe montado',function(){var d=favDoPainel();if(!d||!detail||$('#favEstrela'))return;var h=detail.querySelector('h2');
+  if(h)h.insertAdjacentHTML('afterend',favEstrela(d.t,d.ref));else detail.insertAdjacentHTML('afterbegin',favEstrela(d.t,d.ref))});
+function favEstrelaPinta(){var e=$('#favEstrela'),d=favDoPainel();if(e&&d){var t=document.createElement('div');t.innerHTML=favEstrela(d.t,d.ref);e.replaceWith(t.firstChild)}}
+function favAdiciona(t,ref,cat){
+  if(favLista().length>=FAV.max){gToast('Você já tem '+FAV.max+' favoritos. Tire um para guardar outro.');return false}
+  if(favDe(t,ref)){gToast('Já está nos favoritos.');return false}
+  CFG.favs=(CFG.favs||[]).concat([{id:'f'+Date.now().toString(36)+Math.floor(Math.random()*1e3).toString(36),t:t,ref:ref,cat:cat,ts:Date.now()}]);
+  favGuarda();favPinta();gToast('Guardado em '+cat+'.');return true;
+}
+function favCatEscolhida(){var n=$('#favCatNova');return n&&n.value.trim()?n.value.trim().slice(0,20):''}
+document.addEventListener('click',function(e){var t=e.target;if(!t.closest)return;var b;
+  if((b=t.closest('[data-favir]'))){favAbre(b.dataset.favir);return}
+  if((b=t.closest('[data-favdel]'))){var id=b.dataset.favdel;CFG.favs=(CFG.favs||[]).map(function(f){return f.id===id?{id:id,x:1,ts:Date.now()}:f});favGuarda();favPinta();favEstrelaPinta();gToast('Tirado dos favoritos.');return}
+  if((b=t.closest('[data-favstar]'))){var p=b.dataset.favstar.split('|');FAV.sel={t:p[0],ref:p.slice(1).join('|')};favEstrelaPinta();return}
+  if(t.closest('#favEstCancela')){FAV.sel=null;favEstrelaPinta();return}
+  if((b=t.closest('[data-favcat]'))){var c=b.dataset.favcat;
+    if(b.closest('#favEstrela')&&FAV.sel){if(favAdiciona(FAV.sel.t,FAV.sel.ref,c))FAV.sel=null;favEstrelaPinta();return}
+    if(FAV.form){FAV.form.cat=c;favPinta()}return}
+  if(t.closest('#favNovo')){FAV.form={t:'p',ref:'',cat:'Casa'};favPinta();return}
+  if((b=t.closest('[data-favt]'))){FAV.form.t=b.dataset.favt;FAV.form.ref='';favPinta();return}
+  if(t.closest('#favCancela')){FAV.form=null;favPinta();return}
+  if(t.closest('#favSalvar')){var F=FAV.form,r=$('#favRef');if(!r||!r.value)return;var cat=favCatEscolhida()||F.cat||'Casa';if(favAdiciona(F.t,r.value,cat)){FAV.form=null;favPinta()}return}
+  if((b=t.closest('[data-favf]'))){FAV.filtro=b.dataset.favf;favPinta();return}
+});
+document.addEventListener('change',function(e){if(e.target.id==='favRef'&&FAV.form)FAV.form.ref=e.target.value});
+/* categoria nova digitada na estrela: Enter guarda */
+document.addEventListener('keydown',function(e){if(e.key!=='Enter'||e.target.id!=='favCatNova')return;e.preventDefault();var c=favCatEscolhida();if(!c)return;
+  if(e.target.closest('#favEstrela')&&FAV.sel){if(favAdiciona(FAV.sel.t,FAV.sel.ref,c))FAV.sel=null;favEstrelaPinta()}
+  else if(FAV.form){FAV.form.cat=c;var r=$('#favRef');if(r&&r.value&&favAdiciona(FAV.form.t,r.value,c)){FAV.form=null;favPinta()}}});
 /* ======================= Início: a aba pedida no endereço =======================
    Fica por último, depois que todas as partes carregaram: abrir uma aba desenha a tela inteira dela
    (Lugares, por exemplo, usa o Wi-Fi e o eduroam, definidos em partes posteriores). Abrir antes disso
