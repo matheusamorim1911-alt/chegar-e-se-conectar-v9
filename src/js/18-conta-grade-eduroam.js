@@ -193,7 +193,7 @@ function eduCfgHTML(inTut){
     '<li class="'+(c1?'done':'')+'"><span class="n">1</span><div><b class="keep">Cadastre seu e-mail no eduroam</b><p class="small keep">Na Intranet UFRJ, com CPF e senha. A ativação leva até 24 h.</p><div class="row"><a class="copy" href="https://intranet.ufrj.br/atualizar-email-eduroam" target="_blank" rel="noopener">Abrir a Intranet</a>'+(c1?'<span class="pill good">Feito</span>':'<button type="button" class="copy" data-edustep="0">Já cadastrei</button>')+'</div></div></li>'+
     '<li class="'+(c2?'done':'')+'"><span class="n">2</span><div><b class="keep">Instale o app oficial do eduroam</b><p class="small keep">'+(EDUC.plat?'Para':'Detectamos')+': <b>'+a[0]+'</b>. O geteduroam configura a rede e o certificado sozinho.</p><a class="educfg-app" href="'+a[1]+'" target="_blank" rel="noopener" data-eduapp><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span>'+a[2]+'<small>'+a[3]+'</small></span></a><p class="small keep">Outro aparelho? '+outros+'</p></div></li>'+
     '<li><span class="n">3</span><div><b class="keep">No app, escolha a UFRJ</b><p class="small keep">Busque “UFRJ”. Usuário: o e-mail do passo 1. Senha: a da Intranet. Depois toque em Conectar e Permitir.</p></div></li>'+
-    '</ol>'+
+    '</ol>'+(typeof eduPerfilHTML==='function'?eduPerfilHTML(pl):'')+
     '<div class="row"><button type="button" class="copy primary" data-educheck'+(EDUC.busy?' disabled':'')+'>'+(EDUC.busy?'Verificando…':'Verificar minha conexão')+'</button>'+(inTut?'':'<button type="button" class="linkbtn" data-wedu>Tutorial completo</button>')+'</div>'+
     (EDUC.msg?'<p class="small keep educfg-r '+EDUC.tone+'" role="status">'+esc(EDUC.msg)+'</p>':'')+'</div>';
 }

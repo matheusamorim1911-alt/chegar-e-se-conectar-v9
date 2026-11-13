@@ -1971,3 +1971,13 @@ a.cv-aviso{text-decoration:none}
 .ig-loc select,.ig-loc input{min-height:40px;min-width:0;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;padding:0 8px}
 .ig-err{margin:0;color:#C62828;font-size:14px;min-height:0}
 .ig-err:empty{display:none}
+/* eduroam: perfil da UFRJ (instalar no iPhone/Mac, configurar à mão, conferir o usuário) */
+.edup{display:grid;gap:10px;margin:12px 0}
+.edup-apple{display:grid;gap:8px}
+.edup-apple .copy{justify-self:start}
+.edup-u input{width:100%}
+.edup-m{margin:0;color:var(--ink-2)}
+.edup-m.good{color:var(--good)}
+.edup-m.warn{color:#E0A100}
+.edup-aviso{color:#E0A100}
+.edup-man dl{margin:8px 0}

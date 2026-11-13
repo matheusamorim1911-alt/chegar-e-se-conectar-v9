@@ -588,6 +588,32 @@ aula importada. ¦ class imported. ¦ clase importada.
 Essas aulas já estão na sua grade. ¦ These classes are already in your timetable. ¦ Estas clases ya están en tu horario.
 Marque pelo menos uma aula. ¦ Select at least one class. ¦ Marca al menos una clase.
 A grade guarda até 40 aulas. Desmarque algumas. ¦ The timetable holds up to 40 classes. Unselect some. ¦ El horario guarda hasta 40 clases. Desmarca algunas.
+Ou sem instalar app: ¦ Or without installing an app: ¦ O sin instalar app:
+abra no Safari, toque em Permitir e depois em Ajustes › Perfil baixado › Instalar. ¦ open it in Safari, tap Allow and then Settings › Profile Downloaded › Install. ¦ ábrelo en Safari, toca Permitir y luego Ajustes › Perfil descargado › Instalar.
+abra o arquivo e instale em Ajustes do Sistema › Privacidade e Segurança › Perfis. ¦ open the file and install it in System Settings › Privacy & Security › Profiles. ¦ abre el archivo e instálalo en Ajustes del Sistema › Privacidad y seguridad › Perfiles.
+Usuário: o e-mail do passo 1. Senha: a da Intranet. ¦ Username: the e-mail from step 1. Password: your Intranet password. ¦ Usuario: el e-mail del paso 1. Contraseña: la de la Intranet.
+Baixar o perfil da UFRJ ¦ Download the UFRJ profile ¦ Descargar el perfil de la UFRJ
+Confira seu usuário ¦ Check your username ¦ Revisa tu usuario
+Não guardamos o que você digita aqui. ¦ We do not store what you type here. ¦ No guardamos lo que escribes aquí.
+O usuário é o e-mail cadastrado no eduroam, não o CPF. ¦ The username is the e-mail registered for eduroam, not your CPF. ¦ El usuario es el e-mail registrado en eduroam, no el CPF.
+Tire os espaços do usuário. ¦ Remove the spaces from the username. ¦ Quita los espacios del usuario.
+Use o e-mail completo, com @ e o domínio (ex.: nome@gmail.com). ¦ Use the full e-mail, with @ and the domain (e.g.: name@gmail.com). ¦ Usa el e-mail completo, con @ y el dominio (ej.: nombre@gmail.com).
+Formato certo. A senha é a da Intranet UFRJ. ¦ Format OK. The password is your UFRJ Intranet password. ¦ Formato correcto. La contraseña es la de la Intranet UFRJ.
+Configurar à mão ¦ Set up manually ¦ Configurar a mano
+Segurança ¦ Security ¦ Seguridad
+Método EAP ¦ EAP method ¦ Método EAP
+Fase 2 ¦ Phase 2 ¦ Fase 2
+Domínio do servidor ¦ Server domain ¦ Dominio del servidor
+Identidade ¦ Identity ¦ Identidad
+O e-mail cadastrado ¦ Your registered e-mail ¦ El e-mail registrado
+Identidade anônima ¦ Anonymous identity ¦ Identidad anónima
+Deixe em branco ¦ Leave blank ¦ Déjalo en blanco
+No Android: Configurações › Wi-Fi › eduroam. Em "Certificado CA", escolha "Usar certificados do sistema" e preencha o domínio. ¦ On Android: Settings › Wi-Fi › eduroam. Under "CA certificate", choose "Use system certificates" and fill in the domain. ¦ En Android: Ajustes › Wi-Fi › eduroam. En "Certificado de CA", elige "Usar certificados del sistema" y completa el dominio.
+No Windows: Adicionar rede manualmente › WPA2-Enterprise › Microsoft: EAP protegido (PEAP) › EAP-MSCHAP v2. ¦ On Windows: Add a network manually › WPA2-Enterprise › Microsoft: Protected EAP (PEAP) › EAP-MSCHAP v2. ¦ En Windows: Agregar red manualmente › WPA2-Enterprise › Microsoft: EAP protegido (PEAP) › EAP-MSCHAP v2.
+No Linux (NetworkManager): Segurança "WPA e WPA2 Enterprise", autenticação "EAP protegido (PEAP)", autenticação interna MSCHAPv2 e o domínio acima. ¦ On Linux (NetworkManager): Security "WPA & WPA2 Enterprise", authentication "Protected EAP (PEAP)", inner authentication MSCHAPv2 and the domain above. ¦ En Linux (NetworkManager): Seguridad "WPA y WPA2 Enterprise", autenticación "EAP protegido (PEAP)", autenticación interna MSCHAPv2 y el dominio de arriba.
+O certificado que a UFRJ publica para o eduroam está vencido. Se o aparelho não conectar com a verificação ligada, use o app geteduroam. Não desligue a verificação: alguém pode imitar a rede e capturar sua senha. ¦ The certificate UFRJ publishes for eduroam has expired. If your device does not connect with verification on, use the geteduroam app. Do not turn verification off: someone could imitate the network and capture your password. ¦ El certificado que la UFRJ publica para eduroam está vencido. Si el dispositivo no se conecta con la verificación activada, usa la app geteduroam. No desactives la verificación: alguien podría imitar la red y capturar tu contraseña.
+Valores do perfil oficial da UFRJ no CAT do eduroam (lido em ¦ Values from the official UFRJ profile in the eduroam CAT (read on ¦ Valores del perfil oficial de la UFRJ en el CAT de eduroam (leído el
+Escolha a rede eduroam e digite o e-mail completo e a senha. Os valores certos (PEAP, MSCHAPv2 e o domínio eduroam.ufrj.br) estão em Lugares › Wi-Fi › Configurar eduroam › Configurar à mão. Se o celular pedir para confiar num certificado, só aceite se for de eduroam.ufrj.br. ¦ Choose the eduroam network and type your full e-mail and password. The right values (PEAP, MSCHAPv2 and the domain eduroam.ufrj.br) are in Places › Wi-Fi › Set up eduroam › Set up manually. If your phone asks you to trust a certificate, only accept it if it is from eduroam.ufrj.br. ¦ Elige la red eduroam y escribe el e-mail completo y la contraseña. Los valores correctos (PEAP, MSCHAPv2 y el dominio eduroam.ufrj.br) están en Lugares › Wi-Fi › Configurar eduroam › Configurar a mano. Si el celular pide confiar en un certificado, acepta solo si es de eduroam.ufrj.br.
 Não há horário de linha interna ligando esses dois pontos hoje: este alerta só avisa com o app aberto. ¦ There is no campus bus schedule linking these two stops today: this alert only works with the app open. ¦ Hoy no hay horario de línea interna que una estas dos paradas: esta alerta solo avisa con la app abierta.
 Não achei o traçado da linha neste ponto: este alerta só avisa com o app aberto. ¦ Could not find the line's route at this stop: this alert only works with the app open. ¦ No encontré el recorrido de la línea en esta parada: esta alerta solo avisa con la app abierta.
 Sem conexão com o servidor do app. Toque em Tentar de novo. ¦ No connection to the app server. Tap Try again. ¦ Sin conexión con el servidor de la app. Toca Reintentar.
