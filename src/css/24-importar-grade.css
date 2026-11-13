@@ -1,0 +1,15 @@
+/* Importar a grade horária (PDF): botão na aba Grade e folha de conferência */
+.ig-box{display:grid;gap:8px;margin:14px 0 4px}
+.ig-btn{justify-self:start}
+.ig-folha{max-height:88vh;overflow:auto}
+.ig-lista{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.ig-it{padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2);display:grid;gap:8px}
+.ig-ck{display:flex;align-items:center;gap:10px;cursor:pointer}
+.ig-ck input{width:22px;height:22px;flex:none;accent-color:var(--press)}
+.ig-ck .grow{flex:1;min-width:0}
+.ig-ck b{display:block;font-size:15px;line-height:1.3}
+.ig-ck small{display:block;color:var(--ink-2);font-size:13px}
+.ig-loc{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.ig-loc select,.ig-loc input{min-height:40px;min-width:0;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;padding:0 8px}
+.ig-err{margin:0;color:#C62828;font-size:14px;min-height:0}
+.ig-err:empty{display:none}
