@@ -1,0 +1,9 @@
+/* Minhas provas (aba Calendário) */
+.prv{display:grid;gap:10px;margin:18px 0}
+.prv h3{margin:0}
+.prv-ev .prv-acoes{display:inline-flex;align-items:center;gap:4px;margin-left:auto}
+.prv-ev .linkbtn{min-height:34px;padding:0 6px;font-size:13px}
+.prv-form{display:grid;gap:10px}
+.prv-foi summary{cursor:pointer;color:var(--ink-2);font-size:14px;padding:6px 0}
+.prv-foi .cal-list{margin-top:6px}
+.prv-l{display:block;color:var(--ink-2);font-size:13px;font-weight:400}

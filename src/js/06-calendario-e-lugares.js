@@ -104,6 +104,7 @@ var cPane,cL,cR;
 function renderCal(focusSel){
   if(!cPane||cPane.hidden)return;
   var h=calHTML();cL.innerHTML=h.left;cR.innerHTML=h.right;
+  if(typeof prvPinta==='function')prvPinta();/* Minhas provas (parte 41) */
   if(focusSel){var el=cPane.querySelector(focusSel);if(el)el.focus({preventScroll:true})}
 }
 buildMap();

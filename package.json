@@ -4,7 +4,7 @@
   "description": "App web da Cidade Universitária da UFRJ (GitHub Pages).",
   "scripts": {
     "build": "python3 tools/build_site.py",
-    "test": "node tests/teste-nomes.js && node tests/teste-site.js && node tests/teste-feedback.js && node tests/teste-worker.mjs && node tests/teste-tiroteios.js && node tests/teste-saude.js && node tests/teste-previsao.js && node tests/teste-seguir.js && node tests/teste-carga.js && node tests/teste-anel.js && node tests/teste-instalar.js && node tests/teste-linhas-fora.js && node tests/teste-avisos.js && node tests/teste-novidades.js && node tests/teste-idioma.js && node tests/teste-sincronia.js && node tests/teste-alertas-onibus.js && node tests/teste-grade-pdf.js"
+    "test": "node tests/teste-nomes.js && node tests/teste-site.js && node tests/teste-feedback.js && node tests/teste-worker.mjs && node tests/teste-tiroteios.js && node tests/teste-saude.js && node tests/teste-previsao.js && node tests/teste-seguir.js && node tests/teste-carga.js && node tests/teste-anel.js && node tests/teste-instalar.js && node tests/teste-linhas-fora.js && node tests/teste-avisos.js && node tests/teste-novidades.js && node tests/teste-idioma.js && node tests/teste-sincronia.js && node tests/teste-alertas-onibus.js && node tests/teste-grade-pdf.js && node tests/teste-provas.js"
   },
   "devDependencies": {
     "playwright": "^1.47.0",
