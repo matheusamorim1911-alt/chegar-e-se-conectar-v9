@@ -301,7 +301,7 @@ function renderGrade(focusSel){
   var now=nowMin();
   gNext.innerHTML='<div><p class="eyebrow">'+(usingExample()?'Exemplo':'Sua semana')+'</p><h2>Minha grade</h2></div>'+
     (usingExample()?'<p class="note">Esta é uma grade de exemplo. Salve sua primeira aula e ela some.</p>':'')+
-    gradeNextHTML(now)+'<h3>Semana</h3>'+gradeWeekHTML()+
+    gradeNextHTML(now)+'<h3>Semana</h3>'+gradeWeekHTML()+(typeof igBotao==='function'?igBotao():'')+
     '<p class="muted small">'+(SH.on&&SH.uid?'Sua grade fica salva na sua conta e só você vê.':'Sua grade fica salva só neste aparelho.')+'</p>';
   if(!gWeek.dataset.ready){gWeek.innerHTML=gradeFormHTML();gWeek.dataset.ready='1'}
   if(focusSel){var el=gPane.querySelector(focusSel);if(el)el.focus({preventScroll:true})}

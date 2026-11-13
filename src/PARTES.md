@@ -26,6 +26,7 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `21-capa-avisos.css`: avisos na capa
 - `22-idioma.css`: botões de idioma
 - `23-alertas-onibus.css`: alertas de ônibus
+- `24-importar-grade.css`: botão e folha de importar a grade horária (PDF)
 
 ## Código (js/)
 - `01-nucleo.js`: pontos de extensão (etapas), modo do site, ajustes salvos e utilidades básicas
@@ -67,4 +68,5 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `37-idioma-textos.js`: segunda parte da tabela de tradução e padrões (datas, Ajustes, Lugares, Grade, Calendário, Wi-Fi, eduroam)
 - `38-idioma-frases.js`: terceira parte da tradução: mensagens, estados e pedaços de frase trocados dentro de textos montados
 - `39-alertas-onibus.js`: avisos de ônibus programados em Ajustes (ponto, internos e/ou da cidade, antecedência, dias e horário; até 5), sininho de uma vez só, teste e envio ao Worker
+- `40-importar-grade.js`: importar a grade horária do portal da UFRJ (PDF lido no aparelho com pdf.js; conferência com prédio, bloco e sala)
 - `99-inicio.js`: abre a aba pedida no endereço (#predios, #grade…) depois que tudo carregou; fica sempre por último
