@@ -116,7 +116,7 @@ function applyRemote(d){
   var ch=false;
   /* idioma escolhido neste aparelho e ainda não salvo na conta: vale o daqui */
   var idiAqui=d.cfg&&CFG.idiomaOk&&!d.cfg.idiomaOk;
-  if(d.cfg&&typeof d.cfg==='object')Object.keys(CFG).forEach(function(k){if(idiAqui&&(k==='idioma'||k==='idiomaOk'))return;if(k in d.cfg&&typeof d.cfg[k]===typeof CFG[k]&&CFG[k]!==d.cfg[k]){CFG[k]=d.cfg[k];ch=true}});
+  if(d.cfg&&typeof d.cfg==='object')Object.keys(CFG).forEach(function(k){if(idiAqui&&(k==='idioma'||k==='idiomaOk'))return;if(k==='provas'){if(Array.isArray(d.cfg.provas)&&typeof prvJunta==='function'&&prvJunta(d.cfg.provas))ch=true;return}if(k in d.cfg&&typeof d.cfg[k]===typeof CFG[k]&&CFG[k]!==d.cfg[k]){CFG[k]=d.cfg[k];ch=true}});
   ACC.mute=true;
   if(ch){saveCfg();applyBg();applyFont();applyTheme();applyCoverStyle();updateMap();drawBanner();drawShared();renderDetail();coverToday();if(typeof idiAplica==='function')idiAplica()}
   if(d.rota&&STOPS[d.rota.from]&&STOPS[d.rota.to]&&d.rota.from!==d.rota.to&&(d.rota.from!==state.from||d.rota.to!==state.to)){state.from=d.rota.from;state.to=d.rota.to;savePrefs();renderPlan();updateMap()}

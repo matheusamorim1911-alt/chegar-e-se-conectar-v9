@@ -50,6 +50,7 @@ App web (sem framework) da Cidade Universitária da UFRJ, publicado pelo GitHub 
 
 ## Grade
 - Importar do PDF (`src/js/40-importar-grade.js`): na aba Grade, o PDF "Minha grade horária" do portal da UFRJ é lido no aparelho (pdf.js 3.11.174 do cdnjs, baixado só ao escolher o arquivo; posições pela matriz da vista, porque o PDF vem girado 90°). `igLer` acha as colunas pela linha de títulos; linha com código abre a disciplina e as linhas só com dia e horário são outros dias dela; dias com o mesmo horário viram uma aula. Antes de importar, o aluno confere e escolhe prédio, bloco e sala (sugestão pela unidade). Não guarda nome, matrícula nem professores; não repete aula já importada (código, dias e início). PDF de teste com dados inventados: `tools/gerar_grade_exemplo.py` → `tests/amostra-grade.pdf`. Teste: `tests/teste-grade-pdf.js`.
+- Minhas provas (`src/js/41-provas.js`): no Calendário, abaixo do andamento do período, o aluno anota provas e entregas (disciplina, o que é, data, horário e local), com contagem regressiva; as passadas ficam recolhidas. Guardadas em `CFG.provas` (aparelho e conta); apagar deixa `{id, x:1}` e a conta junta as listas pelo `id` (`prvJunta`, chamada em `applyRemote`). Teste: `tests/teste-provas.js`.
 
 ## Perfil de uso
 - `src/js/34-perfil-de-uso.js`: depois do login, a folha "Como você usa o Fundão?" (`cse-uso`). Quem mora na Vila Residencial tem a Volta à noite para o ponto mais perto da Vila (`nightDest`, `vilaPonto`); a aba Grade aparece conforme a resposta (`CFG.tabsOff`). A etapa `login fechado` avisa quando o login termina.
