@@ -1905,6 +1905,13 @@ p.cv-aviso{cursor:default}
 .cv-aviso.ok .cv-av-ic{background:rgba(52,199,89,.22);color:#34C759}
 .cv-aviso:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 .cv-aviso[disabled]{opacity:.7}
+a.cv-aviso{text-decoration:none}
+.cv-portal{background:transparent;border:1.5px solid #34C759;color:#34C759}
+.cv-portal small{color:inherit}
+.cv-portal .cv-av-ic{background:transparent;color:#34C759}
+.cv-portal .cv-av-ic svg{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+:root[data-theme="light"] .cv-portal,:root[data-theme="light"] .cv-portal .cv-av-ic{color:#1B7F3A;border-color:#1B7F3A}
+.cv-portal:focus-visible{outline:2px solid #34C759;outline-offset:2px}
 /* escolha do idioma: em Ajustes e na capa */
 .idi-sec{display:flex;flex-direction:column;gap:10px;margin-bottom:6px}
 .cv-idioma{align-self:flex-start;margin:0}
@@ -1942,3 +1949,6 @@ p.cv-aviso{cursor:default}
 .alv-ed:focus-visible{outline:2px solid var(--press);outline-offset:2px}
 .alv-item .alv-nota{color:var(--ink-2);font-style:italic}
 .alv-msg:empty{display:none}
+.alv-lt{margin:8px 0 0}
+.alv-lin{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.alv-lin button{min-width:44px}

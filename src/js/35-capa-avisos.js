@@ -1,18 +1,15 @@
-/* ======================= Notificações na capa =======================
+/* ======================= Avisos na capa =======================
    Na capa, abaixo do aviso do dia: o alerta de tiroteio (vermelho até 2 h, amarelo até 5 h, quando os avisos estão
-   ligados) e o estado das notificações do celular, com o botão para ligar ali mesmo. */
-var CAPA_SINO='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>';
+   ligados) e, para quem estuda na UFRJ, o botão do portal. As notificações do celular ficam em Ajustes. */
+var PORTAL_UFRJ='https://portal.ufrj.br/Portal/acesso?cid=8475';
+var CAPA_BECA='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 9.5L12 5l9.5 4.5L12 14z"/><path d="M6.5 11.8v4.2c1.5 1.5 3.4 2.2 5.5 2.2s4-.7 5.5-2.2v-4.2"/><path d="M21.5 9.5v5"/></svg>';
 function capaAvisosHTML(){
   var h='',N=tiroNivel();
   if(N){var o=N.ult;
     h+='<button type="button" class="cv-aviso '+N.cor+'" id="cvTiro"><span class="cv-av-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5L22 20.5H2z"/><path class="ta-x" d="M12 9.5v5.2M12 17.4v.1"/></svg></span>'+
       '<span class="grow"><b>'+esc((N.cor==='vermelho'?'Tiroteio ':'Teve tiroteio ')+tiroHa(o.t)+(o.bairro?' em '+o.bairro:' perto das saídas'))+'</b><small>Evite a região se puder. Toque para ver. Fonte: Fogo Cruzado.</small></span></button>'}
-  if(ON_SITE&&PUSH.url){
-    if(pushIosSemInstalar())h+='<button type="button" class="cv-aviso neutro" data-instalar>'+'<span class="cv-av-ic" aria-hidden="true">'+CAPA_SINO+'</span><span class="grow"><b>Receba avisos de tiroteio</b><small>No iPhone, instale o app na Tela de Início. Toque para ver como.</small></span></button>';
-    else if(pushSuportado()){
-      if(pushLigado())h+='<p class="cv-aviso neutro ok"><span class="cv-av-ic" aria-hidden="true">'+CAPA_SINO+'</span><span class="grow"><b>Notificações ligadas</b><small>'+esc(PUSH.msg&&!PUSH.busy?PUSH.msg:'Você recebe um aviso quando há tiroteio novo perto do Fundão.')+'</small></span></p>';
-      else h+='<button type="button" class="cv-aviso neutro" id="cvPush"'+(PUSH.busy?' disabled':'')+'><span class="cv-av-ic" aria-hidden="true">'+CAPA_SINO+'</span><span class="grow"><b>'+(PUSH.busy?'Aguarde…':'Ativar notificações')+'</b><small>'+esc(PUSH.msg&&!PUSH.busy?PUSH.msg:'Aviso no celular quando houver tiroteio perto das saídas da ilha.')+'</small></span></button>'}
-  }
+  /* quem disse que estuda na UFRJ: atalho para o portal (sem o brasão: o app não é oficial) */
+  if(typeof USO!=='undefined'&&USO&&USO.estuda)h+='<a class="cv-aviso cv-portal" id="cvPortal" href="'+PORTAL_UFRJ+'" target="_blank" rel="noopener noreferrer"><span class="cv-av-ic" aria-hidden="true">'+CAPA_BECA+'</span><span class="grow"><b>Portal da UFRJ</b><small>Abre o acesso ao portal em outra aba.</small></span></a>';
   return h;
 }
 function capaAvisos(){
@@ -24,7 +21,6 @@ function capaAvisos(){
   placeCoverMap();
 }
 document.addEventListener('click',function(e){var t=e.target;if(!t.closest)return;
-  if(t.closest('#cvPush')){pushLiga();capaAvisos();return}
   if(t.closest('#cvTiro')){closeCover(function(){setTab('trajeto');var v=$('#tiroVer');if(v)v.click()})}
 });
 capaAvisos();

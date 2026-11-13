@@ -39,6 +39,17 @@ const { chromium } = require('playwright');const servir=require('./servidor');co
  const s1=posts[posts.length-1];
  ok(s1&&s1.alertas.some(a=>a.tipo==='c'&&a.cor.length>=1&&a.dias.length===7&&a.ate===1439&&a.min===10)&&s1.alertas.some(a=>a.tipo==='i'&&a.horas.length>5&&a.min===10),'manda ao Worker um aviso da cidade (traçado) e um interno (horários)');
  ok(/Os avisos chegam mesmo com o app fechado/.test(await p.textContent('#alvsec')),'confirma que chega com o app fechado');
+ // 2b) linhas específicas (internas e da cidade)
+ await p.click('[data-alved]');await p.waitForTimeout(300);
+ const nLi=await p.$$eval('[data-alvl^="li|"]',x=>x.length),nLc=await p.$$eval('[data-alvl^="lc|"]',x=>x.length);
+ ok(nLi>2&&nLc>2&&await p.$eval('[data-alvl="li|"]',x=>x.getAttribute('aria-pressed')==='true'),'o formulário lista as linhas internas e da cidade do ponto, com "Todas" ligada');
+ const hAntes=s1.alertas.find(a=>a.tipo==='i').horas.length;
+ await p.click('[data-alvl^="li|"]:not([data-alvl="li|"])');await p.click('[data-alvl^="lc|"]:not([data-alvl="lc|"])');await p.waitForTimeout(200);
+ const lin=await p.$eval('[data-alvl^="li|"][aria-pressed="true"]',x=>x.dataset.alvl.split('|')[1]),lci=await p.$eval('[data-alvl^="lc|"][aria-pressed="true"]',x=>x.dataset.alvl.split('|')[1]);
+ await p.click('#alvSalvar');await p.waitForTimeout(1000);
+ const s2=posts[posts.length-1],ac=s2.alertas.find(a=>a.tipo==='c'),ai=s2.alertas.find(a=>a.tipo==='i');
+ ok(ac&&ac.l.length===1&&ac.l[0]===lci&&ai&&ai.txt==='Linha '+lin&&ai.horas.length<hAntes,'com linhas escolhidas, o Worker recebe só essas (cidade: '+lci+', interna: '+lin+')');
+ ok(new RegExp('Internos da UFRJ: '+lin+' · Da cidade: '+lci.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).test(await p.textContent('#alvsec')),'a lista mostra as linhas escolhidas');
  // 3) editar
  await p.click('[data-alved]');await p.waitForTimeout(300);await p.click('[data-alvmin="3"]');await p.click('#alvSalvar');await p.waitForTimeout(900);
  ok(await p.evaluate(()=>{const g=JSON.parse(localStorage.getItem('cse-avisos-onibus'));return g.c.length===1&&g.c[0].min===3}),'editar salva no mesmo aviso');
