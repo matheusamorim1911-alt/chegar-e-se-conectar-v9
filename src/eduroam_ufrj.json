@@ -1,0 +1,24 @@
+{
+ "fonte": "UFRJ - Universidade Federal do Rio de Janeiro (cat.eduroam.org)",
+ "lido": "2026-11-13",
+ "rede": "eduroam",
+ "seguranca": "WPA2-Enterprise",
+ "metodo": "PEAP",
+ "fase2": "MSCHAPv2",
+ "servidor": [
+  "eduroam.ufrj.br"
+ ],
+ "anonima": "",
+ "cas": [
+  {
+   "nome": "eduroam.rnp.br",
+   "ate": "2022-07-23",
+   "sha256": "32883a60855dde271b44080073bd9fd8b58859578799bb6ca59c798093ed06f9"
+  },
+  {
+   "nome": "eduroam.ufrj.br",
+   "ate": "2024-09-09",
+   "sha256": "0c8268da0d66adb4651eb4b4270d17de0432d07dde4654fed7beb41f14dc3f6a"
+  }
+ ]
+}
