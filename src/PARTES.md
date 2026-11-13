@@ -66,5 +66,5 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `36-idioma.js`: escolha do idioma (Português, English, Español) em Ajustes e na capa; troca os textos fixos da tela por uma tabela e por padrões
 - `37-idioma-textos.js`: segunda parte da tabela de tradução e padrões (datas, Ajustes, Lugares, Grade, Calendário, Wi-Fi, eduroam)
 - `38-idioma-frases.js`: terceira parte da tradução: mensagens, estados e pedaços de frase trocados dentro de textos montados
-- `39-alertas-onibus.js`: alertas de ônibus escolhidos pelo usuário (linha ou carro, ponto, antecedência, dias e horário), com o app aberto e, pelo Worker, com o app fechado
+- `39-alertas-onibus.js`: avisos de ônibus programados em Ajustes (ponto, internos e/ou da cidade, antecedência, dias e horário; até 5), sininho de uma vez só, teste e envio ao Worker
 - `99-inicio.js`: abre a aba pedida no endereço (#predios, #grade…) depois que tudo carregou; fica sempre por último

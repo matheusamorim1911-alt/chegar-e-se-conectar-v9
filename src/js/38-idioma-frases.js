@@ -517,6 +517,51 @@ As notificações ainda não foram ativadas no servidor do app (falta o KV PUSH 
 O servidor do app ainda não aceita alertas de ônibus: o Worker precisa ser publicado de novo na Cloudflare. ¦ The app server does not accept bus alerts yet: it needs to be updated. ¦ El servidor de la app aún no acepta alertas de autobús: hay que actualizarlo.
 O app ainda não terminou de se instalar neste navegador. Recarregue a página e toque em Tentar de novo. ¦ The app has not finished installing in this browser. Reload the page and tap Try again. ¦ La app aún no terminó de instalarse en este navegador. Recarga la página y toca Reintentar.
 O navegador não conseguiu assinar as notificações. Confira a conexão e toque em Tentar de novo. ¦ The browser could not subscribe to notifications. Check your connection and tap Try again. ¦ El navegador no pudo suscribirse a las notificaciones. Revisa la conexión y toca Reintentar.
+Avisos de ônibus ¦ Bus alerts ¦ Avisos de autobús
+Escolha o ponto, quais ônibus (da UFRJ e/ou da cidade), a antecedência e quando vale. Até 5 avisos. ¦ Choose the stop, which buses (campus and/or city), how far ahead and when it applies. Up to 5 alerts. ¦ Elige la parada, qué autobuses (de la UFRJ y/o de la ciudad), la antelación y cuándo vale. Hasta 5 avisos.
+Nenhum aviso programado. ¦ No alerts set up. ¦ Ningún aviso programado.
+Novo aviso ¦ New alert ¦ Nuevo aviso
+Receba um aviso quando for chover e quando a fila do RU estiver curta. ¦ Get an alert when it is going to rain and when the cafeteria queue is short. ¦ Recibe un aviso cuando vaya a llover y cuando la fila del RU sea corta.
+Programar aviso de ônibus ¦ Set up a bus alert ¦ Programar aviso de autobús
+Programar aviso deste ponto ¦ Set up an alert for this stop ¦ Programar aviso de esta parada
+Ponto de ônibus ¦ Bus stop ¦ Parada de autobús
+Quais ônibus ¦ Which buses ¦ Qué autobuses
+Internos da UFRJ ¦ UFRJ campus buses ¦ Internos de la UFRJ
+Internos e da cidade ¦ Campus and city buses ¦ Internos y de la ciudad
+Da cidade ¦ City buses ¦ De la ciudad
+Neste ponto só passam ônibus internos. ¦ Only campus buses stop here. ¦ En esta parada solo pasan autobuses internos.
+Neste ponto só passam ônibus da cidade. ¦ Only city buses stop here. ¦ En esta parada solo pasan autobuses de la ciudad.
+Dias e horário ¦ Days and time ¦ Días y horario
+Criar aviso ¦ Create alert ¦ Crear aviso
+Salvar alterações ¦ Save changes ¦ Guardar cambios
+Editar ¦ Edit ¦ Editar
+(UFRJ e cidade) ¦ (UFRJ and city) ¦ (UFRJ y ciudad)
+(cidade) ¦ (city) ¦ (ciudad)
+(UFRJ) ¦ (UFRJ) ¦ (UFRJ)
+Não achei o traçado dos ônibus da cidade neste ponto: esse aviso só vale com o app aberto. ¦ I could not find the route of the city buses at this stop: this alert only works with the app open. ¦ No encontré el recorrido de los autobuses de la ciudad en esta parada: este aviso solo vale con la app abierta.
+Sem horário de linha interna neste ponto: esse aviso só vale com o app aberto. ¦ No campus line schedule at this stop: this alert only works with the app open. ¦ Sin horario de línea interna en esta parada: este aviso solo vale con la app abierta.
+Sininhos ligados ¦ Bells turned on ¦ Campanitas encendidas
+Cada um avisa uma vez e se apaga. ¦ Each one alerts once and then turns itself off. ¦ Cada una avisa una vez y se apaga.
+Aguarde… ¦ Please wait… ¦ Espera…
+Teste enviado. A notificação chega em alguns segundos. ¦ Test sent. The notification arrives in a few seconds. ¦ Prueba enviada. La notificación llega en unos segundos.
+O Worker ainda não faz o teste de ônibus: ele precisa ser publicado de novo na Cloudflare. ¦ The Worker does not run the bus test yet: it needs to be published again on Cloudflare. ¦ El Worker aún no hace la prueba de autobús: hay que publicarlo de nuevo en Cloudflare.
+O serviço de notificações recusou o teste. Tente de novo. ¦ The notification service refused the test. Try again. ¦ El servicio de notificaciones rechazó la prueba. Inténtalo de nuevo.
+Não deu para mandar o teste agora. ¦ Could not send the test right now. ¦ No se pudo enviar la prueba ahora.
+Limite de 5 avisos. Apague um para criar outro. ¦ Limit of 5 alerts. Delete one to create another. ¦ Límite de 5 avisos. Borra uno para crear otro.
+Você já tem 5 avisos. Apague ou edite um em Ajustes › Avisos de ônibus. ¦ You already have 5 alerts. Delete or edit one in Settings › Bus alerts. ¦ Ya tienes 5 avisos. Borra o edita uno en Ajustes › Avisos de autobús.
+Escolha internos da UFRJ, da cidade ou os dois. ¦ Choose UFRJ campus buses, city buses or both. ¦ Elige internos de la UFRJ, de la ciudad o ambos.
+Aviso salvo. Você recebe mesmo com o app fechado. ¦ Alert saved. You get it even with the app closed. ¦ Aviso guardado. Lo recibes incluso con la app cerrada.
+Aviso salvo. Por enquanto ele avisa só com o app aberto. ¦ Alert saved. For now it only alerts with the app open. ¦ Aviso guardado. Por ahora avisa solo con la app abierta.
+Aviso ligado: você recebe uma notificação, uma vez, mesmo com o app fechado. ¦ Alert on: you get one notification, once, even with the app closed. ¦ Aviso activado: recibes una notificación, una vez, incluso con la app cerrada.
+Aviso ligado, só com o app aberto. ¦ Alert on, only with the app open. ¦ Aviso activado, solo con la app abierta.
+Você já tem 5 avisos de uma vez. Espere um disparar ou apague em Ajustes › Avisos de ônibus. ¦ You already have 5 one-time alerts. Wait for one to go off or delete one in Settings › Bus alerts. ¦ Ya tienes 5 avisos de una vez. Espera a que suene uno o borra en Ajustes › Avisos de autobús.
+Aviso apagado. ¦ Alert deleted. ¦ Aviso borrado.
+Aviso ligado ¦ Alert on ¦ Aviso activado
+Apagar este aviso ¦ Delete this alert ¦ Borrar este aviso
+Aviso já ligado para o carro ¦ Alert already on for car ¦ Aviso ya activado para el coche
+Avisar uma vez quando o carro ¦ Alert me once when car ¦ Avisar una vez cuando el coche
+Ônibus da UFRJ passa em ¦ UFRJ bus passes in ¦ Autobús de la UFRJ pasa en
+O servidor do app ainda não aceita avisos de ônibus: o Worker precisa ser publicado de novo na Cloudflare. ¦ The app server does not accept bus alerts yet: the Worker needs to be published again on Cloudflare. ¦ El servidor de la app aún no acepta avisos de autobús: hay que publicar el Worker de nuevo en Cloudflare.
 Não há horário de linha interna ligando esses dois pontos hoje: este alerta só avisa com o app aberto. ¦ There is no campus bus schedule linking these two stops today: this alert only works with the app open. ¦ Hoy no hay horario de línea interna que una estas dos paradas: esta alerta solo avisa con la app abierta.
 Não achei o traçado da linha neste ponto: este alerta só avisa com o app aberto. ¦ Could not find the line's route at this stop: this alert only works with the app open. ¦ No encontré el recorrido de la línea en esta parada: esta alerta solo avisa con la app abierta.
 Sem conexão com o servidor do app. Toque em Tentar de novo. ¦ No connection to the app server. Tap Try again. ¦ Sin conexión con el servidor de la app. Toca Reintentar.

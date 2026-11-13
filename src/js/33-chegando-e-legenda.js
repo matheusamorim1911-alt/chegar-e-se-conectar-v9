@@ -23,9 +23,9 @@ function chegandoHTML(id){
     '<p class="muted small keep">Tempo estimado pela posição e velocidade do ônibus. Pode variar com o trânsito.</p></div>';
 }
 aoFazer('detalhe montado',function(){
-  if(!state.sel||state.sel.kind!=='ext'||!detail||detail.querySelector('#chgBox'))return;
-  var h=chegandoHTML(state.sel.id);if(!h)return;var a=detail.querySelector('.lv-st');
-  if(a)a.insertAdjacentHTML('afterend',h);else{var t=detail.querySelector('h2');if(t)t.insertAdjacentHTML('afterend',h)}
+  var gid=selGrupo();if(!gid||!detail||detail.querySelector('#chgBox'))return;
+  var h=chegandoHTML(gid);if(!h)return;var a=detail.querySelector('.lv-st'),x=detail.querySelector('.xhere h3');
+  if(a)a.insertAdjacentHTML('afterend',h);else if(x)x.insertAdjacentHTML('afterend',h);else{var t=detail.querySelector('h2');if(t)t.insertAdjacentHTML('afterend',h)}
 });
 document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-chgseg]');if(!b)return;segSeguir(b.dataset.chgseg);
   var m=document.querySelector('.mapwrap');if(m&&m.scrollIntoView)m.scrollIntoView({block:'nearest',behavior:'smooth'})});

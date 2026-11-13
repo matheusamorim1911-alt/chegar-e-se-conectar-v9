@@ -326,6 +326,14 @@ ok(linhaDaRota('O0321AAA0A') === '321' && linhaDaRota('O0803AAP0A') === 'SP803' 
   ok(r2.r === 'nada' && pushes.length === 1, 'alerta "só o próximo": não avisa de novo');
   const outro = await (await post('aviso', { endpoint: 'https://fcm.googleapis.com/fcm/send/outro' })).json();
   ok(outro.nada === true, 'alerta: o texto de um aparelho não vai para outro');
+  // "só o próximo" que já avisou: o app é avisado (feitos) e o Worker não guarda de novo
+  const gf = await (await post('alertas', { endpoint: EP, alertas: [{ id: 'a1', tipo: 'c', min: 5, nome: 'CCMN - Geografia', l: ['485'], cor: [cor], uma: 1, fim: Date.now() + 3600e3 }, { id: 'f2', tipo: 'c', min: 5, nome: 'Y', l: [], cor: [cor], dias: [0, 1, 2, 3, 4, 5, 6], de: 0, ate: 1439 }] })).json();
+  ok(gf.feitos.length === 1 && gf.feitos[0] === 'a1' && gf.n === 1, 'alerta de uma vez já avisado: o Worker devolve em "feitos" e não guarda de novo');
+  // teste do aviso de ônibus: um por minuto, mesmo sem alerta
+  pushes.length = 0; globalThis.fetch = async (u, o) => { u = String(u); if (/fcm\.googleapis/.test(u)) { pushes.push({ u, topic: o.headers.topic }); return new Response('', { status: 201 }); } return new Response(''); };
+  const te1 = await (await post('teste', { endpoint: 'https://fcm.googleapis.com/fcm/send/semalerta', tipo: 'onibus' })).json(), te2 = await post('teste', { endpoint: 'https://fcm.googleapis.com/fcm/send/semalerta', tipo: 'onibus' });
+  const tav = await (await post('aviso', { endpoint: 'https://fcm.googleapis.com/fcm/send/semalerta' })).json();
+  ok(te1.ok === true && te2.status === 429 && pushes.length === 1 && pushes[0].topic === 'onibus' && /^Teste/.test(tav.titulo), 'teste do aviso de ônibus: manda o aviso com o texto de teste, no máximo um por minuto');
   let buscou = 0; globalThis.fetch = async u => { buscou++; return new Response(feed([], tsA)); };
   await post('alertas', { endpoint: EP, alertas: [{ id: 'a2', tipo: 'c', min: 5, nome: 'X', l: [], cor: [cor], dias: [1], de: 0, ate: 1 }] });
   await avisaOnibus(env2, { waitUntil() {} }, Date.parse('2026-11-11T15:00:00-03:00'));

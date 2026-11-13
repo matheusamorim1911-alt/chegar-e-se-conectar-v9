@@ -69,17 +69,22 @@ function extDraw(){
   Object.keys(EXTS).forEach(function(id){var S=EXTS[id];
     s+=mk('ext',id,S.p,'Ônibus da cidade: '+S.name,'<circle class="hit" cy="-20" r="20"/><path class="xpin" d="M0 0C-4 -7 -14 -12 -14 -23A14 14 0 1 1 14 -23C14 -12 4 -7 0 0Z"/><circle class="xin" cy="-23" r="10"/><g class="xbus" transform="translate(0 -23)"><rect x="-5.6" y="-6.4" width="11.2" height="10.6" rx="2.6"/><rect class="xw" x="-4.2" y="-4.6" width="8.4" height="4" rx="0.8"/><circle class="xw" cx="-2.9" cy="1.8" r="1"/><circle class="xw" cx="2.9" cy="1.8" r="1"/><rect x="-4.6" y="4" width="2.4" height="2.4" rx=".6"/><rect x="2.2" y="4" width="2.4" height="2.4" rx=".6"/><rect x="-6.8" y="-4.2" width="1" height="3" rx=".5"/><rect x="5.8" y="-4.2" width="1" height="3" rx=".5"/></g>')});
   s+='</g>';var lab=$('#gLab');if(lab)lab.insertAdjacentHTML('beforebegin',s);
+  /* ponto da cidade no mesmo lugar de uma parada da UFRJ: um marcador só (o da UFRJ) quando as linhas internas estão no mapa */
+  Object.keys(EXTS).forEach(function(id){if(!EXTS[id].stop)return;var m=document.querySelector('#gExt .mk[data-id="'+id+'"]');if(m)m.classList.add('xmerge')});
+  var ge=$('#gExt');if(ge)ge.classList.toggle('dup',!!state.layers.bus);
 }
 aoFazer('mapa montado',extDraw);
 extDraw();
-aoFazer('mapa atualizado',function(){var g=$('#gExt');if(g)g.classList.toggle('off',!state.layers.ext)});
+aoFazer('mapa atualizado',function(){var g=$('#gExt');if(g){g.classList.toggle('off',!state.layers.ext);g.classList.toggle('dup',!!state.layers.bus)}});
 (function(){var w=$('#chSvc');if(!w)return;
   w.insertAdjacentHTML('afterend','<button class="chip" id="chExt" type="button" aria-pressed="'+!!state.layers.ext+'"><span class="sw sw-ext"></span><span>Cidade<span class="xl"> (ônibus)</span></span></button>');
   $('#chExt').addEventListener('click',function(){setLayer('ext',this)});
 })();
 updateMap();
 /* ======================= v28: ônibus da cidade ao vivo (via Worker do Cloudflare) ======================= */
-function liveWanted(){return !!LIVE.url&&!document.hidden&&(state.layers.ext||(state.sel&&state.sel.kind==='ext')||!!($('#fdExt')&&$('#fdExt').open)||alvQuerVivo())}
+/* o ponto da cidade selecionado: o próprio ponto, ou o que está junto da parada da UFRJ selecionada */
+function selGrupo(){var s=state.sel;if(!s)return null;if(s.kind==='ext')return s.id;if(s.kind==='stop'&&EXTS['a_'+s.id])return 'a_'+s.id;return null}
+function liveWanted(){return !!LIVE.url&&!document.hidden&&(state.layers.ext||!!selGrupo()||!!($('#fdExt')&&$('#fdExt').open)||alvQuerVivo())}
 function liveFetch(){
   if(!liveWanted()){if(LIVE.timer)liveAgenda(10000);return}
   /* no máximo um pedido a cada 2 s, mesmo quando várias partes do app pedem ao mesmo tempo ao abrir */
@@ -126,7 +131,7 @@ function liveStatusHTML(){
 }
 function liveTag(n){var c=liveCount(n);return c?' <span class="lv-tag">'+c+' ao vivo</span>':''}
 function liveRefreshText(){
-  if(state.sel&&state.sel.kind==='ext'&&!(document.activeElement&&detail.contains(document.activeElement)))renderDetail();
+  if(selGrupo()&&!(document.activeElement&&detail.contains(document.activeElement)))renderDetail();
   var b=$('#fdExt');if(b&&b.open&&!(document.activeElement&&b.contains(document.activeElement)))extRepaint();
 }
 aoFazer('mapa atualizado',function(){if(LIVE.url&&liveWanted()&&!LIVE.timer)liveLoop()});
