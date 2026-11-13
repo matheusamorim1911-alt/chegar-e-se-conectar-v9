@@ -10,7 +10,7 @@ function etapas(nome){var a=[].slice.call(arguments,1);(ETAPAS[nome]||[]).forEac
 var FBMODE=!!(window.CSE_FIREBASE&&window.CSE_FIREBASE.apiKey&&window.CSE_FIREBASE.projectId)&&!(window.claude&&typeof window.claude.use==='function');
 var LITE=(function(){try{return window.matchMedia('(pointer:coarse), (max-width:820px)').matches||(navigator.hardwareConcurrency||8)<=4||!!(navigator.connection&&navigator.connection.saveData)}catch(e){return false}})();
 document.documentElement.classList.toggle('lite',LITE);
-var CFG={cover:'folha',idioma:'pt',idiomaOk:false,banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'escuro',temaV:0,bussola:false,foto:true,perf:'auto',perfV:0,bldn:true,simples:true,simplesV:0,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true,faixa:10,faixaV:0,telaCheia:null,alChuva:true,alFila:false};
+var CFG={cover:'folha',idioma:'pt',idiomaOk:false,provas:[],banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'escuro',temaV:0,bussola:false,foto:true,perf:'auto',perfV:0,bldn:true,simples:true,simplesV:0,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true,faixa:10,faixaV:0,telaCheia:null,alChuva:true,alFila:false};
 try{var _c=JSON.parse(localStorage.getItem('cse-cfg'));if(_c)CFG=Object.assign(CFG,_c)}catch(e){}
 /* v22: tema escuro é o padrão; quem estava em "Do aparelho" passa para escuro uma vez (claro ou pelo horário escolhidos ficam) */
 if(CFG.temaV!==1){if(!CFG.tema||CFG.tema==='sistema')CFG.tema='escuro';CFG.temaV=1;try{localStorage.setItem('cse-cfg',JSON.stringify(CFG))}catch(e){}}
@@ -1428,6 +1428,7 @@ var cPane,cL,cR;
 function renderCal(focusSel){
   if(!cPane||cPane.hidden)return;
   var h=calHTML();cL.innerHTML=h.left;cR.innerHTML=h.right;
+  if(typeof prvPinta==='function')prvPinta();/* Minhas provas (parte 41) */
   if(focusSel){var el=cPane.querySelector(focusSel);if(el)el.focus({preventScroll:true})}
 }
 buildMap();
@@ -2658,7 +2659,7 @@ function applyRemote(d){
   var ch=false;
   /* idioma escolhido neste aparelho e ainda não salvo na conta: vale o daqui */
   var idiAqui=d.cfg&&CFG.idiomaOk&&!d.cfg.idiomaOk;
-  if(d.cfg&&typeof d.cfg==='object')Object.keys(CFG).forEach(function(k){if(idiAqui&&(k==='idioma'||k==='idiomaOk'))return;if(k in d.cfg&&typeof d.cfg[k]===typeof CFG[k]&&CFG[k]!==d.cfg[k]){CFG[k]=d.cfg[k];ch=true}});
+  if(d.cfg&&typeof d.cfg==='object')Object.keys(CFG).forEach(function(k){if(idiAqui&&(k==='idioma'||k==='idiomaOk'))return;if(k==='provas'){if(Array.isArray(d.cfg.provas)&&typeof prvJunta==='function'&&prvJunta(d.cfg.provas))ch=true;return}if(k in d.cfg&&typeof d.cfg[k]===typeof CFG[k]&&CFG[k]!==d.cfg[k]){CFG[k]=d.cfg[k];ch=true}});
   ACC.mute=true;
   if(ch){saveCfg();applyBg();applyFont();applyTheme();applyCoverStyle();updateMap();drawBanner();drawShared();renderDetail();coverToday();if(typeof idiAplica==='function')idiAplica()}
   if(d.rota&&STOPS[d.rota.from]&&STOPS[d.rota.to]&&d.rota.from!==d.rota.to&&(d.rota.from!==state.from||d.rota.to!==state.to)){state.from=d.rota.from;state.to=d.rota.to;savePrefs();renderPlan();updateMap()}
@@ -3331,7 +3332,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261113-1744';
+var APP_VERSION='20261113-1801';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -7978,6 +7979,26 @@ aula importada. ¦ class imported. ¦ clase importada.
 Essas aulas já estão na sua grade. ¦ These classes are already in your timetable. ¦ Estas clases ya están en tu horario.
 Marque pelo menos uma aula. ¦ Select at least one class. ¦ Marca al menos una clase.
 A grade guarda até 40 aulas. Desmarque algumas. ¦ The timetable holds up to 40 classes. Unselect some. ¦ El horario guarda hasta 40 clases. Desmarca algunas.
+Minhas provas ¦ My exams ¦ Mis exámenes
+Anote aqui as datas das suas provas e entregas. Elas ficam salvas neste aparelho (e na sua conta, se você entrar). ¦ Write down your exam and due dates here. They are saved on this device (and in your account, if you sign in). ¦ Anota aquí las fechas de tus exámenes y entregas. Se guardan en este dispositivo (y en tu cuenta, si entras).
+Anote aqui as datas das suas provas e entregas. Elas ficam salvas na sua conta. ¦ Write down your exam and due dates here. They are saved in your account. ¦ Anota aquí las fechas de tus exámenes y entregas. Se guardan en tu cuenta.
+Adicionar prova ¦ Add exam ¦ Añadir examen
+Disciplina ¦ Course ¦ Materia
+O que é (opcional) ¦ What it is (optional) ¦ Qué es (opcional)
+Ex.: P1, trabalho, segunda chamada ¦ E.g.: midterm, assignment, makeup exam ¦ Ej.: P1, trabajo, segunda convocatoria
+Data ¦ Date ¦ Fecha
+Horário (opcional) ¦ Time (optional) ¦ Horario (opcional)
+Local (opcional) ¦ Place (optional) ¦ Lugar (opcional)
+Ex.: CT, bloco A, sala 210 ¦ E.g.: CT, block A, room 210 ¦ Ej.: CT, bloque A, aula 210
+Salvar prova ¦ Save exam ¦ Guardar examen
+Já foi ¦ Past ¦ Ya pasó
+Provas que já passaram ¦ Past exams ¦ Exámenes pasados
+Escreva o nome da disciplina. ¦ Write the course name. ¦ Escribe el nombre de la materia.
+Escolha a data. ¦ Choose the date. ¦ Elige la fecha.
+Prova salva. ¦ Exam saved. ¦ Examen guardado.
+Prova apagada. ¦ Exam deleted. ¦ Examen borrado.
+Apagar esta prova ¦ Delete this exam ¦ Borrar este examen
+Prova salva. A data já passou: ela está em "Provas que já passaram". ¦ Exam saved. The date has passed: it is under "Past exams". ¦ Examen guardado. La fecha ya pasó: está en "Exámenes pasados".
 Ou sem instalar app: ¦ Or without installing an app: ¦ O sin instalar app:
 abra no Safari, toque em Permitir e depois em Ajustes › Perfil baixado › Instalar. ¦ open it in Safari, tap Allow and then Settings › Profile Downloaded › Install. ¦ ábrelo en Safari, toca Permitir y luego Ajustes › Perfil descargado › Instalar.
 abra o arquivo e instale em Ajustes do Sistema › Privacidade e Segurança › Perfis. ¦ open the file and install it in System Settings › Privacy & Security › Profiles. ¦ abre el archivo e instálalo en Ajustes del Sistema › Privacidad y seguridad › Perfiles.
@@ -8573,6 +8594,86 @@ document.addEventListener('change',function(e){var t=e.target;if(!t.dataset||t.d
 });
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&IG.folha)igFecha()});
 renderGrade();/* a grade já foi desenhada uma vez antes desta parte carregar: ganha o botão */
+/* ======================= Minhas provas (aba Calendário) =======================
+   O aluno anota as datas das provas e entregas: disciplina, o que é (P1, trabalho…), data, horário e local (opcionais).
+   Aparecem no Calendário, logo abaixo do andamento do período, com a contagem regressiva; as que já passaram ficam
+   recolhidas. Guardadas nos ajustes (CFG.provas): no aparelho e, com conta, em qualquer aparelho. Apagar deixa uma
+   marca ({id, x:1}) para a prova não voltar quando a conta junta as listas de dois aparelhos (prvJunta). */
+var PRV={form:false,edit:'',msg:'',max:60};
+function prvLista(){return (Array.isArray(CFG.provas)?CFG.provas:[]).filter(function(p){return p&&!p.x&&p.d})}
+function prvGuarda(){
+  var L=(CFG.provas||[]).slice(),hoje=isoToday();
+  /* limite: sai primeiro o que já passou há mais tempo e as marcas de apagado */
+  if(L.length>PRV.max)L=L.sort(function(a,b){return (a.x?0:1)-(b.x?0:1)||(a.d<b.d?-1:1)}).slice(L.length-PRV.max);
+  CFG.provas=L;saveCfg();
+}
+/* junta a lista vinda da conta com a deste aparelho; devolve true se mudou algo aqui */
+function prvJunta(R){
+  var M={},mudou=false;(CFG.provas||[]).forEach(function(p){if(p&&p.id)M[p.id]=p});
+  R.forEach(function(p){if(!p||!p.id)return;var a=M[p.id];
+    if(!a){M[p.id]=p;mudou=true}else if(p.x&&!a.x){M[p.id]=p;mudou=true}else if(!a.x&&!p.x&&(p.t||0)>(a.t||0)){M[p.id]=p;mudou=true}});
+  if(mudou){CFG.provas=Object.keys(M).map(function(k){return M[k]});if(typeof prvPinta==='function')setTimeout(prvPinta,0)}
+  return mudou;
+}
+function prvQuando(p){
+  var t=today0(),n=dDiff(dParse(p.d),t);
+  if(n<0)return {c:'past',p:'<span class="pill bad">Já foi</span>'};
+  if(n===0)return {c:'now',p:'<span class="pill good">Hoje'+(p.h?' às '+p.h:'')+'</span>'};
+  return {c:'soon',p:'<span class="pill warn">'+(n===1?'Amanhã':'Em '+n+' dias')+'</span>'};
+}
+function prvLinha(p){
+  var q=prvQuando(p);
+  return '<div class="cal-ev prv-ev '+q.c+'"><span class="cal-d mono">'+dTxt(p.d)+(p.h?' · '+p.h:'')+'</span><span class="grow"><b>'+esc(p.n)+(p.o?' · '+esc(p.o):'')+'</b>'+(p.l?'<span class="prv-l">'+esc(p.l)+'</span>':'')+'</span>'+q.p+
+    '<span class="prv-acoes"><button type="button" class="linkbtn" data-prved="'+esc(p.id)+'">Editar</button><button type="button" class="alv-x" data-prvdel="'+esc(p.id)+'" aria-label="Apagar esta prova">×</button></span></div>';
+}
+function prvFormHTML(){
+  var p=PRV.edit?prvLista().filter(function(x){return x.id===PRV.edit})[0]||{}:{};
+  var nomes=[];(typeof GRADE!=='undefined'&&GRADE||[]).forEach(function(a){if(a&&a.nome&&nomes.indexOf(a.nome)<0)nomes.push(a.nome)});
+  return '<form class="gform prv-form" id="prvForm" novalidate>'+
+    '<label class="fld">Disciplina<input type="text" id="prvN" maxlength="50" required list="prvNomes" value="'+esc(p.n||'')+'" placeholder="Ex.: Cálculo I"></label>'+
+    (nomes.length?'<datalist id="prvNomes">'+nomes.map(function(n){return '<option value="'+esc(n)+'">'}).join('')+'</datalist>':'')+
+    '<label class="fld">O que é (opcional)<input type="text" id="prvO" maxlength="30" value="'+esc(p.o||'')+'" placeholder="Ex.: P1, trabalho, segunda chamada"></label>'+
+    '<div class="g2"><label class="fld">Data<input type="date" id="prvD" required value="'+esc(p.d||'')+'"></label><label class="fld">Horário (opcional)<input type="time" id="prvH" value="'+esc(p.h||'')+'"></label></div>'+
+    '<label class="fld">Local (opcional)<input type="text" id="prvL" maxlength="40" value="'+esc(p.l||'')+'" placeholder="Ex.: CT, bloco A, sala 210"></label>'+
+    '<p class="gerr" id="prvErr" role="alert"></p>'+
+    '<div class="row gbtns"><button type="submit" class="copy primary">'+(PRV.edit?'Salvar alterações':'Salvar prova')+'</button><button type="button" class="copy" id="prvCancela">Cancelar</button></div></form>';
+}
+function prvHTML(){
+  var L=prvLista().sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:(a.h||'')<(b.h||'')?-1:1}),hoje=isoToday();
+  var vem=L.filter(function(p){return p.d>=hoje}),foi=L.filter(function(p){return p.d<hoje}).reverse();
+  var h='<div class="prv" id="prvBox"><h3>Minhas provas</h3>';
+  if(vem.length)h+='<div class="cal-list">'+vem.map(prvLinha).join('')+'</div>';
+  else if(!PRV.form)h+='<p class="muted small keep">Anote aqui as datas das suas provas e entregas. Elas ficam salvas'+(typeof contaOk==='function'&&contaOk()?' na sua conta.':' neste aparelho (e na sua conta, se você entrar).')+'</p>';
+  if(PRV.form)h+=prvFormHTML();
+  else h+='<div class="row gbtns"><button type="button" class="copy" id="prvNova">Adicionar prova</button></div>';
+  if(foi.length)h+='<details class="prv-foi"><summary>Provas que já passaram ('+foi.length+')</summary><div class="cal-list">'+foi.map(prvLinha).join('')+'</div></details>';
+  if(PRV.msg)h+='<p class="muted small keep" role="status">'+esc(PRV.msg)+'</p>';
+  return h+'</div>';
+}
+function prvPinta(){
+  if(typeof cL==='undefined'||!cL)return;var b=$('#prvBox'),aberto=b&&b.querySelector('.prv-foi[open]');
+  var tmp=document.createElement('div');tmp.innerHTML=prvHTML();var n=tmp.firstChild;if(aberto){var d=n.querySelector('.prv-foi');if(d)d.open=true}
+  if(b){b.replaceWith(n);return}
+  var ref=cL.querySelector('.next.lastbig');if(ref)ref.insertAdjacentElement('afterend',n);else cL.appendChild(n);
+}
+function prvSalva(){
+  var n=$('#prvN').value.trim(),o=$('#prvO').value.trim(),d=$('#prvD').value,h=$('#prvH').value,l=$('#prvL').value.trim(),err=$('#prvErr');
+  if(!n){err.textContent='Escreva o nome da disciplina.';$('#prvN').focus();return}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){err.textContent='Escolha a data.';$('#prvD').focus();return}
+  var p={id:PRV.edit||'p'+Date.now().toString(36)+Math.floor(Math.random()*1e3).toString(36),n:n.slice(0,50),o:o.slice(0,30),d:d,h:/^\d{2}:\d{2}$/.test(h)?h:'',l:l.slice(0,40),t:Date.now()};
+  var L=(CFG.provas||[]).filter(function(x){return x.id!==p.id});L.push(p);CFG.provas=L;
+  var foi=d<isoToday();PRV.form=false;PRV.edit='';PRV.msg=foi?'Prova salva. A data já passou: ela está em "Provas que já passaram".':'';
+  prvGuarda();prvPinta();gToast('Prova salva.');
+}
+document.addEventListener('click',function(e){var t=e.target;if(!t.closest||!t.closest('#prvBox'))return;var b;
+  if(t.closest('#prvNova')){PRV.form=true;PRV.edit='';PRV.msg='';prvPinta();var i=$('#prvN');if(i)i.focus();return}
+  if(t.closest('#prvCancela')){PRV.form=false;PRV.edit='';prvPinta();return}
+  if((b=t.closest('[data-prved]'))){PRV.form=true;PRV.edit=b.dataset.prved;PRV.msg='';prvPinta();var j=$('#prvN');if(j)j.focus();return}
+  if((b=t.closest('[data-prvdel]'))){var id=b.dataset.prvdel;CFG.provas=(CFG.provas||[]).map(function(p){return p.id===id?{id:id,x:1,t:Date.now()}:p});
+    if(PRV.edit===id){PRV.form=false;PRV.edit=''}PRV.msg='';prvGuarda();prvPinta();gToast('Prova apagada.');return}
+});
+document.addEventListener('submit',function(e){if(e.target.id!=='prvForm')return;e.preventDefault();prvSalva()});
+prvPinta();/* o Calendário pode já estar aberto antes desta parte carregar */
 /* ======================= eduroam: o perfil da UFRJ dentro do app =======================
    O que o geteduroam faz (lê o perfil da instituição no CAT e configura a rede), trazido para onde um site alcança:
    - iPhone, iPad e Mac: "Baixar o perfil da UFRJ" instala a rede direto pelo Safari (eduroam-ufrj.mobileconfig, cópia

@@ -588,6 +588,26 @@ aula importada. ¦ class imported. ¦ clase importada.
 Essas aulas já estão na sua grade. ¦ These classes are already in your timetable. ¦ Estas clases ya están en tu horario.
 Marque pelo menos uma aula. ¦ Select at least one class. ¦ Marca al menos una clase.
 A grade guarda até 40 aulas. Desmarque algumas. ¦ The timetable holds up to 40 classes. Unselect some. ¦ El horario guarda hasta 40 clases. Desmarca algunas.
+Minhas provas ¦ My exams ¦ Mis exámenes
+Anote aqui as datas das suas provas e entregas. Elas ficam salvas neste aparelho (e na sua conta, se você entrar). ¦ Write down your exam and due dates here. They are saved on this device (and in your account, if you sign in). ¦ Anota aquí las fechas de tus exámenes y entregas. Se guardan en este dispositivo (y en tu cuenta, si entras).
+Anote aqui as datas das suas provas e entregas. Elas ficam salvas na sua conta. ¦ Write down your exam and due dates here. They are saved in your account. ¦ Anota aquí las fechas de tus exámenes y entregas. Se guardan en tu cuenta.
+Adicionar prova ¦ Add exam ¦ Añadir examen
+Disciplina ¦ Course ¦ Materia
+O que é (opcional) ¦ What it is (optional) ¦ Qué es (opcional)
+Ex.: P1, trabalho, segunda chamada ¦ E.g.: midterm, assignment, makeup exam ¦ Ej.: P1, trabajo, segunda convocatoria
+Data ¦ Date ¦ Fecha
+Horário (opcional) ¦ Time (optional) ¦ Horario (opcional)
+Local (opcional) ¦ Place (optional) ¦ Lugar (opcional)
+Ex.: CT, bloco A, sala 210 ¦ E.g.: CT, block A, room 210 ¦ Ej.: CT, bloque A, aula 210
+Salvar prova ¦ Save exam ¦ Guardar examen
+Já foi ¦ Past ¦ Ya pasó
+Provas que já passaram ¦ Past exams ¦ Exámenes pasados
+Escreva o nome da disciplina. ¦ Write the course name. ¦ Escribe el nombre de la materia.
+Escolha a data. ¦ Choose the date. ¦ Elige la fecha.
+Prova salva. ¦ Exam saved. ¦ Examen guardado.
+Prova apagada. ¦ Exam deleted. ¦ Examen borrado.
+Apagar esta prova ¦ Delete this exam ¦ Borrar este examen
+Prova salva. A data já passou: ela está em "Provas que já passaram". ¦ Exam saved. The date has passed: it is under "Past exams". ¦ Examen guardado. La fecha ya pasó: está en "Exámenes pasados".
 Ou sem instalar app: ¦ Or without installing an app: ¦ O sin instalar app:
 abra no Safari, toque em Permitir e depois em Ajustes › Perfil baixado › Instalar. ¦ open it in Safari, tap Allow and then Settings › Profile Downloaded › Install. ¦ ábrelo en Safari, toca Permitir y luego Ajustes › Perfil descargado › Instalar.
 abra o arquivo e instale em Ajustes do Sistema › Privacidade e Segurança › Perfis. ¦ open the file and install it in System Settings › Privacy & Security › Profiles. ¦ abre el archivo e instálalo en Ajustes del Sistema › Privacidad y seguridad › Perfiles.
