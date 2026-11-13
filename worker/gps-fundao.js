@@ -475,6 +475,17 @@ async function rotaPush(caminho, req, env, cors) {
   }
   if (caminho === '/push/assinar') { await env.PUSH.put(k, '1', { metadata: { e, t: Date.now() } }); return resp({ ok: true }); }
   if (caminho === '/push/sair') { await env.PUSH.delete(k); return resp({ ok: true }); }
+  if (caminho === '/push/teste' && b.tipo === 'onibus') {
+    // teste do aviso de ônibus: um por minuto por aparelho, mesmo sem alerta criado
+    const st = (await env.PUSH.get('alst', 'json')) || {}; st.av = st.av || {}; st.msgs = st.msgs || {};
+    const agora = Date.now();
+    if (st.av[k + '|teste'] > agora) return resp({ erro: 'espere um minuto' }, 429);
+    st.av[k + '|teste'] = agora + 60e3;
+    st.msgs[k] = { t: 'Teste: o ônibus está chegando', c: 'Os avisos de ônibus estão funcionando neste aparelho.', tag: 'onibus-teste', exp: agora + 10 * 60e3 };
+    await env.PUSH.put('alst', JSON.stringify(st));
+    const s2 = await enviaPush(e, await vapid(env), {}, agora, 'onibus');
+    return resp({ ok: s2 >= 200 && s2 < 300, status: s2 });
+  }
   if (caminho === '/push/teste') {
     // um aviso de teste só para quem já assinou, no máximo um por minuto
     const m = await env.PUSH.getWithMetadata(k);
@@ -521,7 +532,7 @@ export async function avisaTiroteios(env, ctx, agora) {
 // - linhas internas da UFRJ ("i"), que não têm GPS: o app manda os horários estimados no ponto.
 // Tudo fica num documento só do KV ("alertas"), lido uma vez por minuto; "alst" guarda o que já foi avisado e o
 // texto de cada aviso, que o service worker busca em /push/aviso.
-const AL_MAX = 5, AL_COR = 6, AL_PTS = 80, AL_PERTO_M = 70;
+const AL_MAX = 15, AL_COR = 6, AL_PTS = 80, AL_PERTO_M = 70;
 const inteiro = (v, a, b) => { v = Math.round(+v); return v >= a && v <= b ? v : null; };
 export function alertaValido(a) {
   if (!a || typeof a !== 'object') return null;
@@ -539,7 +550,7 @@ export function alertaValido(a) {
     if (!o.cor.length) return null;
   } else {
     o.txt = String(a.txt || '').slice(0, 60);
-    o.horas = (Array.isArray(a.horas) ? a.horas : []).map(h => inteiro(h, 0, 1439)).filter(h => h != null).slice(0, 200);
+    o.horas = (Array.isArray(a.horas) ? a.horas : []).map(h => inteiro(h, 0, 1439)).filter(h => h != null).slice(0, 600);
     if (!o.horas.length) return null;
   }
   return o;
@@ -547,9 +558,12 @@ export function alertaValido(a) {
 async function guardaAlertas(env, k, e, lista) {
   const L = (Array.isArray(lista) ? lista : []).map(alertaValido).filter(Boolean).slice(0, AL_MAX);
   const d = (await env.PUSH.get('alertas', 'json')) || {};
-  if (L.length) d[k] = { e, a: L, t: Date.now() }; else delete d[k];
+  // "só o próximo" que já avisou: o app apaga do aparelho (o sininho volta a ficar desligado) e o Worker não guarda de novo
+  const st = (await env.PUSH.get('alst', 'json')) || {}, agora = Date.now(), feitos = [];
+  const novos = L.filter(a => { if (a.uma && st.av && st.av[k + '|' + a.id + '|uma'] > agora) { feitos.push(a.id); return false; } return true; });
+  if (novos.length) d[k] = { e, a: novos, t: agora }; else delete d[k];
   await env.PUSH.put('alertas', JSON.stringify(d));
-  return { ok: true, n: L.length };
+  return { ok: true, n: novos.length, feitos };
 }
 // distância (m) que falta até o fim do corredor para um ônibus sobre ele indo no sentido certo; null se não está nele
 export function faltaNoCorredor(o, cor) {

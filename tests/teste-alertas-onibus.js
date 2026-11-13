@@ -1,84 +1,87 @@
-// Alertas de ônibus (src/js/39-alertas-onibus.js): criar pelo ponto ("Chegando agora"), pelo sino de um carro,
-// pelo Seu trajeto e por Ajustes; o app avisa com ele aberto e manda a lista ao Worker para avisar com ele fechado.
+// Avisos de ônibus (src/js/39-alertas-onibus.js): tudo se programa em Ajustes (até 5; ponto, internos e/ou da cidade,
+// antecedência, dias e horário), o sino de cada carro avisa uma vez só e os botões dos painéis levam a Ajustes.
 const { chromium } = require('playwright');const servir=require('./servidor');const am=require('./amostra-onibus.json');
 (async()=>{const srv=await servir(8827);const b=await chromium.launch();let falhou=false;const ok=(c,m)=>{console.log((c?'ok   ':'FALHA')+'  '+m);if(!c)falhou=true};
  async function abre(o){o=o||{};const c=await b.newContext({viewport:{width:1280,height:950},serviceWorkers:'block'});const posts=[];
    await c.route(/gstatic\.com\/firebasejs|open-meteo|tiroteios/,r=>r.abort());
    await c.route('**workers.dev/',r=>{const dt=Date.now()-am.t-15000;r.fulfill({contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify({t:Date.now(),onibus:am.onibus.map(x=>({...x,t:x.t+dt}))})})});
-   await c.route('**workers.dev/push/**',r=>{const rota=r.request().url().split('/push/')[1];if(rota==='alertas')posts.push(JSON.parse(r.request().postData()));
-     r.fulfill({contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(rota==='chave'?{disponivel:true,chave:'B'+'A'.repeat(86)}:{ok:true,n:1})})});
+   await c.route('**workers.dev/push/**',r=>{const rota=r.request().url().split('/push/')[1];let corpo={};try{corpo=JSON.parse(r.request().postData()||'{}')}catch(x){}
+     if(rota==='alertas')posts.push(corpo);if(rota==='teste')posts.teste=corpo;
+     const feitos=rota==='alertas'&&o.feitos?(corpo.alertas||[]).filter(a=>a.uma).map(a=>a.id):[];
+     r.fulfill({contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(rota==='chave'?{disponivel:true,chave:'B'+'A'.repeat(86)}:{ok:true,n:1,feitos})})});
    await c.addInitScript(o=>{if(!sessionStorage.j){sessionStorage.j=1;localStorage.setItem('cse-cfg',JSON.stringify({cover:'none',login:false,banner:false,flow:false}));localStorage.setItem('cse-instalar',JSON.stringify({nunca:true}));if(o.ext)localStorage.setItem('cse-lay-ext','1')}
-     if(o.semPush)return;let perm='default';const sub={endpoint:'https://fcm.googleapis.com/fcm/send/ap1',options:{},unsubscribe:async()=>true};let atual=null;
+     if(o.semPush)return;let perm=o.granted?'granted':'default';const sub={endpoint:'https://fcm.googleapis.com/fcm/send/ap1',options:{},unsubscribe:async()=>true};let atual=o.granted?sub:null;
      window.Notification=function(){};Object.defineProperty(window.Notification,'permission',{get:()=>perm});window.Notification.requestPermission=async()=>(perm='granted');window.PushManager=function(){};
      Object.defineProperty(navigator,'serviceWorker',{value:{ready:Promise.resolve({pushManager:{getSubscription:async()=>atual,subscribe:async()=>(atual=sub)}}),register:()=>Promise.resolve({}),addEventListener(){},controller:null}})},o);
    const p=await c.newPage();const e=[];p.on('pageerror',x=>e.push(x.message));p.on('console',m=>{if(/ALVERR/.test(m.text()))console.log(m.text())});await p.goto('http://localhost:8827/');await p.waitForTimeout(2500);return [c,p,e,posts]}
- const toast=p=>p.evaluate(()=>[...document.querySelectorAll('.gtoast,.toast,[role="status"]')].map(x=>x.textContent).join(' | '));
- // 1) pelo ponto: escolhe linha, antecedência e "sempre"
+
+ const cfg=async p=>{if(await p.$('#pane-cfg[hidden]'))await p.click('#tab-cfg');await p.waitForTimeout(500)};
+ // 1) começa do zero: só em Ajustes, sem as opções antigas
  let [c,p,e,posts]=await abre({ext:true});
+ await p.evaluate(()=>localStorage.setItem('cse-alertas-onibus','[{"id":"velho"}]'));await p.reload();await p.waitForTimeout(2000);
+ await cfg(p);
+ ok(!!(await p.$('#alvsec'))&&/Nenhum aviso programado/.test(await p.textContent('#alvsec')),'Ajustes tem "Avisos de ônibus", vazio');
+ ok(!(await p.$('#cfgAlOn'))&&!(await p.$('[data-almin]')),'as opções antigas do trajeto favorito saíram de Alertas');
+ // 2) criar: ponto, internos e/ou cidade, antecedência, dias e horário
+ await p.click('[data-alvnovo]');await p.waitForTimeout(300);
+ const op=await p.$$eval('#alvPonto option',x=>x.map(o=>({v:o.value,t:o.textContent})));
+ const junto=op.find(o=>/UFRJ e cidade/.test(o.t)),so=op.find(o=>/\(cidade\)/.test(o.t));
+ ok(!!junto&&!!so,'a lista junta parada da UFRJ e ponto da cidade no mesmo lugar (e mostra os que só têm um tipo)');
+ await p.selectOption('#alvPonto',junto.v);await p.waitForTimeout(200);
+ ok(await p.$eval('[data-alvint]',x=>x.getAttribute('aria-pressed')==='true'&&!x.disabled)&&await p.$eval('[data-alvext]',x=>x.getAttribute('aria-pressed')==='true'&&!x.disabled),'ponto junto: internos e da cidade vêm ligados');
+ await p.selectOption('#alvPonto',so.v);await p.waitForTimeout(200);
+ ok(await p.$eval('[data-alvint]',x=>x.disabled)&&await p.$eval('[data-alvext]',x=>x.getAttribute('aria-pressed')==='true'),'ponto só da cidade: internos desabilitado');
+ await p.selectOption('#alvPonto',junto.v);await p.waitForTimeout(200);
+ await p.click('[data-alvmin="10"]');await p.click('[data-alvd="todos"]');await p.fill('#alvDe','00:00');await p.fill('#alvAte','23:59');await p.click('#alvSalvar');await p.waitForTimeout(1200);
+ const g=await p.evaluate(()=>JSON.parse(localStorage.getItem('cse-avisos-onibus')));
+ ok(g.c.length===1&&g.c[0].min===10&&g.c[0].dias==='todos'&&g.c[0].int&&g.c[0].ext,'guarda o aviso com ponto, tipos, antecedência, dias e horário');
+ ok(await p.evaluate(()=>localStorage.getItem('cse-alertas-onibus')===null),'a lista antiga é apagada');
+ const s1=posts[posts.length-1];
+ ok(s1&&s1.alertas.some(a=>a.tipo==='c'&&a.cor.length>=1&&a.dias.length===7&&a.ate===1439&&a.min===10)&&s1.alertas.some(a=>a.tipo==='i'&&a.horas.length>5&&a.min===10),'manda ao Worker um aviso da cidade (traçado) e um interno (horários)');
+ ok(/Os avisos chegam mesmo com o app fechado/.test(await p.textContent('#alvsec')),'confirma que chega com o app fechado');
+ // 3) editar
+ await p.click('[data-alved]');await p.waitForTimeout(300);await p.click('[data-alvmin="3"]');await p.click('#alvSalvar');await p.waitForTimeout(900);
+ ok(await p.evaluate(()=>{const g=JSON.parse(localStorage.getItem('cse-avisos-onibus'));return g.c.length===1&&g.c[0].min===3}),'editar salva no mesmo aviso');
+ // 4) só internos: um alerta só ao Worker
+ await p.click('[data-alvnovo]');await p.waitForTimeout(200);await p.selectOption('#alvPonto',junto.v);await p.click('[data-alvext]');await p.click('#alvSalvar');await p.waitForTimeout(900);
+ ok(posts[posts.length-1].alertas.filter(a=>a.tipo==='i').length===2&&posts[posts.length-1].alertas.filter(a=>a.tipo==='c').length===1,'aviso só de internos manda só o alerta interno');
+ // 5) limite de 5
+ for(let i=0;i<3;i++){await p.click('[data-alvnovo]');await p.waitForTimeout(150);await p.click('#alvSalvar');await p.waitForTimeout(500)}
+ ok(!(await p.$('[data-alvnovo]'))&&/Limite de 5 avisos/.test(await p.textContent('#alvsec'))&&(await p.$$('#alvsec .alv-item')).length===5,'no máximo 5 avisos: some o botão e explica');
+ // 6) teste
+ await p.click('#alvTeste');await p.waitForTimeout(900);
+ ok(posts.teste&&posts.teste.tipo==='onibus'&&/Teste enviado/.test(await p.textContent('#alvsec')),'"Mandar um teste" pede o aviso de teste de ônibus ao Worker');
+ // 7) apagar
+ for(let i=0;i<5;i++){await p.click('#alvsec [data-alvdel]');await p.waitForTimeout(250)}
+ ok(await p.evaluate(()=>JSON.parse(localStorage.getItem('cse-avisos-onibus')).c.length===0)&&posts[posts.length-1].alertas.length===0,'apagar tudo limpa o aparelho e o Worker');
+ ok(e.length===0,'sem erros de JavaScript '+JSON.stringify(e));await c.close();
+ // 8) o mapa: um marcador só nos pontos que são o mesmo lugar; o painel da parada leva a Ajustes
+ [c,p,e,posts]=await abre({ext:true});
+ ok(await p.evaluate(()=>{const g=document.getElementById('gExt'),m=g&&g.querySelectorAll('.mk.xmerge');return !!g&&g.classList.contains('dup')&&m.length>0&&[...m].every(x=>getComputedStyle(x).display==='none')}),'ponto da cidade no mesmo lugar de parada da UFRJ: marcador duplicado some do mapa');
+ await cfg(p);const jv=(await p.$$eval('#alvPonto option',x=>x.map(o=>({v:o.value,t:o.textContent})))).length;
+ await p.click('[data-alvnovo]');const junto2=(await p.$$eval('#alvPonto option',x=>x.map(o=>({v:o.value,t:o.textContent})))).find(o=>/UFRJ e cidade/.test(o.t));await p.click('#cfgClose');await p.waitForTimeout(500);
+ const sid=junto2.v.slice(2);
+ await p.evaluate(id=>document.querySelector('#map .mk[data-kind="stop"][data-id="'+id+'"]').dispatchEvent(new MouseEvent('click',{bubbles:true})),sid);await p.waitForTimeout(500);
+ ok(!!(await p.$('#detail .alv-ponto[data-alvir]'))&&!!(await p.$('#detail #chgBox')),'a parada da UFRJ que também é ponto da cidade mostra "Chegando agora" e o botão que leva a Ajustes');
+ await p.click('#detail .alv-ponto');await p.waitForTimeout(700);
+ ok(!(await p.$('#pane-cfg[hidden]'))&&!!(await p.$('#alvForm'))&&await p.$eval('#alvPonto',x=>x.value)===junto2.v,'o botão abre Ajustes já no aviso novo, com aquele ponto');
+ await p.click('#alvCancela');await p.click('#cfgClose');await p.waitForTimeout(400);
+ ok(!!(await p.$('#alvTrajeto[data-alvir]')),'Seu trajeto tem o botão que leva a Ajustes');
+ // 9) sininho: um aviso de uma vez
  const ids=await p.$$eval('#map .mk.ext:not(.xlive)',x=>x.map(y=>y.dataset.id));let melhor=null;
  for(const id of ids.slice(0,40)){await p.evaluate(id=>document.querySelector('#map .mk.ext:not(.xlive)[data-id="'+id+'"]').dispatchEvent(new MouseEvent('click',{bubbles:true})),id);await p.waitForTimeout(120);
-   const n=await p.$$eval('#chgBox li',x=>x.length).catch(()=>0);if(!melhor||n>melhor.n)melhor={id,n}}
- await p.evaluate(id=>document.querySelector('#map .mk.ext:not(.xlive)[data-id="'+id+'"]').dispatchEvent(new MouseEvent('click',{bubbles:true})),melhor.id);await p.waitForTimeout(400);
- ok(!!(await p.$('#chgBox [data-alvponto]'))&&(await p.$$('#chgBox [data-alvcarro]')).length===melhor.n,'"Chegando agora" tem o botão do alerta e um sino por ônibus');
- await p.click('#chgBox [data-alvponto]');await p.waitForTimeout(400);
- ok(!!(await p.$('#alvFolha'))&&await p.$$eval('#alvLinha option',x=>x.length>1&&x[0].textContent==='Qualquer linha'),'a folha deixa escolher a linha do ponto');
- const linha=await p.$eval('#alvLinha option:nth-child(2)',x=>x.value);await p.selectOption('#alvLinha',linha);
- await p.click('[data-alvmin="10"]');await p.click('[data-alvq="sempre"]');await p.waitForTimeout(150);await p.click('[data-alvd="todos"]');await p.fill('#alvDe','00:00');await p.fill('#alvAte','23:59');
- await p.click('#alvOk');await p.waitForTimeout(900);
- const g=await p.evaluate(()=>JSON.parse(localStorage.getItem('cse-alertas-onibus')));
- ok(g.length===1&&g[0].tipo==='c'&&g[0].linhas[0]===linha&&g[0].min===10&&g[0].quando==='sempre'&&g[0].dias==='todos','guarda o alerta com linha, antecedência, dias e horário');
- const s1=posts[posts.length-1];
- ok(s1&&/aparelho|ap1/.test(s1.endpoint)&&s1.alertas.length===1&&s1.alertas[0].l[0]===linha&&s1.alertas[0].cor.length>=1&&s1.alertas[0].cor[0].length>=4&&s1.alertas[0].dias.length===7&&s1.alertas[0].ate===1439,'manda ao Worker o alerta com o trecho do traçado que chega ao ponto');
- ok(/mesmo com o app fechado/.test(await toast(p)),'confirma que o aviso chega com o app fechado');
- // 2) sino de um carro: alerta de uma vez, que dispara com o app aberto quando ele está a menos de 5 min
- const antes=posts.length;await p.evaluate(()=>{const s=document.querySelector('#chgBox [data-alvcarro]:not([disabled])');s&&s.click()});await p.waitForTimeout(900);
- const g2=await p.evaluate(()=>JSON.parse(localStorage.getItem('cse-alertas-onibus')));
- ok(g2.length===2&&!!g2[1].carro&&g2[1].quando==='uma'&&posts.length>antes&&posts[posts.length-1].alertas.some(a=>a.v===g2[1].carro&&a.uma===1),'sino do carro cria um alerta só para ele, uma vez');
- await p.waitForTimeout(3000);
- ok(await p.evaluate(()=>!!document.querySelector('#chgBox .alv-sino.on')),'o sino fica marcado no carro com alerta');
- // 3) Ajustes: lista, desligar e apagar
- await p.click('#tab-cfg');await p.waitForTimeout(600);
- ok(await p.$$eval('#alvCfg .alv-item',x=>x.length)===2&&/10 min antes/.test(await p.textContent('#alvCfg')),'Ajustes › Alertas lista os alertas criados');
- await p.evaluate(()=>document.querySelector('#alvCfg [data-alvon]').click());await p.waitForTimeout(700);
- ok(posts[posts.length-1].alertas.length===1&&await p.evaluate(()=>JSON.parse(localStorage.getItem('cse-alertas-onibus'))[0].on===false),'desligar um alerta tira do Worker sem apagar');
- for(let k=0;k<2;k++){await p.evaluate(()=>{const b=document.querySelector('#alvCfg [data-alvdel]');b&&b.click()});await p.waitForTimeout(700)}
- ok(posts[posts.length-1].alertas.length===0&&await p.evaluate(()=>JSON.parse(localStorage.getItem('cse-alertas-onibus')).length===0)&&/Nenhum alerta criado/.test(await p.textContent('#alvCfg')),'apagar tira do aparelho e do Worker');
- ok(e.length===0,'sem erros de JavaScript '+JSON.stringify(e));await c.close();
- // 4) linhas internas, pelo Seu trajeto
- [c,p,e,posts]=await abre();
- ok(!!(await p.$('#alvTrajeto')),'Seu trajeto tem "Avisar quando o ônibus estiver chegando"');
- await p.click('#alvTrajeto');await p.waitForTimeout(400);
- ok(/linhas internas, pelo horário estimado/.test(await p.textContent('#alvFolha')),'alerta das linhas internas usa o horário estimado');
- await p.click('[data-alvq="sempre"]');await p.waitForTimeout(150);await p.click('#alvOk');await p.waitForTimeout(900);
- const si=posts[posts.length-1];
- ok(si&&si.alertas[0].tipo==='i'&&si.alertas[0].horas.length>10&&si.alertas[0].dias.join()==='1,2,3,4,5','manda ao Worker os horários estimados do trajeto');
- ok(e.length===0,'sem erros de JavaScript '+JSON.stringify(e));await c.close();
- // 5) sem notificações no navegador: o alerta vale com o app aberto
- [c,p,e,posts]=await abre({semPush:true});
- await p.click('#alvTrajeto');await p.waitForTimeout(300);await p.click('#alvOk');await p.waitForTimeout(9500);
- await p.click('#tab-cfg');await p.waitForTimeout(600);
- ok(posts.length===0&&/Por enquanto, só com o app aberto\. \S/.test(await p.textContent('#alvCfg'))&&await p.evaluate(()=>JSON.parse(localStorage.getItem('cse-alertas-onibus')).length===1),'sem notificações: avisa que vale com o app aberto');await c.close();
- // 6) Worker antigo (sem a rota dos alertas): diz o motivo e deixa tentar de novo
- [c,p,e,posts]=await abre();
- await c.route('**workers.dev/push/alertas',r=>r.fulfill({status:404,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:'{"erro":"rota desconhecida"}'}));
- await p.click('#alvTrajeto');await p.waitForTimeout(300);await p.click('#alvOk');await p.waitForTimeout(1200);
- ok(/Worker precisa ser publicado de novo na Cloudflare/.test(await toast(p)),'Worker sem a rota dos alertas: explica o motivo');
- await p.click('#tab-cfg');await p.waitForTimeout(600);
- ok(/Por enquanto, só com o app aberto/.test(await p.textContent('#alvCfg'))&&!!(await p.$('#alvCfg [data-alvtenta]')),'Ajustes mostra o motivo e o botão Tentar de novo');
- await c.unroute('**workers.dev/push/alertas');await p.click('#alvCfg [data-alvtenta]');await p.waitForTimeout(1200);
- ok(/Os avisos chegam mesmo com o app fechado/.test(await p.textContent('#alvCfg'))&&!(await p.$('#alvCfg .alv-aviso')),'depois de publicar o Worker, Tentar de novo liga o aviso com o app fechado');await c.close();
- {const id='a_est';
-   const [c,p,e,posts]=await abre();
-   // linha sem traçado guardado: vale o traçado das linhas que passam no ponto
-   await p.evaluate(id=>{localStorage.setItem('cse-alertas-onibus',JSON.stringify([{id:'t1',tipo:'c',ponto:id,linhas:['ZZ999'],carro:'',min:5,quando:'uma',fim:Date.now()+36e5}]))},id);
-   await p.reload();await p.waitForTimeout(7500);await p.click('#tab-cfg');await p.waitForTimeout(600);
-   await p.evaluate(()=>{const b=document.querySelector('[data-alvtenta]');b&&b.click()});await p.waitForTimeout(1500);
-   const u=posts[posts.length-1];
-   ok(u&&u.alertas.length===1&&u.alertas[0].cor.length>=1,'linha sem traçado guardado: usa o traçado das linhas que passam no ponto');
-   ok(!/Não achei o traçado/.test(await p.textContent('#alvCfg')),'e não diz que o traçado não foi achado');
-   // alerta de linha interna sem horário: motivo próprio
-   await p.evaluate(()=>{localStorage.setItem('cse-alertas-onibus',JSON.stringify([{id:'t2',tipo:'i',de:'zz',para:'yy',linhas:[],min:5,quando:'uma',fim:Date.now()+36e5}]))});
-   await p.reload();await p.waitForTimeout(7500);await p.click('#tab-cfg');await p.waitForTimeout(600);
-   await p.evaluate(()=>{const b=document.querySelector('[data-alvtenta]');b&&b.click()});await p.waitForTimeout(1500);
-   ok(/Não há horário de linha interna/.test(await p.textContent('#alvCfg')),'alerta de linha interna sem horário: explica que falta horário, não o traçado');await c.close()}
+   const n=await p.$$eval('#chgBox [data-alvsino]',x=>x.length).catch(()=>0);if(!melhor||n>melhor.n)melhor={id,n}}
+ await p.evaluate(id=>document.querySelector('#map .mk.ext:not(.xlive)[data-id="'+id+'"]').dispatchEvent(new MouseEvent('click',{bubbles:true})),melhor.id);await p.waitForTimeout(500);
+ ok(melhor.n>0,'"Chegando agora" tem um sino por ônibus');
+ await p.click('#chgBox [data-alvsino]:not([disabled])');await p.waitForTimeout(1200);
+ const u=posts[posts.length-1];
+ ok(u&&u.alertas.length===1&&u.alertas[0].uma===1&&u.alertas[0].v&&u.alertas[0].cor.length>=1&&u.alertas[0].min===5,'o sino manda ao Worker um aviso de uma vez para aquele carro');
+ ok(await p.evaluate(()=>{const g=JSON.parse(localStorage.getItem('cse-avisos-onibus'));return g.c.length===0&&g.u.length===1})&&await p.$eval('#chgBox .alv-sino.on',x=>x.disabled),'o sino fica ligado e não conta nos 5 de Ajustes');
+ ok(e.length===0,'sem erros de JavaScript (mapa) '+JSON.stringify(e));await c.close();
+ // 10) o Worker já avisou: o sino volta a ficar desligado
+ [c,p,e,posts]=await abre({ext:true,feitos:true,granted:true});
+ await p.evaluate(()=>localStorage.setItem('cse-avisos-onibus',JSON.stringify({c:[],u:[{id:'ax1',ponto:'a_est',carro:'B1',linhas:['485'],min:5,fim:Date.now()+36e5,nome:'x'}]})));
+ await p.reload();await p.waitForTimeout(7500);
+ ok(await p.evaluate(()=>JSON.parse(localStorage.getItem('cse-avisos-onibus')).u.length===0),'depois que o Worker avisa, o aviso de uma vez sai do aparelho (o sino desliga)');
+ ok(e.length===0,'sem erros de JavaScript (feitos) '+JSON.stringify(e));await c.close();
  await b.close();srv.close();process.exit(falhou?1:0)})();

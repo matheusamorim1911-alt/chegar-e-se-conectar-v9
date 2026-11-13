@@ -265,6 +265,8 @@ function renderDetail(focusSel){
 }
 function renderAll(){renderPlan();renderDetail();updateMap()}
 function select(kind,id,scroll){
+  /* ponto da cidade que é a mesma parada da UFRJ: abre a parada (uma só, com os dois tipos de ônibus) */
+  if(kind==='ext'&&EXTS[id]&&EXTS[id].stop&&state.layers.bus&&STOPS[EXTS[id].stop]){id=EXTS[id].stop;kind='stop'}
   /* ponto da prefeitura do Rio: liga a camada de ônibus da cidade e vai para Trajetos */
   if(kind==='ext'&&EXTS[id]){
     if(!state.layers.ext){state.layers.ext=true;try{localStorage.setItem('cse-lay-ext','1')}catch(e){}busChip();setTimeout(liveFetch,0)}

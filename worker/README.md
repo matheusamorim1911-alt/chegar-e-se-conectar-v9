@@ -70,10 +70,10 @@ qual está sendo usada. Se aparecer "API antiga" com exemplos de route_id, mande
 
 ## Alertas de ônibus (opcional)
 
-O usuário cria alertas ("avise quando o 485 estiver a 5 min do ponto X") e recebe a notificação mesmo com o app
+O usuário cria avisos ("avise quando o 485 estiver a 5 min do ponto X") e recebe a notificação mesmo com o app
 fechado. Usa o mesmo KV `PUSH` das notificações de tiroteio. Para o aviso sair na hora certa, troque o Cron Trigger
 do Worker de `*/5 * * * *` para **`* * * * *`** (a cada minuto); os tiroteios continuam sendo conferidos de 5 em 5 min.
-Com o gatilho de 5 em 5 min os alertas ainda funcionam, mas podem chegar com até 5 min de atraso.
+Com o gatilho de 5 em 5 min os avisos ainda funcionam, mas podem chegar com até 5 min de atraso.
 
 Custo no plano grátis: uma leitura do KV por minuto e, só quando há alerta valendo naquele horário, uma busca das
 posições. Cada aviso enviado gasta uma gravação no KV (limite de 1.000 por dia).

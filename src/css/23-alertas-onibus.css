@@ -24,3 +24,10 @@
 .alv-novo .copy{justify-self:start}
 .alv-aviso{margin:8px 0;padding:10px 12px;border-radius:12px;background:var(--warn-bg);color:var(--ink);font-size:14px;line-height:1.4}
 .alv-aviso .linkbtn{padding:0;min-height:0;font-size:14px}
+#gExt.dup .mk.xmerge{display:none}
+.alv-cfg h2{margin:0 0 6px}
+.alv-form{display:grid;gap:12px;margin:10px 0;padding:12px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2)}
+.alv-ed{flex:none;min-height:34px;padding:0 10px;border-radius:17px;border:1px solid var(--line);background:transparent;color:inherit;font:inherit;font-size:13px;cursor:pointer}
+.alv-ed:focus-visible{outline:2px solid var(--press);outline-offset:2px}
+.alv-item .alv-nota{color:var(--ink-2);font-style:italic}
+.alv-msg:empty{display:none}

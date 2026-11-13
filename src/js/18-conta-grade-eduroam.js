@@ -71,10 +71,9 @@ document.addEventListener('click',function(e){
 /* alertas (só com conta): funcionam com o app aberto, mesmo em outra aba */
 function alertasHTML(){
   var h='<div class="accsec la-al" id="alsec"><h2>Alertas</h2>';
-  if(!contaOk())return h+'<div class="la-lock"><p class="small keep">Receba um aviso quando o ônibus do seu trajeto estiver chegando, quando for chover e quando a fila do RU estiver curta.</p>'+(FB_ON?askBtn('alertas','Entrar para ativar'):'<p class="muted small keep">Disponível ao entrar com uma conta.</p>')+'</div></div>';
+  if(!contaOk())return h+'<div class="la-lock"><p class="small keep">Receba um aviso quando for chover e quando a fila do RU estiver curta.</p>'+(FB_ON?askBtn('alertas','Entrar para ativar'):'<p class="muted small keep">Disponível ao entrar com uma conta.</p>')+'</div></div>';
   var perm=('Notification' in window)?Notification.permission:'na';
-  h+='<div class="tgls">'+tg('cfgAlOn',CFG.alOn,'Meu ônibus está chegando','Do seu trajeto favorito: '+esc(STOPS[state.from].name)+' → '+esc(STOPS[state.to].name)+'.')+
-    (CFG.alOn?'<div class="faixa-w"><p class="balvo-t"><b>Avisar com antecedência de</b></p><div class="seg cl-alvo" role="group" aria-label="Antecedência do alerta">'+[5,10,15].map(function(m){return '<button type="button" data-almin="'+m+'" aria-pressed="'+(+CFG.alMin===m)+'">'+m+' min</button>'}).join('')+'</div></div>':'')+
+  h+='<div class="tgls">'+
     tg('cfgAlChuva',CFG.alChuva,'Chuva chegando','Quando a chance de chuva passar de 60% na próxima hora.')+
     tg('cfgAlFila',CFG.alFila,'Fila do RU curta','Entre 11h e 14h, quando alguém informar fila pequena ou sem fila.')+'</div>'+
     (perm==='default'?'<div class="accmail"><div class="row"><button type="button" class="copy primary" id="alPerm">Permitir notificações do aparelho</button></div></div>':'')+
@@ -85,13 +84,12 @@ function alertasHTML(){
 }
 document.addEventListener('input',function(e){if(e.target.id==='ctNome'){CONT.nome=e.target.value.slice(0,40);saveCont()}else if(e.target.id==='ctTel'){CONT.tel=e.target.value.slice(0,20);saveCont()}});
 document.addEventListener('change',function(e){
-  var m={cfgAlOn:'alOn',cfgAlChuva:'alChuva',cfgAlFila:'alFila'}[e.target.id];if(!m)return;
+  var m={cfgAlChuva:'alChuva',cfgAlFila:'alFila'}[e.target.id];if(!m)return;
   CFG[m]=e.target.checked;saveCfg();if(m==='alChuva'&&CFG.alChuva&&!CLIMA.d)climaLoad(false);
   if(e.target.checked&&('Notification' in window)&&Notification.permission==='default')try{Notification.requestPermission().then(renderCfgKeep)}catch(x){}
   renderCfgKeep();alCheck();
 });
 document.addEventListener('click',function(e){
-  var b=e.target.closest&&e.target.closest('[data-almin]');if(b){CFG.alMin=+b.dataset.almin;saveCfg();renderCfgKeep();return}
   if(e.target.closest&&e.target.closest('#alPerm')){try{Notification.requestPermission().then(renderCfgKeep)}catch(x){}}
 });
 var ALF={};try{ALF=JSON.parse(sessionStorage.getItem('cse-alf'))||{}}catch(e){ALF={}}
@@ -104,10 +102,6 @@ function alFire(key,title,body){
 function alCheck(){
   if(!contaOk())return;
   var now=nowMin(),day=new Date().toISOString().slice(0,10);
-  if(CFG.alOn&&STOPS[state.from]&&STOPS[state.to]&&state.from!==state.to){
-    var o=(options(state.from,state.to,now)||[])[0];
-    if(o){var d=Math.round(o.dep)-now;if(d>=0&&d<=(+CFG.alMin||10))alFire('bus:'+day+':'+o.lid+':'+Math.round(o.dep),'Linha '+o.lid+' passa em '+(d?'~'+d+' min':'instantes'),'Em '+STOPS[state.from].name+', sentido '+STOPS[state.to].name+'.')}
-  }
   if(CFG.alChuva){var c=climaChuva();if(c&&c.h*60-now<=60&&c.h*60-now>=-30)alFire('chuva:'+day+':'+c.h,'Chuva chegando',c.p+'% de chance por volta das '+String(c.h).padStart(2,'0')+'h. Leve guarda-chuva.')}
   if(CFG.alFila&&now>=660&&now<=840)RUS.forEach(function(k){var f=filaOf(k);if(f&&f.n<=1)alFire('fila:'+day+':'+k,PL[k].name+': '+(f.n?'fila pequena':'sem fila'),'Informado '+agoTxt(f.last)+'.')});
 }
