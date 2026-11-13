@@ -567,6 +567,27 @@ Linhas internas ¦ Campus lines ¦ Líneas internas
 Linhas da cidade ¦ City lines ¦ Líneas de la ciudad
 Portal da UFRJ ¦ UFRJ portal ¦ Portal de la UFRJ
 Abre o acesso ao portal em outra aba. ¦ Opens the portal sign-in in another tab. ¦ Abre el acceso al portal en otra pestaña.
+Importar do PDF ¦ Import from PDF ¦ Importar del PDF
+Lendo o PDF… ¦ Reading the PDF… ¦ Leyendo el PDF…
+Use o PDF "Minha grade horária" do portal da UFRJ. Ele é lido aqui no aparelho. ¦ Use the "Minha grade horária" PDF from the UFRJ portal. It is read here on your device. ¦ Usa el PDF "Minha grade horária" del portal de la UFRJ. Se lee aquí en el dispositivo.
+Importar grade horária ¦ Import timetable ¦ Importar horario
+aulas encontradas ¦ classes found ¦ clases encontradas
+Confira e escolha onde cada aula acontece. O PDF não sai do seu aparelho. ¦ Check and choose where each class takes place. The PDF never leaves your device. ¦ Revisa y elige dónde es cada clase. El PDF no sale de tu dispositivo.
+Sem dia e horário (não entram na grade): ¦ No day and time (not added): ¦ Sin día ni horario (no entran):
+Importar ¦ Import ¦ Importar
+Outro ¦ Other ¦ Otro
+Sala ¦ Room ¦ Aula
+Esse arquivo é grande demais para ser a grade horária. ¦ This file is too big to be the timetable. ¦ Este archivo es demasiado grande para ser el horario.
+Não consegui carregar o leitor de PDF. Confira a conexão e tente de novo. ¦ Could not load the PDF reader. Check your connection and try again. ¦ No pude cargar el lector de PDF. Revisa la conexión e inténtalo de nuevo.
+Esse PDF não tem texto para ler (parece uma imagem). Baixe de novo o PDF no portal. ¦ This PDF has no text to read (it looks like an image). Download the PDF from the portal again. ¦ Este PDF no tiene texto para leer (parece una imagen). Descarga de nuevo el PDF en el portal.
+Não parece a "Minha grade horária" da UFRJ. Baixe o PDF no portal e tente de novo. ¦ This does not look like the UFRJ "Minha grade horária". Download the PDF from the portal and try again. ¦ No parece la "Minha grade horária" de la UFRJ. Descarga el PDF en el portal e inténtalo de nuevo.
+Não achei disciplinas com dia e horário nesse PDF. ¦ No courses with day and time in this PDF. ¦ No encontré materias con día y horario en este PDF.
+Não deu para ler esse PDF. Tente de novo. ¦ Could not read this PDF. Try again. ¦ No se pudo leer este PDF. Inténtalo de nuevo.
+aulas importadas. ¦ classes imported. ¦ clases importadas.
+aula importada. ¦ class imported. ¦ clase importada.
+Essas aulas já estão na sua grade. ¦ These classes are already in your timetable. ¦ Estas clases ya están en tu horario.
+Marque pelo menos uma aula. ¦ Select at least one class. ¦ Marca al menos una clase.
+A grade guarda até 40 aulas. Desmarque algumas. ¦ The timetable holds up to 40 classes. Unselect some. ¦ El horario guarda hasta 40 clases. Desmarca algunas.
 Não há horário de linha interna ligando esses dois pontos hoje: este alerta só avisa com o app aberto. ¦ There is no campus bus schedule linking these two stops today: this alert only works with the app open. ¦ Hoy no hay horario de línea interna que una estas dos paradas: esta alerta solo avisa con la app abierta.
 Não achei o traçado da linha neste ponto: este alerta só avisa com o app aberto. ¦ Could not find the line's route at this stop: this alert only works with the app open. ¦ No encontré el recorrido de la línea en esta parada: esta alerta solo avisa con la app abierta.
 Sem conexão com o servidor do app. Toque em Tentar de novo. ¦ No connection to the app server. Tap Try again. ¦ Sin conexión con el servidor de la app. Toca Reintentar.

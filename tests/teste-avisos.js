@@ -79,7 +79,7 @@ const { chromium } = require('playwright');const servir=require('./servidor');co
  let r=await chega({disponivel:true,ocorrencias:[{id:'a',t:agora-12*60e3,bairro:'Maré',local:'Av. Brasil, Maré'},{id:'b',t:agora-90*60e3,bairro:'Penha'}]});
  ok(r.mostradas[0].t==='Tiroteio perto do Fundão'&&r.mostradas[0].o.body==='Tiroteio há 12 min em Maré (Av. Brasil, Maré). 2 registros nas últimas 2 h. Evite a região se puder. Fonte: Fogo Cruzado.','aviso: onde e há quanto tempo, com a fonte');
  r=await chega({disponivel:true,ocorrencias:[{id:'c',t:agora-4*3600e3,bairro:'Penha'}]});
- ok(/Nenhum registro nas últimas 2 h/.test(r.mostradas[0].o.body),'aviso de teste (sem tiroteio recente): diz que está ligado');
+ ok(r.mostradas[0].o.body==='Sem novidades agora.'&&r.mostradas[0].o.silent===true,'aviso sem texto no servidor e sem tiroteio recente: neutro e sem som (não diz "sem tiroteio")');
  r=await chega(null,true);
  ok(r.mostradas[0].t==='Aviso do Chega aí UFRJ'&&/Abra o app/.test(r.mostradas[0].o.body),'sem internet para os detalhes: aviso genérico, sem inventar');
  let foco=0;r.h.notificationclick&&await new Promise(res=>{r.h.notificationclick({notification:{close(){},data:{url:'./'}},waitUntil:p=>p.then(res)})});

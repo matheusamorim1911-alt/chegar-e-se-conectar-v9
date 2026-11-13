@@ -211,6 +211,8 @@ ok(sai.status === 200 && [...KV.m.keys()].filter(k => k.startsWith('sub:')).leng
 const teste = () => worker.fetch(new Request('https://x.workers.dev/push/teste', { method: 'POST', body: JSON.stringify({ endpoint: 'https://fcm.googleapis.com/fcm/send/c1' }) }), envP, { waitUntil() {} });
 const t1 = await (await teste()).json(), t2 = await teste();
 ok(t1.ok === true && t2.status === 429, 'push: aviso de teste para quem assinou, no máximo um por minuto');
+const tx = await (await worker.fetch(new Request('https://x.workers.dev/push/aviso', { method: 'POST', body: JSON.stringify({ endpoint: 'https://fcm.googleapis.com/fcm/send/c1' }) }), envP, { waitUntil() {} })).json();
+ok(/tiroteio estão ligadas/.test(tx.corpo) && tx.tag === 'teste', 'push: o texto do teste de tiroteio vem de /push/aviso (o aparelho não precisa adivinhar)');
 const t3 = await worker.fetch(new Request('https://x.workers.dev/push/teste', { method: 'POST', body: JSON.stringify({ endpoint: 'https://fcm.googleapis.com/fcm/send/naoassinou' }) }), envP, { waitUntil() {} });
 ok(t3.status === 404, 'push: teste só para quem assinou');
 // ---------- GTFS Realtime (API atual da prefeitura do Rio) ----------
