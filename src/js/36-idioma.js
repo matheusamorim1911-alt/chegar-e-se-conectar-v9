@@ -356,7 +356,12 @@ function idiLiga(){
 function idiEscolhe(l){if(!IDI_NOMES[l]||l===idiAtual())return;CFG.idioma=l;saveCfg();idiLiga();idiPinta()}
 function idiBotoes(){return Object.keys(IDI_NOMES).map(function(l){return '<button type="button" data-idioma="'+l+'" lang="'+l+'" aria-pressed="'+(l===idiAtual())+'">'+IDI_NOMES[l]+'</button>'}).join('')}
 function idiPinta(){document.querySelectorAll('[data-idioma]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.idioma===idiAtual()))})}
-document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-idioma]');if(b)idiEscolhe(b.dataset.idioma)});
+document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-idioma]');if(!b)return;
+  var l=b.dataset.idioma,capa=!!b.closest('#cvIdioma');
+  if(!CFG.idiomaOk){CFG.idiomaOk=true;if(l===idiAtual())saveCfg()}
+  idiEscolhe(l);
+  /* na capa: mostra a escolha um instante e some */
+  if(capa){var c=$('#cvIdioma');if(c){c.classList.add('saindo');setTimeout(function(){var d=$('#cvIdioma');if(d)d.remove();if(typeof placeCoverMap==='function')placeCoverMap()},700)}}});
 /* Ajustes: no começo da folha */
 aoFazer('ajustes montados',function(){
   var r=$('#cfgR')||document.querySelector('#pane-cfg .cfgsheet');if(!r||r.querySelector('#idiSec'))return;
@@ -364,6 +369,13 @@ aoFazer('ajustes montados',function(){
     '<div class="seg chips" role="group" aria-label="Idioma" data-idi-nao>'+idiBotoes()+'</div>'+
     '<p class="muted small keep">Os nomes de lugares e linhas ficam em português. Alguns textos ainda não foram traduzidos.</p></div>');
 });
-/* capa: quem não lê português escolhe antes de entrar */
-(function(){var s=document.querySelector('#cover .cv-sheet .eyebrow');if(s&&!$('#cvIdioma'))s.insertAdjacentHTML('afterend','<div class="cv-idioma seg chips" id="cvIdioma" role="group" aria-label="Idioma / Language" data-idi-nao>'+idiBotoes()+'</div>')})();
+/* capa: a escolha do idioma aparece só até a pessoa escolher uma vez (CFG.idiomaOk, guardado no aparelho e na conta) */
+if(CFG.idioma&&CFG.idioma!=='pt')CFG.idiomaOk=true;/* quem já tinha trocado antes desta versão já escolheu */
+function idiCapa(){
+  var c=$('#cvIdioma');if(CFG.idiomaOk){if(c)c.remove();return}
+  var s=document.querySelector('#cover .cv-sheet .eyebrow');if(s&&!c)s.insertAdjacentHTML('afterend','<div class="cv-idioma seg chips" id="cvIdioma" role="group" aria-label="Idioma / Language" data-idi-nao>'+idiBotoes()+'</div>');
+}
+idiCapa();
+/* ajustes vindos da conta (outro aparelho): aplica o idioma e esconde a escolha da capa */
+function idiAplica(){idiLiga();idiPinta();idiCapa()}
 if(idiAtual()!=='pt')idiLiga();
