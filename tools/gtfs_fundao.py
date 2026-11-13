@@ -55,7 +55,10 @@ print(OUT,len(out['stops']),'paradas,',len(out['lines']),'linhas por sentido')
 # Traçados (shapes) das linhas na região do Fundão, para os ônibus ao vivo andarem sobre as ruas
 TOL=4  # metros de simplificação das curvas (antes 10)
 A=dict(latMin=-22.885,latMax=-22.825,lonMin=-43.27,lonMax=-43.195)
-nomes={l['n'] for l in out['lines']}|{'486','SP485'}
+# linhas que passam pela ilha sem parar num ponto dela (Ilha do Governador, BRT…), vistas ao vivo dentro da ilha
+# (Gestão › Saúde › "Linhas fora da lista"): sem horários aqui, mas com traçado para o ônibus andar sobre a rua
+PASSA={'492','497','906','60','80','ESP01','2343','2344'}
+nomes={l['n'] for l in out['lines']}|{'486','SP485'}|PASSA
 sid=collections.defaultdict(set)
 for t in T.values():
   n=R[t['route_id']]['route_short_name']
@@ -116,7 +119,7 @@ print('traçados:',len(lista),'trechos,',sum(len(p) for p in lista),'pontos; arq
 # ao vivo quando estão dentro da ilha. Acrescente lá e publique o Worker de novo.
 import os
 _w=open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'worker','gps-fundao.js'),encoding='utf-8').read()
-_lw=set(re.findall(r"'([^']+)'",re.search(r"const LINHAS = new Set\(\[(.*?)\]\)",_w).group(1)))
+_lw=set(re.findall(r"'([^']+)'",re.search(r"const LINHAS = new Set\(\[(.*?)\]\)",_w,re.S).group(1)))
 _fal=sorted({l['n'] for l in out['lines']}-_lw)
 if _fal:print('ATENÇÃO: linhas fora de LINHAS no Worker:',', '.join(_fal))
 # GTFS Realtime: o Worker tira a linha do route_id ("O0321AAA0A" → 321, "O0803AAP0A" → SP803). As rotas que fogem
