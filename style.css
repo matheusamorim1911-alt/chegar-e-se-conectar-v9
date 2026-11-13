@@ -1990,3 +1990,24 @@ a.cv-aviso{text-decoration:none}
 .edup-m.warn{color:#E0A100}
 .edup-aviso{color:#E0A100}
 .edup-man dl{margin:8px 0}
+/* Favoritos: pontos e linhas por categoria (Trajetos, capa e painéis) */
+.fav-box{display:grid;gap:8px;margin:0 0 16px}
+.fav-topo{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.fav-topo h3{margin:0}
+.fav-cat{margin:6px 0 0}
+.fav-lista{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.fav-it{display:flex;align-items:center;gap:6px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2)}
+.fav-ir{flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:10px 12px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;border-radius:14px}
+.fav-ir .grow{flex:1;min-width:0}
+.fav-ir b{display:block;font-size:15px;line-height:1.3}
+.fav-ir small{display:block;color:var(--ink-2);font-size:13px;margin-top:2px}
+.fav-ir:focus-visible{outline:2px solid var(--press);outline-offset:2px}
+.fav-ic{flex:none;width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font-weight:700;font-size:13px;background:var(--press);color:var(--ink-inv)}
+.fav-form,.fav-escolhe{display:grid;gap:10px;padding:12px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2)}
+.fav-form select,.fav-nova input{width:100%;min-height:44px}
+.fav-estrela{margin:8px 0 12px}
+.fav-on{border-color:#E0A100}
+.fav-on span{color:#E0A100}
+.cv-favs{display:grid;gap:6px}
+.cv-fav-t{margin:4px 0 0;font-size:13px;color:var(--ink-2)}
+.cv-fav{padding:8px 14px}
