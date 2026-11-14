@@ -439,7 +439,7 @@ e lista de endereços das unidades da UFRJ (2022); podem mudar nas férias. Os h
     [/^(\d+)% do período$/,'$1% of the term','$1% del período'],
     [/^Pedir para me ligarem se eu não der notícia até (\d\d:\d\d)$/,'Ask them to call me if they have not heard from me by $1','Pedir que me llamen si no doy noticias antes de las $1'],
     [/^O ônibus deve passar entre (\d\d:\d\d) e (\d\d:\d\d)\. As barras mais altas são os minutos mais prováveis\.$/,'The bus should pass between $1 and $2. The taller bars are the most likely minutes.','El autobús debería pasar entre las $1 y las $2. Las barras más altas son los minutos más probables.'],
-    [/^(\d+) abertos? agora · (dia útil|sábado|domingo|feriado), (\d\d:\d\d)$/,function(_,n,d,h){return n+' open now · '+({'dia útil':'weekday','sábado':'Saturday','domingo':'Sunday','feriado':'holiday'})[d]+', '+h},function(_,n,d,h){return n+' abiertos ahora · '+({'dia útil':'día hábil','sábado':'sábado','domingo':'domingo','feriado':'feriado'})[d]+', '+h}],
+    [/^(\d+) abertos? agora · (dia útil|fim de semana|sábado|domingo|feriado), (\d\d:\d\d)$/,function(_,n,d,h){return n+' open now · '+({'dia útil':'weekday','fim de semana':'weekend','sábado':'Saturday','domingo':'Sunday','feriado':'holiday'})[d]+', '+h},function(_,n,d,h){return n+' abiertos ahora · '+({'dia útil':'día hábil','fim de semana':'fin de semana','sábado':'sábado','domingo':'domingo','feriado':'feriado'})[d]+', '+h}],
     [/^Aberto até (\d\d:\d\d)$/,'Open until $1','Abierto hasta las $1'],
     [/^Fechado · abre (.+)$/,'Closed · opens $1','Cerrado · abre $1'],
     [/^Fecha em (\d+) min$/,'Closes in $1 min','Cierra en $1 min'],

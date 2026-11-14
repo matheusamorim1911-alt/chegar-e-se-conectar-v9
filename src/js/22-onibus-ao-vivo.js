@@ -18,8 +18,12 @@ function lvPred(S,now){
   var dt=Math.max(0,Math.min(60,(now-O.t)/1000)),s=O.s+O.sign*lvDist(O,dt)*MPU;
   return Math.max(0,Math.min(lvLen(O.i),s));
 }
+function lvSvg(S){setMkPos(S.el,S.x,S.y);var ar=S.el.querySelector('.lv-dir');if(ar){ar.style.display=S.ang==null?'none':'';if(S.ang!=null)ar.setAttribute('transform','rotate('+(S.ang+(ROT||0)).toFixed(0)+')')}}
+/* o canvas (parte 44) existe? (esta parte carrega antes dela) */
+function LVC_on(){return typeof LVC!=='undefined'&&!!LVC&&LVC.on}
 function lvFrame(){
   LV2.raf=0;var now=Date.now(),red=matchMedia('(prefers-reduced-motion:reduce)').matches||perfEff()==='leve',any=false;
+  var dom=!LVC_on()||now-(LV2.dom||0)>700;if(dom)LV2.dom=now;
   Object.keys(LV2.st).forEach(function(v){var S=LV2.st[v];if(!S.el||!S.el.isConnected)return;
     var O=S.obs,x=null,y=null,ang=null,ps=lvPred(S,now),si=null,ss=null,mv=O&&O.i!=null&&lvV(O)>0.3;
     var k=S.blend?Math.min(1,(now-S.blend.t0)/1500):1;if(S.blend&&k>=1)S.blend=null;
@@ -31,9 +35,11 @@ function lvFrame(){
       var p=shpAt(si,ss);if(x==null){x=p.x;y=p.y}
       ang=mv||O.v>0.5?(O.sign>0?p.ang:p.ang+180):null;if(mv)any=true;
     }else{x=O.x;y=O.y;ang=O.ang;if(S.blend){any=true;x=S.blend.x+(x-S.blend.x)*k;y=S.blend.y+(y-S.blend.y)*k}}
-    setMkPos(S.el,x,y);S.x=x;S.y=y;S.i=si;S.s=ss;
-    var ar=S.el.querySelector('.lv-dir');if(ar){ar.style.display=ang==null?'none':'';if(ang!=null)ar.setAttribute('transform','rotate('+(ang+(ROT||0)).toFixed(0)+')')}
+    S.x=x;S.y=y;S.i=si;S.s=ss;S.ang=ang;
+    /* com o desenho em canvas (parte 44), o marcador do SVG só serve para tocar e para leitores de tela: anda menos vezes */
+    if(dom)lvSvg(S);
   });
+  if(LVC_on()){lvcPinta();if(!any&&!dom)Object.keys(LV2.st).forEach(function(v){var S=LV2.st[v];if(S.el&&S.el.isConnected&&S.x!=null)lvSvg(S)})}
   if(any&&!red&&!document.hidden)LV2.raf=requestAnimationFrame(function(){setTimeout(lvFrame,90)});
 }
 aoFazer('mapa vai montar',function(){LV2.st={}});/* os marcadores ao vivo são recriados */
@@ -218,9 +224,11 @@ function liveDrawCore(){
       S.blend={x:S.x,y:S.y,i:S.i,s:S.s,t0:Date.now()};
     }
     var tt=S.el.querySelector('title');if(tt)tt.textContent=tit;S.el.setAttribute('aria-label',tit);
-    S.obs=obs;S.age=idade;S.el.dataset.id=liveNearStop([obs.x,obs.y]);
+    S.obs=obs;S.age=idade;S.el.dataset.id=liveNearStop([obs.x,obs.y]);S.cor=liveColor(o.l);S.txt=o.l.replace(/^S[A-Z]*/,'').slice(0,3);
+    if(S.x==null){S.x=obs.x;S.y=obs.y;S.ang=obs.ang}
   });
   Object.keys(LV2.st).forEach(function(v){if(!seen[v]){if(LV2.st[v].el)LV2.st[v].el.remove();delete LV2.st[v]}});
+  if(LVC_on())lvcPinta();
 }
 function lvgModelo2(A){var M={};A.forEach(function(a){if(a.dt>75||a.real<-50||a.vb===0)return;var h=Math.min(a.dt,60);lvfSoma(M,lvfChaves(a.cel,a.d,a.vb,a.per),a.real*h/a.dt,a.v*h)});return M}
 /* simulação honesta: refaz as medições em ordem, aprendendo só com o passado, e mede o erro que o modelo novo teria */

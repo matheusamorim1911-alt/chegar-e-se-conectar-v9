@@ -3335,7 +3335,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261113-2342';
+var APP_VERSION='20261114-0816';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -5333,8 +5333,12 @@ function lvPred(S,now){
   var dt=Math.max(0,Math.min(60,(now-O.t)/1000)),s=O.s+O.sign*lvDist(O,dt)*MPU;
   return Math.max(0,Math.min(lvLen(O.i),s));
 }
+function lvSvg(S){setMkPos(S.el,S.x,S.y);var ar=S.el.querySelector('.lv-dir');if(ar){ar.style.display=S.ang==null?'none':'';if(S.ang!=null)ar.setAttribute('transform','rotate('+(S.ang+(ROT||0)).toFixed(0)+')')}}
+/* o canvas (parte 44) existe? (esta parte carrega antes dela) */
+function LVC_on(){return typeof LVC!=='undefined'&&!!LVC&&LVC.on}
 function lvFrame(){
   LV2.raf=0;var now=Date.now(),red=matchMedia('(prefers-reduced-motion:reduce)').matches||perfEff()==='leve',any=false;
+  var dom=!LVC_on()||now-(LV2.dom||0)>700;if(dom)LV2.dom=now;
   Object.keys(LV2.st).forEach(function(v){var S=LV2.st[v];if(!S.el||!S.el.isConnected)return;
     var O=S.obs,x=null,y=null,ang=null,ps=lvPred(S,now),si=null,ss=null,mv=O&&O.i!=null&&lvV(O)>0.3;
     var k=S.blend?Math.min(1,(now-S.blend.t0)/1500):1;if(S.blend&&k>=1)S.blend=null;
@@ -5346,9 +5350,11 @@ function lvFrame(){
       var p=shpAt(si,ss);if(x==null){x=p.x;y=p.y}
       ang=mv||O.v>0.5?(O.sign>0?p.ang:p.ang+180):null;if(mv)any=true;
     }else{x=O.x;y=O.y;ang=O.ang;if(S.blend){any=true;x=S.blend.x+(x-S.blend.x)*k;y=S.blend.y+(y-S.blend.y)*k}}
-    setMkPos(S.el,x,y);S.x=x;S.y=y;S.i=si;S.s=ss;
-    var ar=S.el.querySelector('.lv-dir');if(ar){ar.style.display=ang==null?'none':'';if(ang!=null)ar.setAttribute('transform','rotate('+(ang+(ROT||0)).toFixed(0)+')')}
+    S.x=x;S.y=y;S.i=si;S.s=ss;S.ang=ang;
+    /* com o desenho em canvas (parte 44), o marcador do SVG só serve para tocar e para leitores de tela: anda menos vezes */
+    if(dom)lvSvg(S);
   });
+  if(LVC_on()){lvcPinta();if(!any&&!dom)Object.keys(LV2.st).forEach(function(v){var S=LV2.st[v];if(S.el&&S.el.isConnected&&S.x!=null)lvSvg(S)})}
   if(any&&!red&&!document.hidden)LV2.raf=requestAnimationFrame(function(){setTimeout(lvFrame,90)});
 }
 aoFazer('mapa vai montar',function(){LV2.st={}});/* os marcadores ao vivo são recriados */
@@ -5533,9 +5539,11 @@ function liveDrawCore(){
       S.blend={x:S.x,y:S.y,i:S.i,s:S.s,t0:Date.now()};
     }
     var tt=S.el.querySelector('title');if(tt)tt.textContent=tit;S.el.setAttribute('aria-label',tit);
-    S.obs=obs;S.age=idade;S.el.dataset.id=liveNearStop([obs.x,obs.y]);
+    S.obs=obs;S.age=idade;S.el.dataset.id=liveNearStop([obs.x,obs.y]);S.cor=liveColor(o.l);S.txt=o.l.replace(/^S[A-Z]*/,'').slice(0,3);
+    if(S.x==null){S.x=obs.x;S.y=obs.y;S.ang=obs.ang}
   });
   Object.keys(LV2.st).forEach(function(v){if(!seen[v]){if(LV2.st[v].el)LV2.st[v].el.remove();delete LV2.st[v]}});
+  if(LVC_on())lvcPinta();
 }
 function lvgModelo2(A){var M={};A.forEach(function(a){if(a.dt>75||a.real<-50||a.vb===0)return;var h=Math.min(a.dt,60);lvfSoma(M,lvfChaves(a.cel,a.d,a.vb,a.per),a.real*h/a.dt,a.v*h)});return M}
 /* simulação honesta: refaz as medições em ordem, aprendendo só com o passado, e mede o erro que o modelo novo teria */
@@ -6542,7 +6550,7 @@ setInterval(function(){if(!document.hidden)capaAvisos()},1500);
 var IDI_NOMES={pt:'Português',en:'English',es:'Español'};
 /* No site, a tabela (este texto, o de 37-idioma-textos.js e IDI_FRAG de 38-idioma-frases.js) sai do app.js para idioma.json
    (tools/build_site.py põe o endereço em IDI_ARQ): quem usa o app em português não baixa as traduções. */
-var IDI_ARQ='idioma.json?v=d105cb23b6';
+var IDI_ARQ='idioma.json?v=52af3f8a38';
 var IDI_TAB='';
 /* textos montados: [padrão sobre o texto em português, inglês, espanhol]; $1, $2… são os trechos que ficam como vieram */
 var IDI_PAD=[
@@ -6682,7 +6690,7 @@ IDI_TAB+='';
     [/^(\d+)% do período$/,'$1% of the term','$1% del período'],
     [/^Pedir para me ligarem se eu não der notícia até (\d\d:\d\d)$/,'Ask them to call me if they have not heard from me by $1','Pedir que me llamen si no doy noticias antes de las $1'],
     [/^O ônibus deve passar entre (\d\d:\d\d) e (\d\d:\d\d)\. As barras mais altas são os minutos mais prováveis\.$/,'The bus should pass between $1 and $2. The taller bars are the most likely minutes.','El autobús debería pasar entre las $1 y las $2. Las barras más altas son los minutos más probables.'],
-    [/^(\d+) abertos? agora · (dia útil|sábado|domingo|feriado), (\d\d:\d\d)$/,function(_,n,d,h){return n+' open now · '+({'dia útil':'weekday','sábado':'Saturday','domingo':'Sunday','feriado':'holiday'})[d]+', '+h},function(_,n,d,h){return n+' abiertos ahora · '+({'dia útil':'día hábil','sábado':'sábado','domingo':'domingo','feriado':'feriado'})[d]+', '+h}],
+    [/^(\d+) abertos? agora · (dia útil|fim de semana|sábado|domingo|feriado), (\d\d:\d\d)$/,function(_,n,d,h){return n+' open now · '+({'dia útil':'weekday','fim de semana':'weekend','sábado':'Saturday','domingo':'Sunday','feriado':'holiday'})[d]+', '+h},function(_,n,d,h){return n+' abiertos ahora · '+({'dia útil':'día hábil','fim de semana':'fin de semana','sábado':'sábado','domingo':'domingo','feriado':'feriado'})[d]+', '+h}],
     [/^Aberto até (\d\d:\d\d)$/,'Open until $1','Abierto hasta las $1'],
     [/^Fechado · abre (.+)$/,'Closed · opens $1','Cerrado · abre $1'],
     [/^Fecha em (\d+) min$/,'Closes in $1 min','Cierra en $1 min'],
@@ -7501,6 +7509,59 @@ document.addEventListener('change',function(e){if(e.target.id==='favRef'&&FAV.fo
 document.addEventListener('keydown',function(e){if(e.key!=='Enter'||e.target.id!=='favCatNova')return;e.preventDefault();var c=favCatEscolhida();if(!c)return;
   if(e.target.closest('#favEstrela')&&FAV.sel){if(favAdiciona(FAV.sel.t,FAV.sel.ref,c))FAV.sel=null;favEstrelaPinta()}
   else if(FAV.form){FAV.form.cat=c;var r=$('#favRef');if(r&&r.value&&favAdiciona(FAV.form.t,r.value,c)){FAV.form=null;favPinta()}}});
+/* ======================= Ônibus ao vivo desenhados em canvas =======================
+   Os ônibus da cidade se mexem ~10 vezes por segundo. Mexer em dezenas de elementos do SVG a cada quadro obrigava o
+   navegador a recalcular estilo e layout; agora eles são pintados num canvas por cima do mapa (um desenho só por quadro).
+   Os marcadores do SVG continuam lá, invisíveis, para tocar, para o teclado, para leitores de tela e para "Seguir"
+   (mas só andam a cada ~0,7 s). O desenho segue a vista do mapa (viewBox), o giro (ROT) e o tamanho dos marcadores (MS).
+   Sem canvas no navegador, fica tudo como antes (SVG). */
+var LVC={on:false,cv:null,cx:null,fonte:'',m:null,t:0};
+(function(){
+  var c=document.createElement('canvas');if(!svg||!c.getContext||!c.getContext('2d'))return;
+  /* logo depois do SVG do mapa: fica por cima dele e por baixo dos botões do mapa */
+  c.id='lvCanvas';c.setAttribute('aria-hidden','true');svg.insertAdjacentElement('afterend',c);
+  LVC.cv=c;LVC.cx=c.getContext('2d');LVC.on=true;document.documentElement.classList.add('lv-canvas');
+  try{LVC.fonte=getComputedStyle(document.body).getPropertyValue('--f-body')||'sans-serif'}catch(e){LVC.fonte='sans-serif'}
+})();
+/* da coordenada do mapa (dentro de #world, girado por ROT) para o pixel do canvas */
+function lvcMatriz(){
+  var b=box(),k=Math.min(b.w/view.w,b.h/view.h),ox=(b.w-view.w*k)/2-view.x*k,oy=(b.h-view.h*k)/2-view.y*k,r=(ROT||0)*Math.PI/180;
+  return {k:k,ox:ox,oy:oy,c:Math.cos(r),s:Math.sin(r),w:b.w,h:b.h};
+}
+function lvcPinta(){
+  if(!LVC.on)return;var c=LVC.cv,x=LVC.cx,M=lvcMatriz(),dpr=Math.min(2,window.devicePixelRatio||1);
+  var W=Math.round(M.w*dpr),H=Math.round(M.h*dpr);if(c.width!==W||c.height!==H){c.width=W;c.height=H}
+  LVC.m=M;if(c.style.transform)c.style.transform='';
+  x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,W,H);
+  var g=$('#gExt');if(!g||g.classList.contains('off'))return;
+  var G=$('#gLive'),modo=G&&G.classList.contains('seg-modo'),R=11*(+MS||1)*M.k,seg=null;
+  x.setTransform(dpr,0,0,dpr,0,0);x.textAlign='center';x.textBaseline='alphabetic';
+  x.font='800 '+(9.5*(+MS||1)*M.k).toFixed(1)+'px '+LVC.fonte;
+  var um=function(S){
+    var px=M.c*S.x-M.s*S.y,py=M.s*S.x+M.c*S.y,X=px*M.k+M.ox,Y=py*M.k+M.oy,on=S.el&&S.el.classList.contains('seg-on');
+    if(X<-30||Y<-30||X>M.w+30||Y>M.h+30)return;
+    x.globalAlpha=modo&&!on?0.55:1;
+    if(on){x.beginPath();x.arc(X,Y,R*16/11,0,6.2832);x.fillStyle='rgba(255,210,74,.28)';x.fill()}
+    if(S.ang!=null){var a=(S.ang+(ROT||0))*Math.PI/180,u=R/11;x.save();x.translate(X,Y);x.rotate(a);x.beginPath();x.moveTo(0,-18*u);x.lineTo(5.5*u,-11.5*u);x.lineTo(-5.5*u,-11.5*u);x.closePath();
+      x.fillStyle='#fff';x.fill();x.lineWidth=1*u;x.strokeStyle='#1a2a3a';x.stroke();x.restore()}
+    x.beginPath();x.arc(X,Y,R,0,6.2832);x.fillStyle=S.cor||'#5B6B7A';x.fill();x.lineWidth=(on?3.5:2.5)*R/11;x.strokeStyle=on?'#FFD24A':'#fff';x.stroke();
+    if(S.txt){x.fillStyle='#fff';x.fillText(S.txt,X,Y+3.5*R/11)}
+  };
+  Object.keys(LV2.st).forEach(function(v){var S=LV2.st[v];if(S.x==null||!S.el||!S.el.isConnected)return;if(S.el.classList.contains('seg-on')){seg=S;return}um(S)});
+  if(seg)um(seg);/* o ônibus seguido por cima dos outros */
+  x.globalAlpha=1;
+}
+/* a vista mudou (arrastar, zoom, girar) ou a tela mudou de tamanho */
+/* arrastar e dar zoom: em vez de repintar a cada quadro, só move e estica o desenho (o compositor faz isso de graça);
+   o desenho de verdade vem no próximo passo da animação (~10 por segundo) ou logo depois que o gesto para */
+aoFazer('vista aplicada',function(){
+  if(!LVC.on)return;var A=LVC.m;
+  if(!A||(ROT||0)*Math.PI/180!==Math.atan2(A.s,A.c)){lvcPinta();return}
+  var M=lvcMatriz(),e=M.k/A.k;LVC.cv.style.transform='translate('+(M.ox-A.ox*e).toFixed(1)+'px,'+(M.oy-A.oy*e).toFixed(1)+'px) scale('+e.toFixed(4)+')';
+  clearTimeout(LVC.t);LVC.t=setTimeout(lvcPinta,120);
+});
+aoFazer('mapa atualizado',function(){if(LVC.on)lvcPinta()});
+window.addEventListener('resize',function(){if(LVC.on)requestAnimationFrame(lvcPinta)});
 /* ======================= Início: a aba pedida no endereço =======================
    Fica por último, depois que todas as partes carregaram: abrir uma aba desenha a tela inteira dela
    (Lugares, por exemplo, usa o Wi-Fi e o eduroam, definidos em partes posteriores). Abrir antes disso

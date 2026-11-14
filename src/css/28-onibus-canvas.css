@@ -1,0 +1,4 @@
+/* Ônibus ao vivo desenhados em canvas (parte 44): o canvas cobre o mapa e não recebe toques; os marcadores do SVG
+   ficam invisíveis, só para tocar, teclado e leitores de tela */
+#lvCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:block;transform-origin:0 0}
+.lv-canvas #gLive .lv-dot,.lv-canvas #gLive .lv-dir,.lv-canvas #gLive .lv-t{opacity:0}

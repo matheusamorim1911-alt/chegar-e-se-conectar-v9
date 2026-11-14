@@ -42,6 +42,10 @@ Sem conexão com o servidor do app. ¦ No connection to the app server. ¦ Sin c
 A prefeitura do Rio não respondeu na última tentativa. ¦ Rio City Hall did not respond on the last attempt. ¦ La alcaldía de Río no respondió en el último intento.
 não circula hoje ¦ not running today ¦ no circula hoy
 deste destino não circula ¦ to this destination is not running ¦ de este destino no circula
+deste destino não circulam hoje. ¦ to this destination are not running today. ¦ de este destino no circulan hoy.
+linha deste destino não circula hoje. ¦ line to this destination is not running today. ¦ línea de este destino no circula hoy.
+linhas deste destino não circulam hoje. ¦ lines to this destination are not running today. ¦ líneas de este destino no circulan hoy.
+Hoje é fim de semana. A página da Prefeitura Universitária só informa horários de dias úteis; confirme antes de sair. ¦ Today is the weekend. The Prefeitura Universitária page only lists weekday times; check before you leave. ¦ Hoy es fin de semana. La página de la Prefeitura Universitária solo informa horarios de días hábiles; confirma antes de salir.
 , da primeira às ¦ , from the first at ¦ , desde la primera a las
 à última às ¦ to the last at ¦ hasta la última a las
 A posição ao vivo considera os semáforos mapeados pela UFRJ e pelo OpenStreetMap (© colaboradores do OpenStreetMap). ¦ The live position takes into account traffic lights mapped by UFRJ and OpenStreetMap (© OpenStreetMap contributors). ¦ La posición en vivo considera los semáforos mapeados por la UFRJ y OpenStreetMap (© colaboradores de OpenStreetMap).

@@ -1,6 +1,6 @@
-/* Chega aí UFRJ · service worker (gerado no empacotamento, versão 20261113-2342) */
-var CACHE='cse-20261113-2342';
-var PRE=["./", "index.html", "style.css?v=20261113-2342", "app.js?v=20261113-2342", "config.js?v=20261113-2342", "manifest.json", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "favicon-32.png", "mapa-blur-claro.webp?v=fb6b65843e", "mapa-blur.webp?v=702214882b", "mapa-bordas-claro.webp?v=fde8cee77b", "mapa-bordas.webp?v=ba23fa1c25", "mapa-campus-claro.svg?v=28ebea3feb", "mapa-campus-claro.webp?v=f32037c74a", "mapa-campus.svg?v=1e27187281", "mapa-campus.webp?v=09bcce1fa0", "mapa-mini-claro.webp?v=85930e4b4a", "mapa-mini.webp?v=237fda4469", "idioma.json?v=d105cb23b6"];
+/* Chega aí UFRJ · service worker (gerado no empacotamento, versão 20261114-0816) */
+var CACHE='cse-20261114-0816';
+var PRE=["./", "index.html", "style.css?v=20261114-0816", "app.js?v=20261114-0816", "config.js?v=20261114-0816", "manifest.json", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "favicon-32.png", "mapa-blur-claro.webp?v=fb6b65843e", "mapa-blur.webp?v=702214882b", "mapa-bordas-claro.webp?v=fde8cee77b", "mapa-bordas.webp?v=ba23fa1c25", "mapa-campus-claro.svg?v=28ebea3feb", "mapa-campus-claro.webp?v=f32037c74a", "mapa-campus.svg?v=1e27187281", "mapa-campus.webp?v=09bcce1fa0", "mapa-mini-claro.webp?v=85930e4b4a", "mapa-mini.webp?v=237fda4469", "idioma.json?v=52af3f8a38"];
 self.addEventListener('install',function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){return Promise.all(PRE.map(function(u){return c.add(new Request(u,{cache:'reload'})).catch(function(){})}))/* 'reload': não pega cópia velha do cache do navegador */}).then(function(){return self.skipWaiting()}));
 });
