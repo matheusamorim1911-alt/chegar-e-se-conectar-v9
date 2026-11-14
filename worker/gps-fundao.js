@@ -458,6 +458,30 @@ async function enviaPush(endpoint, j, jwts, agora, topico) {
   const r = await fetch(endpoint, { method: 'POST', headers: { authorization: `vapid t=${t}, k=${j.pub}`, ttl: String(PUSH_JANELA_H * 3600), urgency: 'high', topic: topico || 'tiroteio', 'content-length': '0' }, signal: AbortSignal.timeout(8000) });
   return r.status;
 }
+// ---------- aparelhos da mesma conta ----------
+// Cada conta do app tem um código de grupo (32 letras hexadecimais, aleatório, guardado só na conta da pessoa).
+// O aparelho manda o código junto com a assinatura; o Worker guarda em "grupos" ({código: {chave: endereço}}) e
+// manda os avisos de ônibus e os testes a todos os aparelhos do grupo. Sem conta, cada aparelho é um grupo só dele.
+export const grpValido = g => typeof g === 'string' && /^[a-f0-9]{32}$/.test(g) ? g : '';
+const GRP_MAX = 10;
+export async function grupoAtualiza(env, k, e, g) {
+  const G = (await env.PUSH.get('grupos', 'json')) || {}; let mudou = false;
+  for (const x of Object.keys(G)) if (x !== g && G[x][k]) { delete G[x][k]; if (!Object.keys(G[x]).length) delete G[x]; mudou = true; }
+  if (g && (!G[g] || G[g][k] !== e)) {
+    G[g] = G[g] || {}; G[g][k] = e;
+    const ks = Object.keys(G[g]); if (ks.length > GRP_MAX) delete G[g][ks[0]];
+    mudou = true;
+  }
+  if (mudou) await env.PUSH.put('grupos', JSON.stringify(G));
+  return G;
+}
+async function grupoTira(env, G, ks) {
+  let mudou = false;
+  for (const g of Object.keys(G)) for (const k of ks) if (G[g][k]) { delete G[g][k]; if (!Object.keys(G[g]).length) delete G[g]; mudou = true; }
+  if (mudou) await env.PUSH.put('grupos', JSON.stringify(G));
+}
+// os aparelhos que recebem: os do grupo (ou só este)
+function alvosDoGrupo(G, g, k, e) { const o = { ...(g && G[g] ? G[g] : {}) }; o[k] = e; return o; }
 async function lerCorpo(req) { try { return JSON.parse(await req.text()); } catch (e) { return {}; } }
 async function rotaPush(caminho, req, env, cors) {
   const resp = (o, st) => new Response(JSON.stringify(o), { status: st || 200, headers: { ...cors, 'cache-control': 'no-store' } });
@@ -466,25 +490,26 @@ async function rotaPush(caminho, req, env, cors) {
   if (req.method !== 'POST') return resp({ erro: 'use POST' }, 405);
   const b = await lerCorpo(req), e = b.endpoint;
   if (!endpointValido(e)) return resp({ erro: 'endereço de notificação inválido' }, 400);
-  const k = await chavePush(e);
-  if (caminho === '/push/alertas') return resp(await guardaAlertas(env, k, e, b.alertas));
+  const k = await chavePush(e), g = grpValido(b.g);
+  if (caminho === '/push/alertas') return resp(await guardaAlertas(env, k, e, b.alertas, g));
   if (caminho === '/push/aviso') {
     // o service worker pergunta o que mostrar no aviso que acabou de chegar (o aviso vai sem conteúdo)
     const st = (await env.PUSH.get('alst', 'json')) || {}, m = st.msgs && st.msgs[k];
     return resp(m && m.exp > Date.now() ? { titulo: m.t, corpo: m.c, tag: m.tag } : { nada: true });
   }
-  if (caminho === '/push/assinar') { await env.PUSH.put(k, '1', { metadata: { e, t: Date.now() } }); return resp({ ok: true }); }
+  if (caminho === '/push/assinar') { await env.PUSH.put(k, '1', { metadata: { e, t: Date.now() } }); await grupoAtualiza(env, k, e, g); return resp({ ok: true }); }
   if (caminho === '/push/sair') { await env.PUSH.delete(k); return resp({ ok: true }); }
   if (caminho === '/push/teste' && b.tipo === 'onibus') {
-    // teste do aviso de ônibus: um por minuto por aparelho, mesmo sem alerta criado
+    // teste do aviso de ônibus: vai a todos os aparelhos da conta; um por minuto, mesmo sem alerta criado
     const st = (await env.PUSH.get('alst', 'json')) || {}; st.av = st.av || {}; st.msgs = st.msgs || {};
-    const agora = Date.now();
-    if (st.av[k + '|teste'] > agora) return resp({ erro: 'espere um minuto' }, 429);
-    st.av[k + '|teste'] = agora + 60e3;
-    st.msgs[k] = { t: 'Teste: o ônibus está chegando', c: 'Os avisos de ônibus estão funcionando neste aparelho.', tag: 'onibus-teste', exp: agora + 10 * 60e3 };
+    const agora = Date.now(), base = g || k;
+    if (st.av[base + '|teste'] > agora) return resp({ erro: 'espere um minuto' }, 429);
+    st.av[base + '|teste'] = agora + 60e3;
+    const G = await grupoAtualiza(env, k, e, g), alvos = alvosDoGrupo(G, g, k, e);
+    for (const x of Object.keys(alvos)) st.msgs[x] = { t: 'Teste: o ônibus está chegando', c: 'Os avisos de ônibus estão funcionando' + (Object.keys(alvos).length > 1 ? ' nos seus aparelhos.' : ' neste aparelho.'), tag: 'onibus-teste', exp: agora + 10 * 60e3 };
     await env.PUSH.put('alst', JSON.stringify(st));
-    const s2 = await enviaPush(e, await vapid(env), {}, agora, 'onibus');
-    return resp({ ok: s2 >= 200 && s2 < 300, status: s2 });
+    const r = await enviaParaTodos(env, G, alvos, agora, 'onibus');
+    return resp({ ok: r.ok > 0, status: r.st[k], aparelhos: r.ok });
   }
   if (caminho === '/push/teste') {
     // um aviso de teste só para quem já assinou, no máximo um por minuto
@@ -492,15 +517,26 @@ async function rotaPush(caminho, req, env, cors) {
     if (!m || !m.metadata) return resp({ erro: 'não assinado' }, 404);
     if (m.metadata.teste && Date.now() - m.metadata.teste < 60e3) return resp({ erro: 'espere um minuto' }, 429);
     await env.PUSH.put(k, '1', { metadata: { ...m.metadata, teste: Date.now() } });
-    // o texto do teste vai pelo mesmo caminho dos avisos de ônibus: o aparelho o busca em /push/aviso
+    // o texto do teste vai pelo mesmo caminho dos avisos de ônibus: o aparelho o busca em /push/aviso.
+    // Vai a todos os aparelhos da conta que também ligaram os avisos de tiroteio.
+    const G = await grupoAtualiza(env, k, e, g), todos = alvosDoGrupo(G, g, k, e), alvos = {};
+    for (const x of Object.keys(todos)) if (x === k || await env.PUSH.get(x)) alvos[x] = todos[x];
     const ta = (await env.PUSH.get('alst', 'json')) || {}; ta.msgs = ta.msgs || {};
-    ta.msgs[k] = { t: 'Chega aí UFRJ', c: 'Aviso de teste: as notificações de tiroteio estão ligadas.', tag: 'teste', exp: Date.now() + 10 * 60e3 };
+    for (const x of Object.keys(alvos)) ta.msgs[x] = { t: 'Chega aí UFRJ', c: 'Aviso de teste: as notificações de tiroteio estão ligadas.', tag: 'teste', exp: Date.now() + 10 * 60e3 };
     await env.PUSH.put('alst', JSON.stringify(ta));
-    const st = await enviaPush(e, await vapid(env), {}, Date.now());
-    if (st === 404 || st === 410) await env.PUSH.delete(k);
-    return resp({ ok: st >= 200 && st < 300, status: st });
+    const r = await enviaParaTodos(env, G, alvos, Date.now());
+    for (const x of Object.keys(r.st)) if (r.st[x] === 404 || r.st[x] === 410) await env.PUSH.delete(x);
+    return resp({ ok: r.st[k] >= 200 && r.st[k] < 300, status: r.st[k], aparelhos: r.ok });
   }
   return resp({ erro: 'rota desconhecida' }, 404);
+}
+// manda um aviso (sem conteúdo) a vários aparelhos; tira do grupo os que não existem mais
+async function enviaParaTodos(env, G, alvos, agora, topico) {
+  const j = await vapid(env), jwts = {}, st = {}; let ok = 0;
+  await Promise.all(Object.entries(alvos).map(async ([x, e]) => { let s = 0; try { s = await enviaPush(e, j, jwts, agora, topico); } catch (y) { s = 0; } st[x] = s; if (s >= 200 && s < 300) ok++; }));
+  const mortos = Object.keys(st).filter(x => st[x] === 404 || st[x] === 410);
+  if (mortos.length) await grupoTira(env, G, mortos);
+  return { ok, st };
 }
 // roda pelo gatilho Cron (a cada 5 min): avisa tiroteios novos e envia em lotes de PUSH_LOTE (limite de pedidos por vez do plano grátis)
 export async function avisaTiroteios(env, ctx, agora) {
@@ -559,14 +595,15 @@ export function alertaValido(a) {
   }
   return o;
 }
-async function guardaAlertas(env, k, e, lista) {
+async function guardaAlertas(env, k, e, lista, g) {
   const L = (Array.isArray(lista) ? lista : []).map(alertaValido).filter(Boolean).slice(0, AL_MAX);
   const d = (await env.PUSH.get('alertas', 'json')) || {};
   // "só o próximo" que já avisou: o app apaga do aparelho (o sininho volta a ficar desligado) e o Worker não guarda de novo
-  const st = (await env.PUSH.get('alst', 'json')) || {}, agora = Date.now(), feitos = [];
-  const novos = L.filter(a => { if (a.uma && st.av && st.av[k + '|' + a.id + '|uma'] > agora) { feitos.push(a.id); return false; } return true; });
-  if (novos.length) d[k] = { e, a: novos, t: agora }; else delete d[k];
+  const st = (await env.PUSH.get('alst', 'json')) || {}, agora = Date.now(), feitos = [], base = g || k;
+  const novos = L.filter(a => { if (a.uma && st.av && st.av[base + '|' + a.id + '|uma'] > agora) { feitos.push(a.id); return false; } return true; });
+  if (novos.length) d[k] = { e, a: novos, t: agora, ...(g ? { g } : {}) }; else delete d[k];
   await env.PUSH.put('alertas', JSON.stringify(d));
+  await grupoAtualiza(env, k, e, g);
   return { ok: true, n: novos.length, feitos };
 }
 // distância (m) que falta até o fim do corredor para um ônibus sobre ele indo no sentido certo; null se não está nele
@@ -629,20 +666,29 @@ export async function avisaOnibus(env, ctx, agora) {
   for (const k of Object.keys(st.av)) if (st.av[k] < agora) delete st.av[k];
   for (const k of Object.keys(st.msgs)) if (st.msgs[k].exp < agora) delete st.msgs[k];
   const enviar = []; let mudouD = false;
+  // aparelhos da mesma conta formam um grupo: cada alerta é conferido uma vez e o aviso vai a todos os aparelhos dele
+  const G = (await env.PUSH.get('grupos', 'json')) || {}, grupos = {};
   for (const k of subs) {
     const vivos = D[k].a.filter(a => !(a.fim && agora > a.fim));
     if (vivos.length !== D[k].a.length) { mudouD = true; if (vivos.length) D[k].a = vivos; else { delete D[k]; continue; } }
-    for (const a of D[k].a) for (const x of conferirAlerta(a, onibus, agora)) {
-      const ch = k + '|' + x.chave; if (st.av[ch] || (a.uma && st.av[k + '|' + a.id + '|uma'])) continue;
-      st.av[ch] = agora + (a.tipo === 'i' ? 40 : 25) * 60e3; if (a.uma) st.av[k + '|' + a.id + '|uma'] = agora + 12 * 3600e3;
-      if (!enviar.some(y => y.k === k)) { st.msgs[k] = { t: x.t, c: x.c, tag: 'onibus-' + a.id, exp: agora + 10 * 60e3 }; enviar.push({ k, e: D[k].e }); }
+    const base = D[k].g || k, u = grupos[base] || (grupos[base] = { a: new Map(), alvos: alvosDoGrupo(G, D[k].g, k, D[k].e) });
+    u.alvos[k] = D[k].e;
+    for (const a of D[k].a) if (!u.a.has(a.id)) u.a.set(a.id, a);
+  }
+  for (const base of Object.keys(grupos)) {
+    const u = grupos[base];
+    for (const a of u.a.values()) for (const x of conferirAlerta(a, onibus, agora)) {
+      const ch = base + '|' + x.chave; if (st.av[ch] || (a.uma && st.av[base + '|' + a.id + '|uma'])) continue;
+      st.av[ch] = agora + (a.tipo === 'i' ? 40 : 25) * 60e3; if (a.uma) st.av[base + '|' + a.id + '|uma'] = agora + 12 * 3600e3;
+      for (const [k, e] of Object.entries(u.alvos)) if (!enviar.some(y => y.k === k)) { st.msgs[k] = { t: x.t, c: x.c, tag: 'onibus-' + a.id, exp: agora + 10 * 60e3 }; enviar.push({ k, e }); }
     }
   }
   if (enviar.length) {
     await env.PUSH.put('alst', JSON.stringify(st));
-    const j = await vapid(env), jwts = {};
+    const j = await vapid(env), jwts = {}, mortos = [];
     await Promise.all(enviar.slice(0, PUSH_LOTE).map(async x => { let s = 0; try { s = await enviaPush(x.e, j, jwts, agora, 'onibus'); } catch (e) { s = 0; }
-      if (s === 404 || s === 410) { delete D[x.k]; mudouD = true; } }));
+      if (s === 404 || s === 410) { if (D[x.k]) { delete D[x.k]; mudouD = true; } mortos.push(x.k); } }));
+    if (mortos.length) await grupoTira(env, G, mortos);
   }
   if (mudouD) await env.PUSH.put('alertas', JSON.stringify(D));
   return { r: enviar.length ? 'avisou' : 'nada', n: enviar.length, aparelhos: subs.length };

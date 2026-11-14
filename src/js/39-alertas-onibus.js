@@ -140,7 +140,7 @@ function alvAssina(pedir,criar){
 function alvSincroniza(pedir){
   var L=alvServidor();
   return alvAssina(pedir,L.length>0).then(function(s){if(!s)return false;
-    return fetch(PUSH.url+'/alertas',{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({endpoint:s.endpoint,alertas:L})}).then(function(r){return r.json().catch(function(){return {}})},function(){throw new Error('rede')})
+    return fetch(PUSH.url+'/alertas',{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({endpoint:s.endpoint,alertas:L,g:typeof pushGrupoAtual==='function'?pushGrupoAtual():''})}).then(function(r){return r.json().catch(function(){return {}})},function(){throw new Error('rede')})
       .then(function(j){if(!j||!j.ok)throw new Error('worker');
         /* "de uma vez" que o Worker já avisou: sai do aparelho e o sininho volta a ficar desligado */
         if(j.feitos&&j.feitos.length){ALV.uma=ALV.uma.filter(function(a){return j.feitos.indexOf(a.id)<0});alvGuarda();alvPinta()}
@@ -243,8 +243,8 @@ function alvTeste(){
   if(ALV.busy)return;ALV.busy=true;ALV.msg='';alvPinta();
   alvAssina(true,true).then(function(s){
     if(!s)throw new Error('sem');
-    return fetch(PUSH.url+'/teste',{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({endpoint:s.endpoint,tipo:'onibus'})}).then(function(r){return r.json().catch(function(){return {}}).then(function(j){j.status=r.status;return j})},function(){throw new Error('rede')})})
-  .then(function(j){ALV.msg=j.ok?'Teste enviado. A notificação chega em alguns segundos.':j.status===429?'Espere um minuto para mandar outro teste.':j.status===404||j.status===400||!j.status?'O Worker ainda não faz o teste de ônibus: ele precisa ser publicado de novo na Cloudflare.':'O serviço de notificações recusou o teste. Tente de novo.'})
+    return fetch(PUSH.url+'/teste',{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({endpoint:s.endpoint,tipo:'onibus',g:typeof pushGrupoAtual==='function'?pushGrupoAtual():''})}).then(function(r){return r.json().catch(function(){return {}}).then(function(j){j.status=r.status;return j})},function(){throw new Error('rede')})})
+  .then(function(j){ALV.msg=j.ok?(j.aparelhos>1?'Teste enviado para '+j.aparelhos+' aparelhos. A notificação chega em alguns segundos.':'Teste enviado. A notificação chega em alguns segundos.'):j.status===429?'Espere um minuto para mandar outro teste.':j.status===404||j.status===400||!j.status?'O Worker ainda não faz o teste de ônibus: ele precisa ser publicado de novo na Cloudflare.':'O serviço de notificações recusou o teste. Tente de novo.'})
   .catch(function(e){ALV.msg=e&&e.message==='rede'?'Sem conexão com o servidor do app.':(alvMotivoTxt()||'Não deu para mandar o teste agora.')})
   .then(function(){ALV.busy=false;alvPinta()});
 }

@@ -810,6 +810,8 @@ Este aparelho tem a sua própria personalização. Favoritos, provas e avisos de
 Este aparelho agora segue a personalização da conta. ¦ This device now follows your account's personalization. ¦ Este dispositivo ahora sigue la personalización de la cuenta.
 A personalização deste aparelho agora é só dele. ¦ This device's personalization is now its own. ¦ La personalización de este dispositivo ahora es solo suya.
 Seus avisos de ônibus vieram da conta. Para receber neste aparelho, permita as notificações em Ajustes › Avisos de ônibus. ¦ Your bus alerts came from your account. To get them on this device, allow notifications in Settings › Bus alerts. ¦ Tus avisos de autobús vinieron de la cuenta. Para recibirlos en este dispositivo, permite las notificaciones en Ajustes › Avisos de autobús.
+Notificações de tiroteio ligadas, como nos seus outros aparelhos. ¦ Shooting notifications on, as on your other devices. ¦ Notificaciones de tiroteos activadas, como en tus otros dispositivos.
+Os avisos de tiroteio estão ligados na sua conta. Para receber neste aparelho, ligue em Ajustes › Segurança no caminho. ¦ Shooting alerts are on in your account. To get them on this device, turn them on in Settings › Safety on the way. ¦ Los avisos de tiroteos están activados en tu cuenta. Para recibirlos en este dispositivo, actívalos en Ajustes › Seguridad en el camino.
 `;
 var IDI_PEDACOS=null,IDI_CACHE=new Map();
 /* pedaços com 7 letras ou mais (ou com pontuação que os marca), os mais compridos primeiro */
@@ -833,6 +835,8 @@ function idiPorPedacos(t){
 IDI_PAD.push([/^(.+?) perto de (.+)$/,function(_,a,b){var r=idiMapa().get(a);return (r?r[0]:a)+' near '+b},function(_,a,b){var r=idiMapa().get(a);return (r?r[1]:a)+' cerca de '+b}]);
 IDI_PAD.push([/^Parada (.+), linhas (.+)$/,'Stop $1, lines $2','Parada $1, líneas $2']);
 IDI_PAD.push([/^Guarita (\d+), segurança$/,'Guard post $1, security','Garita $1, seguridad']);
+IDI_PAD.push([/^Teste enviado para (\d+) aparelhos\. A notificação chega em alguns segundos\.$/,'Test sent to $1 devices. The notification arrives in a few seconds.','Prueba enviada a $1 dispositivos. La notificación llega en unos segundos.']);
+IDI_PAD.push([/^Aviso de teste enviado para (\d+) aparelhos\. Ele chega em alguns segundos\.$/,'Test alert sent to $1 devices. It arrives in a few seconds.','Aviso de prueba enviado a $1 dispositivos. Llega en unos segundos.']);
 IDI_PAD.push([/^chega por volta de (\d\d:\d\d), até (\d\d:\d\d)$/,'arrives around $1, by $2 at the latest','llega hacia las $1, a más tardar $2']);
 IDI_PAD.push([/^chega (\d\d:\d\d)$/,'arrives $1','llega $1']);
 IDI_PAD.push([/^Esteja em (.+) às (\d\d:\d\d)$/,'Be at $1 by $2','Está en $1 a las $2']);
