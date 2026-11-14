@@ -1,7 +1,8 @@
 # Confere os horários dos ônibus da cidade em vindo-de-fora.json com o GPS de verdade (CSV da prefeitura do Rio, o
 # mesmo de tools/perfil_trechos.py; só a área do Worker em volta do Fundão) e mede a espera real nos pontos.
 #
-# Uso: python3 tools/conferir_horarios.py vindo-de-fora.json tools/dados/gps-*.csv.gz
+# Uso: python3 tools/conferir_horarios.py vindo-de-fora.json tools/dados/gps-*.csv.gz [--sabado | --domingo]
+# Mais GPS (com sábados, domingos e BRT): o ramo dados-gps, coletado por .github/workflows/coletar-gps.yml.
 #
 # O que se descobriu (nov/2026): o GTFS da prefeitura do Rio só tem frequências ("a cada x min"), não horas de
 # verdade. O tempo de viagem entre dois pontos bate com o GPS, mas quem chega ao ponto na "hora" do GTFS espera
@@ -26,7 +27,8 @@ def faixa(m):
 def xy(la, lo): return lo * KX, la * KY
 def q(L, p): L = sorted(L); return L[min(len(L) - 1, int(len(L) * p))] if L else None
 
-def carregar(vf_json, arquivos):
+def carregar(vf_json, arquivos, tipo='U'):
+  """tipo: U (dias úteis), S (sábados) ou D (domingos)"""
   VF = vf_json
   P = [{'n': p[0], 'la': p[1] / 1e5, 'lo': p[2] / 1e5, 'il': len(p) > 3} for p in VF['p']]
   for p in P:
@@ -41,7 +43,7 @@ def carregar(vf_json, arquivos):
   veic = collections.defaultdict(list); conta = collections.Counter()
   for (v, t), (l, la, lo) in pts.items():
     d = datetime.datetime.fromisoformat(t[:19])
-    if d.weekday() >= 5: continue  # só dias úteis
+    if {'U': d.weekday() >= 5, 'S': d.weekday() != 5, 'D': d.weekday() != 6}[tipo]: continue  # só o tipo de dia pedido
     m = d.hour * 60 + d.minute + d.second / 60
     veic[v].append((d.date().isoformat(), m, l, *xy(la, lo)))
     conta[(d.date().isoformat(), int(m // 10))] += 1
@@ -76,7 +78,7 @@ def carregar(vf_json, arquivos):
   # pares de pontos (ida: o ponto fora da ilha mais longe dentro da área → o primeiro da ilha; volta: o último da ilha → o mais longe)
   pares = {}
   for R in VF['r']:
-    U = R['t'].get('U')
+    U = R['t'].get(tipo)
     if not U: continue
     s = R['s']; idx = [(s[i], s[i + 1]) for i in range(0, len(s), 2)]
     fora = [k for k, (pi, _) in enumerate(idx) if P[pi]['area'] and not P[pi]['il']]
@@ -190,9 +192,11 @@ def erro(L): return {'casos': len(L), 'erro_abs_mediano_min': round(statistics.m
                      'ate_5min': round(sum(1 for x in L if abs(x) <= 5) / len(L), 3) if L else None}
 
 if __name__ == '__main__':
-  args = sys.argv[1:]
-  G = carregar(json.load(open(args[0], encoding='utf-8')), args[1:])
-  print('Dias úteis com GPS:', ', '.join(G['dias']))
+  tipo = 'S' if '--sabado' in sys.argv else 'D' if '--domingo' in sys.argv else 'U'
+  args = [a for a in sys.argv[1:] if not a.startswith('--')]
+  G = carregar(json.load(open(args[0], encoding='utf-8')), args[1:], tipo)
+  print({'U': 'Dias úteis', 'S': 'Sábados', 'D': 'Domingos'}[tipo], 'com GPS:', ', '.join(G['dias']))
+  if len(G['dias']) < 2: print('Precisa de pelo menos 2 dias para testar deixando um de fora.'); sys.exit(0)
   tot = collections.defaultdict(list)
   for d in G['dias']:
     M = modelo(G, [x for x in G['dias'] if x != d]); o = avaliar(G, d, M)

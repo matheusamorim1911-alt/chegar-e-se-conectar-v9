@@ -1,0 +1,44 @@
+# Coleta as posições dos ônibus em volta do Fundão (tools/coletar_gps.mjs) e guarda no ramo "dados-gps",
+# um arquivo por período: gps/AAAA-MM-DD-HHMM.csv.gz. Três turnos por dia cobrem das 5h às 23h (horário de Brasília).
+# Para parar, desative a tarefa em Actions › Coletar GPS dos ônibus › "..." › Disable workflow.
+name: Coletar GPS dos ônibus
+on:
+  schedule:
+    - cron: '0 8 * * *'    # 5h no Rio
+    - cron: '0 14 * * *'   # 11h
+    - cron: '0 20 * * *'   # 17h
+  workflow_dispatch:
+    inputs:
+      minutos:
+        description: 'Minutos de coleta'
+        default: '355'
+permissions:
+  contents: write
+jobs:
+  coletar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Coletar
+        run: |
+          nome=$(TZ=America/Sao_Paulo date +%Y-%m-%d-%H%M)
+          echo "NOME=$nome" >> $GITHUB_ENV
+          node tools/coletar_gps.mjs "${{ github.event.inputs.minutos || '355' }}" "/tmp/$nome.csv"
+          gzip -9 "/tmp/$nome.csv"
+      - name: Guardar no ramo dados-gps
+        run: |
+          git config user.name 'coleta-gps'
+          git config user.email 'coleta-gps@users.noreply.github.com'
+          if git ls-remote --exit-code --heads origin dados-gps >/dev/null; then
+            git fetch --depth=1 origin dados-gps && git checkout -q -B dados-gps FETCH_HEAD
+          else
+            git checkout -q --orphan dados-gps && git rm -rq --cached . && git clean -fdq
+            printf 'Posições dos ônibus em volta do Fundão, coletadas por .github/workflows/coletar-gps.yml (ramo main).\nFonte: SMTR / prefeitura do Rio (CC BY 4.0), pelo Worker do app.\n' > LEIAME.md && git add LEIAME.md
+          fi
+          mkdir -p gps && cp "/tmp/$NOME.csv.gz" gps/ && git add gps
+          git commit -qm "GPS $NOME"
+          for i in 1 2 3 4 5; do git push -q origin dados-gps && break; git pull -q --rebase origin dados-gps; done
