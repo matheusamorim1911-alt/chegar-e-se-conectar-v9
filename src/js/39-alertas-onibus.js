@@ -14,7 +14,33 @@ var ALV={lista:[],uma:[],max:5,maxUma:5,form:null,msg:'',busy:false,push:false,s
 try{localStorage.removeItem('cse-alertas-onibus')}catch(e){}/* versão anterior: começa do zero */
 try{var _alv=JSON.parse(localStorage.getItem('cse-avisos-onibus')||'{}');if(_alv&&Array.isArray(_alv.c))ALV.lista=_alv.c.slice(0,ALV.max);if(_alv&&Array.isArray(_alv.u))ALV.uma=_alv.u.slice(0,ALV.maxUma)}catch(e){}
 var ALV_MIN=[3,5,10,15];
-function alvGuarda(){try{localStorage.setItem('cse-avisos-onibus',JSON.stringify({c:ALV.lista,u:ALV.uma}))}catch(e){}}
+function alvGuarda(){try{localStorage.setItem('cse-avisos-onibus',JSON.stringify({c:ALV.lista,u:ALV.uma}))}catch(e){}alvNaConta()}
+/* ---------- os avisos programados vão com a conta (CFG.avisos), para valer em todos os aparelhos ----------
+   Cada aviso leva a hora em que mudou (t); apagar deixa {id, x:1, t} para o aviso não voltar quando a conta junta as
+   listas de dois aparelhos (alvJunta, chamada em applyRemote). Os "de uma vez" (sininho) ficam só no aparelho.
+   Em cada aparelho, o aviso só chega depois de permitir as notificações nele (o Worker avisa cada aparelho). */
+function alvSemT(a){var x=Object.assign({},a);delete x.t;return JSON.stringify(x)}
+function alvNaConta(){
+  var velho={},agora=Date.now(),novo=[];(Array.isArray(CFG.avisos)?CFG.avisos:[]).forEach(function(a){if(a&&a.id)velho[a.id]=a});
+  ALV.lista.forEach(function(a){var o=velho[a.id];a.t=o&&!o.x&&alvSemT(o)===alvSemT(a)?(o.t||agora):(a.t&&!o?a.t:agora);novo.push(Object.assign({},a));delete velho[a.id]});
+  var mortos=Object.keys(velho).map(function(k){var o=velho[k];return o.x?o:{id:o.id,x:1,t:agora}}).sort(function(a,b){return b.t-a.t}).slice(0,20);
+  novo=novo.concat(mortos);
+  if(JSON.stringify(novo)!==JSON.stringify(CFG.avisos||[])){CFG.avisos=novo;saveCfg()}
+}
+/* junta a lista vinda da conta com a deste aparelho; devolve true se mudou algo aqui */
+function alvJunta(R){
+  var M={},mudou=false;(Array.isArray(CFG.avisos)?CFG.avisos:[]).forEach(function(a){if(a&&a.id)M[a.id]=a});
+  R.forEach(function(r){if(!r||!r.id)return;var a=M[r.id];
+    if(!a){M[r.id]=r;mudou=true}else if(r.x&&!a.x&&(r.t||0)>=(a.t||0)){M[r.id]=r;mudou=true}else if(!r.x&&(r.t||0)>(a.t||0)){M[r.id]=r;mudou=true}});
+  if(!mudou)return false;
+  var L=Object.keys(M).map(function(k){return M[k]});CFG.avisos=L;
+  var antes=ALV.lista.length;
+  ALV.lista=L.filter(function(a){return !a.x}).sort(function(a,b){return (b.t||0)-(a.t||0)}).slice(0,ALV.max).map(function(a){return Object.assign({},a)});
+  try{localStorage.setItem('cse-avisos-onibus',JSON.stringify({c:ALV.lista,u:ALV.uma}))}catch(e){}
+  setTimeout(function(){alvSincroniza(false).then(function(){alvPinta();
+    if(ALV.lista.length>antes&&!ALV.push)gToast('Seus avisos de ônibus vieram da conta. Para receber neste aparelho, permita as notificações em Ajustes › Avisos de ônibus.')})},0);
+  return true;
+}
 function alvSalva(){alvGuarda();alvSincroniza();alvPinta()}
 function alvVivosUma(){var ag=Date.now();return ALV.uma.filter(function(a){return !(a.fim&&ag>a.fim)})}
 function alvLimpa(){var ag=Date.now(),n=ALV.uma.length;ALV.uma=ALV.uma.filter(function(a){return !(a.fim&&ag>a.fim)});if(ALV.uma.length!==n)alvSalva()}
@@ -294,5 +320,6 @@ function alvBotaoTrajeto(){
 }
 aoFazer('trajeto montado',alvBotaoTrajeto);alvBotaoTrajeto();/* o trajeto já foi montado antes desta parte carregar */
 /* ao abrir o app: confirma a lista no Worker (ele esquece o aparelho se a assinatura mudou e apaga o que já avisou) */
+alvNaConta();/* avisos de antes desta versão: entram na conta */
 setTimeout(function(){if(alvTem())alvSincroniza(false).then(alvPinta)},6000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&ALV.uma.length&&pushPermissao()==='granted')alvSincroniza(false).then(alvPinta)});

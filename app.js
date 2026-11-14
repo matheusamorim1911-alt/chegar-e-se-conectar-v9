@@ -10,7 +10,7 @@ function etapas(nome){var a=[].slice.call(arguments,1);(ETAPAS[nome]||[]).forEac
 var FBMODE=!!(window.CSE_FIREBASE&&window.CSE_FIREBASE.apiKey&&window.CSE_FIREBASE.projectId)&&!(window.claude&&typeof window.claude.use==='function');
 var LITE=(function(){try{return window.matchMedia('(pointer:coarse), (max-width:820px)').matches||(navigator.hardwareConcurrency||8)<=4||!!(navigator.connection&&navigator.connection.saveData)}catch(e){return false}})();
 document.documentElement.classList.toggle('lite',LITE);
-var CFG={cover:'folha',idioma:'pt',idiomaOk:false,provas:[],favs:[],banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'escuro',temaV:0,bussola:false,foto:true,perf:'auto',perfV:0,bldn:true,simples:true,simplesV:0,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true,faixa:10,faixaV:0,telaCheia:null,alChuva:true,alFila:false};
+var CFG={cover:'folha',idioma:'pt',idiomaOk:false,provas:[],favs:[],avisos:[],banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'escuro',temaV:0,bussola:false,foto:true,perf:'auto',perfV:0,bldn:true,simples:true,simplesV:0,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true,faixa:10,faixaV:0,telaCheia:null,alChuva:true,alFila:false};
 try{var _c=JSON.parse(localStorage.getItem('cse-cfg'));if(_c)CFG=Object.assign(CFG,_c)}catch(e){}
 /* v22: tema escuro é o padrão; quem estava em "Do aparelho" passa para escuro uma vez (claro ou pelo horário escolhidos ficam) */
 if(CFG.temaV!==1){if(!CFG.tema||CFG.tema==='sistema')CFG.tema='escuro';CFG.temaV=1;try{localStorage.setItem('cse-cfg',JSON.stringify(CFG))}catch(e){}}
@@ -2656,13 +2656,23 @@ $('#gestBtn').addEventListener('click',function(){if(gestM&&!gestM.hidden)closeG
 var FB_CFG=window.CSE_FIREBASE||null;
 var FB_ON=!!(FB_CFG&&FB_CFG.apiKey&&FB_CFG.projectId)&&!(window.claude&&typeof window.claude.use==='function');
 var ACC={kind:null,uid:null,name:'',email:'',photo:'',fb:null,mute:false,t:0,last:0,state:'',busy:false};
-function accSettings(){return {cfg:Object.assign({},CFG),rota:{from:state.from,to:state.to}}}
+/* o que vai sempre com a conta (dados); o resto é personalização, que cada aparelho pode deixar só para si
+   (Ajustes › Conta › "Mesma personalização em todos os aparelhos", cse-pers-conta; ligado por padrão) */
+var CFG_CONTA=['provas','favs','avisos','idioma','idiomaOk'];
+function persNaConta(){try{return localStorage.getItem('cse-pers-conta')!=='0'}catch(e){return true}}
+function accSettings(){
+  var c=Object.assign({},CFG);
+  /* personalização só deste aparelho: manda a da conta como estava, para não mudar a dos outros aparelhos */
+  if(!persNaConta()){c=Object.assign({},ACC.cfgConta||{});CFG_CONTA.forEach(function(k){c[k]=CFG[k]})}
+  ACC.cfgConta=Object.assign({},c);/* o que a conta passa a ter */
+  return {cfg:c,rota:{from:state.from,to:state.to}}}
 function applyRemote(d){
   if(!d||typeof d!=='object')return;
   var ch=false;
   /* idioma escolhido neste aparelho e ainda não salvo na conta: vale o daqui */
-  var idiAqui=d.cfg&&CFG.idiomaOk&&!d.cfg.idiomaOk;
-  if(d.cfg&&typeof d.cfg==='object')Object.keys(CFG).forEach(function(k){if(idiAqui&&(k==='idioma'||k==='idiomaOk'))return;if(k==='favs'){if(Array.isArray(d.cfg.favs)&&typeof favJunta==='function'&&favJunta(d.cfg.favs))ch=true;return}if(k==='provas'){if(Array.isArray(d.cfg.provas)&&typeof prvJunta==='function'&&prvJunta(d.cfg.provas))ch=true;return}if(k in d.cfg&&typeof d.cfg[k]===typeof CFG[k]&&CFG[k]!==d.cfg[k]){CFG[k]=d.cfg[k];ch=true}});
+  var idiAqui=d.cfg&&CFG.idiomaOk&&!d.cfg.idiomaOk,soDados=!persNaConta();
+  if(d.cfg&&typeof d.cfg==='object')ACC.cfgConta=Object.assign({},d.cfg);
+  if(d.cfg&&typeof d.cfg==='object')Object.keys(CFG).forEach(function(k){if(idiAqui&&(k==='idioma'||k==='idiomaOk'))return;if(soDados&&CFG_CONTA.indexOf(k)<0)return;if(k==='avisos'){if(Array.isArray(d.cfg.avisos)&&typeof alvJunta==='function'&&alvJunta(d.cfg.avisos))ch=true;return}if(k==='favs'){if(Array.isArray(d.cfg.favs)&&typeof favJunta==='function'&&favJunta(d.cfg.favs))ch=true;return}if(k==='provas'){if(Array.isArray(d.cfg.provas)&&typeof prvJunta==='function'&&prvJunta(d.cfg.provas))ch=true;return}if(k in d.cfg&&typeof d.cfg[k]===typeof CFG[k]&&CFG[k]!==d.cfg[k]){CFG[k]=d.cfg[k];ch=true}});
   ACC.mute=true;
   if(ch){saveCfg();applyBg();applyFont();applyTheme();applyCoverStyle();updateMap();drawBanner();drawShared();renderDetail();coverToday();if(typeof idiAplica==='function')idiAplica()}
   if(d.rota&&STOPS[d.rota.from]&&STOPS[d.rota.to]&&d.rota.from!==d.rota.to&&(d.rota.from!==state.from||d.rota.to!==state.to)){state.from=d.rota.from;state.to=d.rota.to;savePrefs();renderPlan();updateMap()}
@@ -3335,7 +3345,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261114-1001';
+var APP_VERSION='20261114-1136';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -6550,7 +6560,7 @@ setInterval(function(){if(!document.hidden)capaAvisos()},1500);
 var IDI_NOMES={pt:'Português',en:'English',es:'Español'};
 /* No site, a tabela (este texto, o de 37-idioma-textos.js e IDI_FRAG de 38-idioma-frases.js) sai do app.js para idioma.json
    (tools/build_site.py põe o endereço em IDI_ARQ): quem usa o app em português não baixa as traduções. */
-var IDI_ARQ='idioma.json?v=49c4d3952f';
+var IDI_ARQ='idioma.json?v=f1c99d188e';
 var IDI_TAB='';
 /* textos montados: [padrão sobre o texto em português, inglês, espanhol]; $1, $2… são os trechos que ficam como vieram */
 var IDI_PAD=[
@@ -6796,7 +6806,33 @@ var ALV={lista:[],uma:[],max:5,maxUma:5,form:null,msg:'',busy:false,push:false,s
 try{localStorage.removeItem('cse-alertas-onibus')}catch(e){}/* versão anterior: começa do zero */
 try{var _alv=JSON.parse(localStorage.getItem('cse-avisos-onibus')||'{}');if(_alv&&Array.isArray(_alv.c))ALV.lista=_alv.c.slice(0,ALV.max);if(_alv&&Array.isArray(_alv.u))ALV.uma=_alv.u.slice(0,ALV.maxUma)}catch(e){}
 var ALV_MIN=[3,5,10,15];
-function alvGuarda(){try{localStorage.setItem('cse-avisos-onibus',JSON.stringify({c:ALV.lista,u:ALV.uma}))}catch(e){}}
+function alvGuarda(){try{localStorage.setItem('cse-avisos-onibus',JSON.stringify({c:ALV.lista,u:ALV.uma}))}catch(e){}alvNaConta()}
+/* ---------- os avisos programados vão com a conta (CFG.avisos), para valer em todos os aparelhos ----------
+   Cada aviso leva a hora em que mudou (t); apagar deixa {id, x:1, t} para o aviso não voltar quando a conta junta as
+   listas de dois aparelhos (alvJunta, chamada em applyRemote). Os "de uma vez" (sininho) ficam só no aparelho.
+   Em cada aparelho, o aviso só chega depois de permitir as notificações nele (o Worker avisa cada aparelho). */
+function alvSemT(a){var x=Object.assign({},a);delete x.t;return JSON.stringify(x)}
+function alvNaConta(){
+  var velho={},agora=Date.now(),novo=[];(Array.isArray(CFG.avisos)?CFG.avisos:[]).forEach(function(a){if(a&&a.id)velho[a.id]=a});
+  ALV.lista.forEach(function(a){var o=velho[a.id];a.t=o&&!o.x&&alvSemT(o)===alvSemT(a)?(o.t||agora):(a.t&&!o?a.t:agora);novo.push(Object.assign({},a));delete velho[a.id]});
+  var mortos=Object.keys(velho).map(function(k){var o=velho[k];return o.x?o:{id:o.id,x:1,t:agora}}).sort(function(a,b){return b.t-a.t}).slice(0,20);
+  novo=novo.concat(mortos);
+  if(JSON.stringify(novo)!==JSON.stringify(CFG.avisos||[])){CFG.avisos=novo;saveCfg()}
+}
+/* junta a lista vinda da conta com a deste aparelho; devolve true se mudou algo aqui */
+function alvJunta(R){
+  var M={},mudou=false;(Array.isArray(CFG.avisos)?CFG.avisos:[]).forEach(function(a){if(a&&a.id)M[a.id]=a});
+  R.forEach(function(r){if(!r||!r.id)return;var a=M[r.id];
+    if(!a){M[r.id]=r;mudou=true}else if(r.x&&!a.x&&(r.t||0)>=(a.t||0)){M[r.id]=r;mudou=true}else if(!r.x&&(r.t||0)>(a.t||0)){M[r.id]=r;mudou=true}});
+  if(!mudou)return false;
+  var L=Object.keys(M).map(function(k){return M[k]});CFG.avisos=L;
+  var antes=ALV.lista.length;
+  ALV.lista=L.filter(function(a){return !a.x}).sort(function(a,b){return (b.t||0)-(a.t||0)}).slice(0,ALV.max).map(function(a){return Object.assign({},a)});
+  try{localStorage.setItem('cse-avisos-onibus',JSON.stringify({c:ALV.lista,u:ALV.uma}))}catch(e){}
+  setTimeout(function(){alvSincroniza(false).then(function(){alvPinta();
+    if(ALV.lista.length>antes&&!ALV.push)gToast('Seus avisos de ônibus vieram da conta. Para receber neste aparelho, permita as notificações em Ajustes › Avisos de ônibus.')})},0);
+  return true;
+}
 function alvSalva(){alvGuarda();alvSincroniza();alvPinta()}
 function alvVivosUma(){var ag=Date.now();return ALV.uma.filter(function(a){return !(a.fim&&ag>a.fim)})}
 function alvLimpa(){var ag=Date.now(),n=ALV.uma.length;ALV.uma=ALV.uma.filter(function(a){return !(a.fim&&ag>a.fim)});if(ALV.uma.length!==n)alvSalva()}
@@ -7076,6 +7112,7 @@ function alvBotaoTrajeto(){
 }
 aoFazer('trajeto montado',alvBotaoTrajeto);alvBotaoTrajeto();/* o trajeto já foi montado antes desta parte carregar */
 /* ao abrir o app: confirma a lista no Worker (ele esquece o aparelho se a assinatura mudou e apaga o que já avisou) */
+alvNaConta();/* avisos de antes desta versão: entram na conta */
 setTimeout(function(){if(alvTem())alvSincroniza(false).then(alvPinta)},6000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&ALV.uma.length&&pushPermissao()==='granted')alvSincroniza(false).then(alvPinta)});
 /* ======================= Importar a grade horária (PDF) =======================
@@ -7899,6 +7936,24 @@ function vfPrograma(){
   if(VF.aba==='ida'){p.o='casa';p.p=VF.para}else{p.o=VF.de;p.p=VF.alvo}
   o.prog.push(p);vfGuarda(o);vfRecalculaProgs();VF.msg='Viagem programada. Ligue o aviso para saber a hora de sair.';vfPinta();
 }
+/* ======================= Personalização por aparelho =======================
+   Com conta, os ajustes iam todos para a conta e eram os mesmos em todos os aparelhos. Agora a personalização (tema,
+   capa, fundo, letra, desempenho, mapa, abas, avisos da tela…) pode ficar só neste aparelho: Ajustes › Conta ›
+   "Mesma personalização em todos os aparelhos" (cse-pers-conta, no aparelho; ligado por padrão). Desligado, o aparelho
+   não muda a personalização da conta nem recebe a dela. Favoritos, provas, avisos de ônibus e idioma vão sempre com a
+   conta (CFG_CONTA em 09-lugares-conta-fonte.js). Ligar de novo traz a personalização da conta para este aparelho. */
+function persHTML(){
+  var on=persNaConta();
+  return '<div class="tgls" id="perssec">'+tg('cfgPersConta',on,'Mesma personalização em todos os aparelhos',
+    on?'Tema, capa, mapa e outras preferências seguem a sua conta. Desligue para este aparelho ter as suas.':'Este aparelho tem a sua própria personalização. Favoritos, provas e avisos de ônibus continuam com a conta.')+'</div>';
+}
+function persPinta(){var a=$('#accsec'),p=$('#perssec');if(p)p.remove();if(a&&contaOk())a.insertAdjacentHTML('afterend',persHTML())}
+aoFazer('ajustes montados',persPinta);
+document.addEventListener('change',function(e){if(e.target.id!=='cfgPersConta')return;var on=e.target.checked;
+  try{localStorage.setItem('cse-pers-conta',on?'1':'0')}catch(x){}
+  if(on){if(ACC.cfgConta)applyRemote({cfg:ACC.cfgConta});accQueue();gToast('Este aparelho agora segue a personalização da conta.')}
+  else gToast('A personalização deste aparelho agora é só dele.');
+  persPinta();var c=$('#cfgPersConta');if(c)c.focus()});
 /* ======================= Início: a aba pedida no endereço =======================
    Fica por último, depois que todas as partes carregaram: abrir uma aba desenha a tela inteira dela
    (Lugares, por exemplo, usa o Wi-Fi e o eduroam, definidos em partes posteriores). Abrir antes disso
