@@ -140,7 +140,7 @@ function accPush(){
   if(!ACC.kind)return;
   var s=accSettings(),p;
   if(ACC.kind==='claude')p=SH.db.doc('data/users/'+ACC.uid+'/ajustes').set({cfg:s.cfg,rota:s.rota,ts:Date.now()});
-  else p=ACC.fb.db.collection('usuarios').doc(ACC.uid).set({cfg:s.cfg,rota:s.rota,grade:GRADE||[],nome:ACC.name||'',ts:Date.now()},{merge:true});
+  else{ACC.tsEnviado=Date.now();p=ACC.fb.db.collection('usuarios').doc(ACC.uid).set({cfg:s.cfg,rota:s.rota,grade:GRADE||[],nome:ACC.name||'',ts:ACC.tsEnviado},{merge:true})}
   /* contato para a volta à noite e contagem de contribuições vão junto */
   try{if(ACC.kind==='google'&&ACC.fb)ACC.fb.db.collection('usuarios').doc(ACC.uid).set({contato:CONT,contrib:CONTRIB},{merge:true}).catch(function(){});
     else if(ACC.kind==='claude'&&SH.db)SH.db.doc('data/users/'+ACC.uid+'/extra').set({contato:CONT,contrib:CONTRIB,ts:Date.now()}).catch(function(){})}catch(e){}

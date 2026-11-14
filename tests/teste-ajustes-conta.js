@@ -38,8 +38,16 @@ const AVISO={id:'a1',st:'hu',int:true,ext:false,li:[],lc:[],min:5,dias:'uteis',h
  ok((avB.c||[]).some(a=>a.id==='a1'&&a.st==='hu'),'o aviso aparece no outro aparelho (B), vindo da conta');
  ok(/Avisos de ônibus|hu|Hospital/.test(await B.p.textContent('#alvsec')),'Ajustes › Avisos de ônibus de B mostra o aviso');
  ok(lB.tema==='escuro','B, com a opção ligada, recebe a personalização da conta');
+ // ao vivo: outro aparelho grava um aviso novo na conta enquanto B está aberto
+ await B.p.evaluate(()=>{const db=firebase.firestore(),ref=db.collection('usuarios').doc('uA');return ref.get().then(d=>{const x=d.data(),c=Object.assign({},x.cfg);
+   c.avisos=(c.avisos||[]).concat([{id:'a2',st:'ccmn',int:true,ext:false,li:[],lc:[],min:10,dias:'todos',hDe:'06:00',hAte:'22:00',on:true,t:Date.now()+1}]);c.tema='claro';
+   return ref.set({cfg:c,ts:Date.now()+1},{merge:true})})});
+ await B.p.waitForTimeout(1500);
+ const avB2=await B.p.evaluate(()=>JSON.parse(localStorage.getItem('cse-avisos-onibus')||'{}'));
+ ok((avB2.c||[]).some(a=>a.id==='a2'),'ao vivo: o aviso criado em outro aparelho aparece em B sem reabrir o app');
+ ok((await local(B.p)).tema==='claro','ao vivo: a personalização da conta também chega (com a opção ligada)');
  // B apaga o aviso: a marca de apagado vai para a conta
- await B.p.evaluate(()=>document.querySelector('#alvsec [data-alvdel]').click());await B.p.waitForTimeout(1500);
+ await B.p.evaluate(()=>document.querySelector('#alvsec [data-alvdel="a1"]').click());await B.p.waitForTimeout(1500);
  const cB=await conta(B.p);
  ok((cB.avisos||[]).some(a=>a.id==='a1'&&a.x),'apagar em B deixa a marca na conta (o aviso não volta)');
  // aparelho C: opção desligada antes de entrar: recebe os avisos, mas não a personalização da conta
