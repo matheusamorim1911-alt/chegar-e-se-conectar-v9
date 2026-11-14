@@ -112,7 +112,7 @@ var FB_ON=!!(FB_CFG&&FB_CFG.apiKey&&FB_CFG.projectId)&&!(window.claude&&typeof w
 var ACC={kind:null,uid:null,name:'',email:'',photo:'',fb:null,mute:false,t:0,last:0,state:'',busy:false};
 /* o que vai sempre com a conta (dados); o resto é personalização, que cada aparelho pode deixar só para si
    (Ajustes › Conta › "Mesma personalização em todos os aparelhos", cse-pers-conta; ligado por padrão) */
-var CFG_CONTA=['provas','favs','avisos','idioma','idiomaOk'];
+var CFG_CONTA=['provas','favs','avisos','idioma','idiomaOk','pushGrupo','tiroPush'];
 function persNaConta(){try{return localStorage.getItem('cse-pers-conta')!=='0'}catch(e){return true}}
 function accSettings(){
   var c=Object.assign({},CFG);
@@ -198,7 +198,7 @@ function accGoogle(u){
   if(!PERFIL&&ACC.name){PERFIL={name:ACC.name.split(' ')[0].slice(0,24),pin:null,google:true};savePerfil();if(!login.hidden)lgShow('saved')}
   ACC.fb.db.collection('usuarios').doc(u.uid).get().then(function(d){
     if(d.exists){applyRemote(d.data()||{});ACC.last=+(d.data()||{}).ts||Date.now();ACC.state='ok';gToast(ACC.prov==='email'?'Ajustes carregados da sua conta.':'Ajustes carregados da sua conta Google.')}else accPush();
-    accPaint();
+    accPaint();ACC.remotoOk=true;etapas('conta carregada');
   },function(){ACC.state='erro';accPaint()});
   /* foto: a da conta Google ou, para e-mail e senha, a do Gravatar */
   if(ACC.photo)savePhoto(ACC.photo);else gravatar(u.email).then(function(url){if(url&&ACC.uid===u.uid)savePhoto(url)});

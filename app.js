@@ -10,7 +10,7 @@ function etapas(nome){var a=[].slice.call(arguments,1);(ETAPAS[nome]||[]).forEac
 var FBMODE=!!(window.CSE_FIREBASE&&window.CSE_FIREBASE.apiKey&&window.CSE_FIREBASE.projectId)&&!(window.claude&&typeof window.claude.use==='function');
 var LITE=(function(){try{return window.matchMedia('(pointer:coarse), (max-width:820px)').matches||(navigator.hardwareConcurrency||8)<=4||!!(navigator.connection&&navigator.connection.saveData)}catch(e){return false}})();
 document.documentElement.classList.toggle('lite',LITE);
-var CFG={cover:'folha',idioma:'pt',idiomaOk:false,provas:[],favs:[],avisos:[],banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'escuro',temaV:0,bussola:false,foto:true,perf:'auto',perfV:0,bldn:true,simples:true,simplesV:0,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true,faixa:10,faixaV:0,telaCheia:null,alChuva:true,alFila:false};
+var CFG={cover:'folha',idioma:'pt',idiomaOk:false,provas:[],favs:[],avisos:[],pushGrupo:'',tiroPush:'',banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'escuro',temaV:0,bussola:false,foto:true,perf:'auto',perfV:0,bldn:true,simples:true,simplesV:0,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true,faixa:10,faixaV:0,telaCheia:null,alChuva:true,alFila:false};
 try{var _c=JSON.parse(localStorage.getItem('cse-cfg'));if(_c)CFG=Object.assign(CFG,_c)}catch(e){}
 /* v22: tema escuro é o padrão; quem estava em "Do aparelho" passa para escuro uma vez (claro ou pelo horário escolhidos ficam) */
 if(CFG.temaV!==1){if(!CFG.tema||CFG.tema==='sistema')CFG.tema='escuro';CFG.temaV=1;try{localStorage.setItem('cse-cfg',JSON.stringify(CFG))}catch(e){}}
@@ -2658,7 +2658,7 @@ var FB_ON=!!(FB_CFG&&FB_CFG.apiKey&&FB_CFG.projectId)&&!(window.claude&&typeof w
 var ACC={kind:null,uid:null,name:'',email:'',photo:'',fb:null,mute:false,t:0,last:0,state:'',busy:false};
 /* o que vai sempre com a conta (dados); o resto é personalização, que cada aparelho pode deixar só para si
    (Ajustes › Conta › "Mesma personalização em todos os aparelhos", cse-pers-conta; ligado por padrão) */
-var CFG_CONTA=['provas','favs','avisos','idioma','idiomaOk'];
+var CFG_CONTA=['provas','favs','avisos','idioma','idiomaOk','pushGrupo','tiroPush'];
 function persNaConta(){try{return localStorage.getItem('cse-pers-conta')!=='0'}catch(e){return true}}
 function accSettings(){
   var c=Object.assign({},CFG);
@@ -2744,7 +2744,7 @@ function accGoogle(u){
   if(!PERFIL&&ACC.name){PERFIL={name:ACC.name.split(' ')[0].slice(0,24),pin:null,google:true};savePerfil();if(!login.hidden)lgShow('saved')}
   ACC.fb.db.collection('usuarios').doc(u.uid).get().then(function(d){
     if(d.exists){applyRemote(d.data()||{});ACC.last=+(d.data()||{}).ts||Date.now();ACC.state='ok';gToast(ACC.prov==='email'?'Ajustes carregados da sua conta.':'Ajustes carregados da sua conta Google.')}else accPush();
-    accPaint();
+    accPaint();ACC.remotoOk=true;etapas('conta carregada');
   },function(){ACC.state='erro';accPaint()});
   /* foto: a da conta Google ou, para e-mail e senha, a do Gravatar */
   if(ACC.photo)savePhoto(ACC.photo);else gravatar(u.email).then(function(url){if(url&&ACC.uid===u.uid)savePhoto(url)});
@@ -3345,7 +3345,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261114-1136';
+var APP_VERSION='20261114-1202';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -6348,8 +6348,8 @@ function pushLigado(){var g=pushGuardado();return !!(g&&g.on)&&pushPermissao()==
 function pushBytes(t){t=String(t).replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';var s=atob(t),a=new Uint8Array(s.length);for(var i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a}
 function pushMesmaChave(s,chave){var k=s&&s.options&&s.options.applicationServerKey;if(!k)return true;var a=new Uint8Array(k),b=pushBytes(chave);
   if(a.length!==b.length)return false;for(var i=0;i<a.length;i++)if(a[i]!==b[i])return false;return true}
-function pushPost(rota,endpoint){/* text/plain: pedido simples, sem consulta prévia de CORS */
-  return fetch(PUSH.url+'/'+rota,{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({endpoint:endpoint})}).then(function(r){return r.json().catch(function(){return {}}).then(function(j){j.status=r.status;return j})})}
+function pushPost(rota,endpoint){/* text/plain: pedido simples, sem consulta prévia de CORS; g: código dos aparelhos da conta (47-avisos-em-todos-aparelhos.js) */
+  return fetch(PUSH.url+'/'+rota,{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({endpoint:endpoint,g:typeof pushGrupoAtual==='function'?pushGrupoAtual():''})}).then(function(r){return r.json().catch(function(){return {}}).then(function(j){j.status=r.status;return j})})}
 function pushChave(){return fetch(PUSH.url+'/chave',{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){if(!j||!j.disponivel||!j.chave)throw new Error('servidor');return j.chave})}
 /* assina (ou confirma a assinatura) neste aparelho; "calado" não mexe na mensagem da tela */
 function pushAssina(chave){
@@ -6366,6 +6366,7 @@ function pushLiga(){
   Promise.resolve(Notification.requestPermission()).then(function(p){if(p!=='granted')throw new Error(p==='denied'?'negado':'sem-resposta');return pushChave()})
   .then(pushAssina).then(function(){
     if(CFG.tiroteios!==true){CFG.tiroteios=true;saveCfg();tiroLoop();tiroRepaint();var c=$('#cfgTiro');if(c)c.checked=true}
+    if(CFG.tiroPush!=='on'){CFG.tiroPush='on';saveCfg()}/* vale para todos os aparelhos da conta */
     PUSH.msg='Pronto. Você vai receber um aviso quando houver tiroteio novo perto do Fundão.'})
   .catch(function(e){var m=String(e&&e.message||e);pushGuarda(null);
     PUSH.msg=m==='negado'?'As notificações estão bloqueadas para este site. Libere nos ajustes do navegador e tente de novo.':m==='sem-resposta'?'Sem permissão para notificar. Tente de novo.':m==='servidor'?'As notificações ainda não foram ativadas no servidor do app.':'Não deu para ligar as notificações agora. Tente de novo.'})
@@ -6376,10 +6377,10 @@ function pushDesliga(){
   navigator.serviceWorker.ready.then(function(reg){return reg.pushManager.getSubscription()}).then(function(s){var e=(s&&s.endpoint)||(g&&g.e);
     /* com alertas de ônibus criados, a assinatura do aparelho continua (só sai da lista dos tiroteios) */
     return Promise.all([s&&!alvTem()?s.unsubscribe():null,e?pushPost('sair',e).catch(function(){}):null])}).catch(function(){})
-  .then(function(){pushGuarda(null);PUSH.busy=false;PUSH.msg='Notificações de tiroteio desligadas.';pushPinta()});
+  .then(function(){pushGuarda(null);PUSH.busy=false;PUSH.msg='Notificações de tiroteio desligadas.';if(CFG.tiroPush!=='off'&&!PUSH.daConta){CFG.tiroPush='off';saveCfg()}PUSH.daConta=false;pushPinta()});
 }
 function pushTeste(){var g=pushGuardado();if(!g||PUSH.busy)return;PUSH.busy=true;pushPinta();
-  pushPost('teste',g.e).then(function(j){PUSH.msg=j.ok?'Aviso de teste enviado. Ele chega em alguns segundos.':j.status===429?'Espere um minuto para mandar outro teste.':j.status===404?'Este aparelho não está mais inscrito. Desligue e ligue de novo.':'O serviço de notificações recusou o teste. Desligue e ligue de novo.'},
+  pushPost('teste',g.e).then(function(j){PUSH.msg=j.ok?(j.aparelhos>1?'Aviso de teste enviado para '+j.aparelhos+' aparelhos. Ele chega em alguns segundos.':'Aviso de teste enviado. Ele chega em alguns segundos.'):j.status===429?'Espere um minuto para mandar outro teste.':j.status===404?'Este aparelho não está mais inscrito. Desligue e ligue de novo.':'O serviço de notificações recusou o teste. Desligue e ligue de novo.'},
     function(){PUSH.msg='Sem conexão com o servidor do app.'}).then(function(){PUSH.busy=false;pushPinta()})}
 function pushHTML(){
   if(!ON_SITE||!PUSH.url)return '';
@@ -6560,7 +6561,7 @@ setInterval(function(){if(!document.hidden)capaAvisos()},1500);
 var IDI_NOMES={pt:'Português',en:'English',es:'Español'};
 /* No site, a tabela (este texto, o de 37-idioma-textos.js e IDI_FRAG de 38-idioma-frases.js) sai do app.js para idioma.json
    (tools/build_site.py põe o endereço em IDI_ARQ): quem usa o app em português não baixa as traduções. */
-var IDI_ARQ='idioma.json?v=f1c99d188e';
+var IDI_ARQ='idioma.json?v=1185780bfe';
 var IDI_TAB='';
 /* textos montados: [padrão sobre o texto em português, inglês, espanhol]; $1, $2… são os trechos que ficam como vieram */
 var IDI_PAD=[
@@ -6770,6 +6771,8 @@ function idiPorPedacos(t){
 IDI_PAD.push([/^(.+?) perto de (.+)$/,function(_,a,b){var r=idiMapa().get(a);return (r?r[0]:a)+' near '+b},function(_,a,b){var r=idiMapa().get(a);return (r?r[1]:a)+' cerca de '+b}]);
 IDI_PAD.push([/^Parada (.+), linhas (.+)$/,'Stop $1, lines $2','Parada $1, líneas $2']);
 IDI_PAD.push([/^Guarita (\d+), segurança$/,'Guard post $1, security','Garita $1, seguridad']);
+IDI_PAD.push([/^Teste enviado para (\d+) aparelhos\. A notificação chega em alguns segundos\.$/,'Test sent to $1 devices. The notification arrives in a few seconds.','Prueba enviada a $1 dispositivos. La notificación llega en unos segundos.']);
+IDI_PAD.push([/^Aviso de teste enviado para (\d+) aparelhos\. Ele chega em alguns segundos\.$/,'Test alert sent to $1 devices. It arrives in a few seconds.','Aviso de prueba enviado a $1 dispositivos. Llega en unos segundos.']);
 IDI_PAD.push([/^chega por volta de (\d\d:\d\d), até (\d\d:\d\d)$/,'arrives around $1, by $2 at the latest','llega hacia las $1, a más tardar $2']);
 IDI_PAD.push([/^chega (\d\d:\d\d)$/,'arrives $1','llega $1']);
 IDI_PAD.push([/^Esteja em (.+) às (\d\d:\d\d)$/,'Be at $1 by $2','Está en $1 a las $2']);
@@ -6932,7 +6935,7 @@ function alvAssina(pedir,criar){
 function alvSincroniza(pedir){
   var L=alvServidor();
   return alvAssina(pedir,L.length>0).then(function(s){if(!s)return false;
-    return fetch(PUSH.url+'/alertas',{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({endpoint:s.endpoint,alertas:L})}).then(function(r){return r.json().catch(function(){return {}})},function(){throw new Error('rede')})
+    return fetch(PUSH.url+'/alertas',{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({endpoint:s.endpoint,alertas:L,g:typeof pushGrupoAtual==='function'?pushGrupoAtual():''})}).then(function(r){return r.json().catch(function(){return {}})},function(){throw new Error('rede')})
       .then(function(j){if(!j||!j.ok)throw new Error('worker');
         /* "de uma vez" que o Worker já avisou: sai do aparelho e o sininho volta a ficar desligado */
         if(j.feitos&&j.feitos.length){ALV.uma=ALV.uma.filter(function(a){return j.feitos.indexOf(a.id)<0});alvGuarda();alvPinta()}
@@ -7035,8 +7038,8 @@ function alvTeste(){
   if(ALV.busy)return;ALV.busy=true;ALV.msg='';alvPinta();
   alvAssina(true,true).then(function(s){
     if(!s)throw new Error('sem');
-    return fetch(PUSH.url+'/teste',{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({endpoint:s.endpoint,tipo:'onibus'})}).then(function(r){return r.json().catch(function(){return {}}).then(function(j){j.status=r.status;return j})},function(){throw new Error('rede')})})
-  .then(function(j){ALV.msg=j.ok?'Teste enviado. A notificação chega em alguns segundos.':j.status===429?'Espere um minuto para mandar outro teste.':j.status===404||j.status===400||!j.status?'O Worker ainda não faz o teste de ônibus: ele precisa ser publicado de novo na Cloudflare.':'O serviço de notificações recusou o teste. Tente de novo.'})
+    return fetch(PUSH.url+'/teste',{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({endpoint:s.endpoint,tipo:'onibus',g:typeof pushGrupoAtual==='function'?pushGrupoAtual():''})}).then(function(r){return r.json().catch(function(){return {}}).then(function(j){j.status=r.status;return j})},function(){throw new Error('rede')})})
+  .then(function(j){ALV.msg=j.ok?(j.aparelhos>1?'Teste enviado para '+j.aparelhos+' aparelhos. A notificação chega em alguns segundos.':'Teste enviado. A notificação chega em alguns segundos.'):j.status===429?'Espere um minuto para mandar outro teste.':j.status===404||j.status===400||!j.status?'O Worker ainda não faz o teste de ônibus: ele precisa ser publicado de novo na Cloudflare.':'O serviço de notificações recusou o teste. Tente de novo.'})
   .catch(function(e){ALV.msg=e&&e.message==='rede'?'Sem conexão com o servidor do app.':(alvMotivoTxt()||'Não deu para mandar o teste agora.')})
   .then(function(){ALV.busy=false;alvPinta()});
 }
@@ -7954,6 +7957,33 @@ document.addEventListener('change',function(e){if(e.target.id!=='cfgPersConta')r
   if(on){if(ACC.cfgConta)applyRemote({cfg:ACC.cfgConta});accQueue();gToast('Este aparelho agora segue a personalização da conta.')}
   else gToast('A personalização deste aparelho agora é só dele.');
   persPinta();var c=$('#cfgPersConta');if(c)c.focus()});
+/* ======================= Avisos em todos os aparelhos da conta =======================
+   Com conta, os avisos de ônibus, os de tiroteio e os testes chegam em todos os aparelhos em que a pessoa entrou e
+   permitiu as notificações. A conta guarda um código aleatório (CFG.pushGrupo, só na conta da pessoa); cada aparelho
+   manda o código ao Worker junto com a assinatura e o Worker avisa todos os aparelhos do mesmo código, uma vez cada.
+   "Notificar tiroteios novos" também vai com a conta (CFG.tiroPush: 'on'/'off'): ligar ou desligar num aparelho vale
+   para os outros quando eles abrirem o app. Sem conta, nada muda: cada aparelho é só dele. */
+function pushGrupoAtual(){
+  if(!contaOk()||!ACC.remotoOk)return '';/* só depois de ler a conta: um aparelho novo usa o código que ela já tem */
+  if(!/^[a-f0-9]{32}$/.test(CFG.pushGrupo||'')){var a=new Uint8Array(16);crypto.getRandomValues(a);
+    CFG.pushGrupo=Array.prototype.map.call(a,function(x){return (x<16?'0':'')+x.toString(16)}).join('');saveCfg()}
+  return CFG.pushGrupo;
+}
+/* depois de entrar: entra no grupo da conta e segue a escolha dos tiroteios feita em outro aparelho */
+function pushContaPronta(){
+  if(!contaOk()||!pushSuportado())return;pushGrupoAtual();
+  var perm=pushPermissao();
+  if(CFG.tiroPush==='on'&&!pushLigado()){
+    if(perm==='granted')pushChave().then(pushAssina).then(function(){PUSH.msg='Notificações de tiroteio ligadas, como nos seus outros aparelhos.';pushPinta();
+      if(CFG.tiroteios!==true){CFG.tiroteios=true;saveCfg();if(typeof tiroLoop==='function')tiroLoop()}}).catch(function(){});
+    else if(perm==='default'&&!pushContaPronta.avisou){pushContaPronta.avisou=1;gToast('Os avisos de tiroteio estão ligados na sua conta. Para receber neste aparelho, ligue em Ajustes › Segurança no caminho.')}
+  }else if(CFG.tiroPush==='off'&&pushLigado()){PUSH.daConta=true;pushDesliga()}
+  /* com notificações já permitidas: confirma o aparelho no grupo (mesmo sem avisos de ônibus) */
+  if(perm==='granted')alvSincroniza(false).then(function(){alvPinta()});
+}
+aoFazer('conta carregada',pushContaPronta);
+/* ao sair da conta: o aparelho deixa o grupo (o Worker tira quem chega sem o código) */
+aoFazer('usuário saiu',function(){if(pushSuportado()&&pushPermissao()==='granted')alvSincroniza(false)});
 /* ======================= Início: a aba pedida no endereço =======================
    Fica por último, depois que todas as partes carregaram: abrir uma aba desenha a tela inteira dela
    (Lugares, por exemplo, usa o Wi-Fi e o eduroam, definidos em partes posteriores). Abrir antes disso

@@ -1,5 +1,5 @@
 // Testa o Worker sem internet: simula a API da prefeitura com uma amostra e confere o filtro.
-import worker, { alertaValido, faltaNoCorredor, etaOnibus, conferirAlerta, avisaOnibus, alertaNaHora, validade, lerGtfsRt, ajustarRt, linhaDaRota, filtrar, fcFiltrar, fcHora, extrairLinhas, naIlha, contarFora, linhaDeVerdade, completar, endpointValido, jwtVapid, vapid, avisaTiroteios } from '../worker/gps-fundao.js';
+import worker, { grpValido, alertaValido, faltaNoCorredor, etaOnibus, conferirAlerta, avisaOnibus, alertaNaHora, validade, lerGtfsRt, ajustarRt, linhaDaRota, filtrar, fcFiltrar, fcHora, extrairLinhas, naIlha, contarFora, linhaDeVerdade, completar, endpointValido, jwtVapid, vapid, avisaTiroteios } from '../worker/gps-fundao.js';
 // A maior parte dos testes simula a API antiga (JSON): o GTFS Realtime responde 404 e o Worker volta a ela.
 // Os testes do GTFS Realtime (no fim) ligam RT_MODO.
 let RT_MODO = false, _f;
@@ -343,6 +343,42 @@ ok(linhaDaRota('O0665AAVAA') === 'SVA665' && linhaDaRota('O0665AAVBA') === 'SVB6
   ok(buscou === 0, 'alerta fora do horário: o Worker nem busca as posições');
   await post('alertas', { endpoint: EP, alertas: [] });
   ok(Object.keys(JSON.parse(KV2.m.get('alertas').v)).length === 0 && (await avisaOnibus(env2, { waitUntil() {} }, Date.now())).r === 'nada', 'alerta: apagar no app tira o aparelho do Worker');
+  // aparelhos da mesma conta (grupo): o aviso vai uma vez a cada aparelho, mesmo com o alerta repetido nos dois
+  const KV3 = kvFalso(), env3 = { PUSH: KV3 }, GR = 'a'.repeat(32), OUTRO = 'b'.repeat(32);
+  const EA = 'https://fcm.googleapis.com/fcm/send/celular', EB = 'https://fcm.googleapis.com/fcm/send/computador', EC = 'https://fcm.googleapis.com/fcm/send/tablet', ED = 'https://fcm.googleapis.com/fcm/send/deoutro';
+  const post3 = (rota, corpo) => worker.fetch(new Request('https://x.workers.dev/push/' + rota, { method: 'POST', body: JSON.stringify(corpo) }), env3, { waitUntil() {} });
+  const AL = { id: 'g1', tipo: 'c', min: 5, nome: 'CCMN - Geografia', l: ['485'], cor: [cor], dias: [0, 1, 2, 3, 4, 5, 6], de: 0, ate: 1439 };
+  await post3('alertas', { endpoint: EA, alertas: [AL], g: GR }); await post3('alertas', { endpoint: EB, alertas: [AL], g: GR });
+  await post3('alertas', { endpoint: EC, alertas: [], g: GR }); await post3('alertas', { endpoint: ED, alertas: [], g: OUTRO });
+  ok(Object.keys(JSON.parse(KV3.m.get('grupos').v)[GR]).length === 3, 'grupo: o Worker guarda os aparelhos da conta (até os sem alerta)');
+  ok(grpValido(GR) === GR && grpValido('xyz') === '' && grpValido(undefined) === '', 'grupo: só aceita o código no formato certo');
+  pushes.length = 0;
+  globalThis.fetch = async (u, o) => { u = String(u); if (/fcm\.googleapis/.test(u)) { pushes.push({ u, topic: o.headers.topic }); return new Response('', { status: /tablet/.test(u) && globalThis.TABLET_MORTO ? 410 : 201 }); }
+    return /realtime\/onibus/.test(u) ? new Response(feed([veiculo('B1', 'O0485AAA0A', pontoLa - 0.009, pontoLo, 30, 0, tsA)], tsA)) : new Response(feed([], tsA)); };
+  await avisaOnibus(env3, { waitUntil() {} }, Date.now());
+  const destinos = pushes.map(x => x.u).sort();
+  ok(destinos.length === 3 && destinos.join() === [EB, EA, EC].sort().join(), 'grupo: o aviso de ônibus chega uma vez em cada aparelho da conta e não em outra conta (' + destinos.length + ' avisos)');
+  const avC = await (await post3('aviso', { endpoint: EC })).json();
+  ok(/^485 chega em/.test(avC.titulo), 'grupo: o aparelho sem o alerta também recebe o texto do aviso');
+  pushes.length = 0;
+  await avisaOnibus(env3, { waitUntil() {} }, Date.now() + 60e3);
+  ok(pushes.length === 0, 'grupo: o mesmo ônibus não avisa de novo em nenhum aparelho');
+  // teste de ônibus: vai a todos os aparelhos da conta (o tablet não existe mais: responde 410)
+  pushes.length = 0; globalThis.TABLET_MORTO = true;
+  const tg = await (await post3('teste', { endpoint: EA, tipo: 'onibus', g: GR })).json();
+  ok(tg.ok && tg.aparelhos === 2 && pushes.length === 3 && !pushes.some(x => x.u === ED), 'grupo: "Mandar um teste" chega em todos os aparelhos da conta');
+  const tg2 = await post3('teste', { endpoint: EB, tipo: 'onibus', g: GR });
+  ok(tg2.status === 429, 'grupo: um teste por minuto para a conta toda');
+  // tablet que não existe mais (410) sai do grupo
+  ok(!JSON.parse(KV3.m.get('grupos').v)[GR][await (async () => 'sub:' + Buffer.from(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(EC))).toString('base64url').slice(0, 32))()], 'grupo: aparelho que não recebe mais (410) sai do grupo');
+  // tiroteio: o teste vai aos aparelhos da conta que ligaram os avisos de tiroteio
+  pushes.length = 0;
+  await post3('assinar', { endpoint: EA, g: GR }); await post3('assinar', { endpoint: EB, g: GR });
+  const tt = await (await post3('teste', { endpoint: EA, g: GR })).json();
+  ok(tt.ok && tt.aparelhos === 2 && pushes.length === 2, 'grupo: o teste de tiroteio chega nos aparelhos da conta com tiroteio ligado');
+  // sair da conta: o aparelho sai do grupo
+  await post3('alertas', { endpoint: EB, alertas: [] });
+  ok(Object.keys(JSON.parse(KV3.m.get('grupos').v)[GR]).length === 1, 'grupo: sem o código (saiu da conta), o aparelho sai do grupo');
   RT_MODO = false;
 }
 process.exit(falhou ? 1 : 0);

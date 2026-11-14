@@ -13,8 +13,8 @@ function pushLigado(){var g=pushGuardado();return !!(g&&g.on)&&pushPermissao()==
 function pushBytes(t){t=String(t).replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';var s=atob(t),a=new Uint8Array(s.length);for(var i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a}
 function pushMesmaChave(s,chave){var k=s&&s.options&&s.options.applicationServerKey;if(!k)return true;var a=new Uint8Array(k),b=pushBytes(chave);
   if(a.length!==b.length)return false;for(var i=0;i<a.length;i++)if(a[i]!==b[i])return false;return true}
-function pushPost(rota,endpoint){/* text/plain: pedido simples, sem consulta prévia de CORS */
-  return fetch(PUSH.url+'/'+rota,{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({endpoint:endpoint})}).then(function(r){return r.json().catch(function(){return {}}).then(function(j){j.status=r.status;return j})})}
+function pushPost(rota,endpoint){/* text/plain: pedido simples, sem consulta prévia de CORS; g: código dos aparelhos da conta (47-avisos-em-todos-aparelhos.js) */
+  return fetch(PUSH.url+'/'+rota,{method:'POST',headers:{'content-type':'text/plain'},body:JSON.stringify({endpoint:endpoint,g:typeof pushGrupoAtual==='function'?pushGrupoAtual():''})}).then(function(r){return r.json().catch(function(){return {}}).then(function(j){j.status=r.status;return j})})}
 function pushChave(){return fetch(PUSH.url+'/chave',{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){if(!j||!j.disponivel||!j.chave)throw new Error('servidor');return j.chave})}
 /* assina (ou confirma a assinatura) neste aparelho; "calado" não mexe na mensagem da tela */
 function pushAssina(chave){
@@ -31,6 +31,7 @@ function pushLiga(){
   Promise.resolve(Notification.requestPermission()).then(function(p){if(p!=='granted')throw new Error(p==='denied'?'negado':'sem-resposta');return pushChave()})
   .then(pushAssina).then(function(){
     if(CFG.tiroteios!==true){CFG.tiroteios=true;saveCfg();tiroLoop();tiroRepaint();var c=$('#cfgTiro');if(c)c.checked=true}
+    if(CFG.tiroPush!=='on'){CFG.tiroPush='on';saveCfg()}/* vale para todos os aparelhos da conta */
     PUSH.msg='Pronto. Você vai receber um aviso quando houver tiroteio novo perto do Fundão.'})
   .catch(function(e){var m=String(e&&e.message||e);pushGuarda(null);
     PUSH.msg=m==='negado'?'As notificações estão bloqueadas para este site. Libere nos ajustes do navegador e tente de novo.':m==='sem-resposta'?'Sem permissão para notificar. Tente de novo.':m==='servidor'?'As notificações ainda não foram ativadas no servidor do app.':'Não deu para ligar as notificações agora. Tente de novo.'})
@@ -41,10 +42,10 @@ function pushDesliga(){
   navigator.serviceWorker.ready.then(function(reg){return reg.pushManager.getSubscription()}).then(function(s){var e=(s&&s.endpoint)||(g&&g.e);
     /* com alertas de ônibus criados, a assinatura do aparelho continua (só sai da lista dos tiroteios) */
     return Promise.all([s&&!alvTem()?s.unsubscribe():null,e?pushPost('sair',e).catch(function(){}):null])}).catch(function(){})
-  .then(function(){pushGuarda(null);PUSH.busy=false;PUSH.msg='Notificações de tiroteio desligadas.';pushPinta()});
+  .then(function(){pushGuarda(null);PUSH.busy=false;PUSH.msg='Notificações de tiroteio desligadas.';if(CFG.tiroPush!=='off'&&!PUSH.daConta){CFG.tiroPush='off';saveCfg()}PUSH.daConta=false;pushPinta()});
 }
 function pushTeste(){var g=pushGuardado();if(!g||PUSH.busy)return;PUSH.busy=true;pushPinta();
-  pushPost('teste',g.e).then(function(j){PUSH.msg=j.ok?'Aviso de teste enviado. Ele chega em alguns segundos.':j.status===429?'Espere um minuto para mandar outro teste.':j.status===404?'Este aparelho não está mais inscrito. Desligue e ligue de novo.':'O serviço de notificações recusou o teste. Desligue e ligue de novo.'},
+  pushPost('teste',g.e).then(function(j){PUSH.msg=j.ok?(j.aparelhos>1?'Aviso de teste enviado para '+j.aparelhos+' aparelhos. Ele chega em alguns segundos.':'Aviso de teste enviado. Ele chega em alguns segundos.'):j.status===429?'Espere um minuto para mandar outro teste.':j.status===404?'Este aparelho não está mais inscrito. Desligue e ligue de novo.':'O serviço de notificações recusou o teste. Desligue e ligue de novo.'},
     function(){PUSH.msg='Sem conexão com o servidor do app.'}).then(function(){PUSH.busy=false;pushPinta()})}
 function pushHTML(){
   if(!ON_SITE||!PUSH.url)return '';
