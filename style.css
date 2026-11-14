@@ -2016,3 +2016,7 @@ a.cv-aviso{text-decoration:none}
 .cv-portal{background:linear-gradient(180deg,color-mix(in srgb,#34C759 16%,var(--lg-top)),color-mix(in srgb,#34C759 8%,var(--lg-bot)))!important;border:1.5px solid #34C759!important;box-shadow:inset 0 1px 0 var(--lg-rim),0 8px 20px -10px var(--lg-drop)}
 .solido .cv-aviso:not(.vermelho):not(.amarelo),.solido .fav-it,.solido .fav-form,.solido .fav-escolhe{background:var(--surface-2);border-color:var(--line);box-shadow:none}
 .solido .cv-portal{background:color-mix(in srgb,#34C759 10%,var(--surface))!important;box-shadow:none}
+/* Ônibus ao vivo desenhados em canvas (parte 44): o canvas cobre o mapa e não recebe toques; os marcadores do SVG
+   ficam invisíveis, só para tocar, teclado e leitores de tela */
+#lvCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:block;transform-origin:0 0}
+.lv-canvas #gLive .lv-dot,.lv-canvas #gLive .lv-dir,.lv-canvas #gLive .lv-t{opacity:0}
