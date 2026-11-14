@@ -2057,3 +2057,5 @@ a.cv-aviso{text-decoration:none}
 .solido .vf-op,.solido .vf-orig,.solido .vf-plista li,.solido .vf-lista button{background:var(--surface-2);border-color:var(--line);box-shadow:none}
 .solido .vf-1{border-color:var(--press)}
 .vf-l{display:block;margin-top:2px}
+/* Ajustes › Conta: personalização por aparelho */
+#perssec{margin:4px 0 12px}

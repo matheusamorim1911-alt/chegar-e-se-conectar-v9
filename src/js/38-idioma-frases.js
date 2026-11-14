@@ -804,6 +804,12 @@ Para amanhã (sábado). ¦ For tomorrow (Saturday). ¦ Para mañana (sábado).
 Para amanhã (domingo ou feriado). ¦ For tomorrow (Sunday or holiday). ¦ Para mañana (domingo o feriado).
 Hoje os ônibus seguem os horários de sábado. ¦ Today the buses run on the Saturday schedule. ¦ Hoy los autobuses siguen el horario de sábado.
 Hoje os ônibus seguem os horários de domingo e feriado. ¦ Today the buses run on the Sunday and holiday schedule. ¦ Hoy los autobuses siguen el horario de domingo y feriado.
+Mesma personalização em todos os aparelhos ¦ Same personalization on all devices ¦ Misma personalización en todos los dispositivos
+Tema, capa, mapa e outras preferências seguem a sua conta. Desligue para este aparelho ter as suas. ¦ Theme, cover, map and other preferences follow your account. Turn off so this device keeps its own. ¦ Tema, portada, mapa y otras preferencias siguen tu cuenta. Desactiva para que este dispositivo tenga las suyas.
+Este aparelho tem a sua própria personalização. Favoritos, provas e avisos de ônibus continuam com a conta. ¦ This device has its own personalization. Favorites, exams and bus alerts stay with your account. ¦ Este dispositivo tiene su propia personalización. Favoritos, exámenes y avisos de autobús siguen con la cuenta.
+Este aparelho agora segue a personalização da conta. ¦ This device now follows your account's personalization. ¦ Este dispositivo ahora sigue la personalización de la cuenta.
+A personalização deste aparelho agora é só dele. ¦ This device's personalization is now its own. ¦ La personalización de este dispositivo ahora es solo suya.
+Seus avisos de ônibus vieram da conta. Para receber neste aparelho, permita as notificações em Ajustes › Avisos de ônibus. ¦ Your bus alerts came from your account. To get them on this device, allow notifications in Settings › Bus alerts. ¦ Tus avisos de autobús vinieron de la cuenta. Para recibirlos en este dispositivo, permite las notificaciones en Ajustes › Avisos de autobús.
 `;
 var IDI_PEDACOS=null,IDI_CACHE=new Map();
 /* pedaços com 7 letras ou mais (ou com pontuação que os marca), os mais compridos primeiro */

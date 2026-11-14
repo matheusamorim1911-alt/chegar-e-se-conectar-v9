@@ -110,13 +110,23 @@ $('#gestBtn').addEventListener('click',function(){if(gestM&&!gestM.hidden)closeG
 var FB_CFG=window.CSE_FIREBASE||null;
 var FB_ON=!!(FB_CFG&&FB_CFG.apiKey&&FB_CFG.projectId)&&!(window.claude&&typeof window.claude.use==='function');
 var ACC={kind:null,uid:null,name:'',email:'',photo:'',fb:null,mute:false,t:0,last:0,state:'',busy:false};
-function accSettings(){return {cfg:Object.assign({},CFG),rota:{from:state.from,to:state.to}}}
+/* o que vai sempre com a conta (dados); o resto é personalização, que cada aparelho pode deixar só para si
+   (Ajustes › Conta › "Mesma personalização em todos os aparelhos", cse-pers-conta; ligado por padrão) */
+var CFG_CONTA=['provas','favs','avisos','idioma','idiomaOk'];
+function persNaConta(){try{return localStorage.getItem('cse-pers-conta')!=='0'}catch(e){return true}}
+function accSettings(){
+  var c=Object.assign({},CFG);
+  /* personalização só deste aparelho: manda a da conta como estava, para não mudar a dos outros aparelhos */
+  if(!persNaConta()){c=Object.assign({},ACC.cfgConta||{});CFG_CONTA.forEach(function(k){c[k]=CFG[k]})}
+  ACC.cfgConta=Object.assign({},c);/* o que a conta passa a ter */
+  return {cfg:c,rota:{from:state.from,to:state.to}}}
 function applyRemote(d){
   if(!d||typeof d!=='object')return;
   var ch=false;
   /* idioma escolhido neste aparelho e ainda não salvo na conta: vale o daqui */
-  var idiAqui=d.cfg&&CFG.idiomaOk&&!d.cfg.idiomaOk;
-  if(d.cfg&&typeof d.cfg==='object')Object.keys(CFG).forEach(function(k){if(idiAqui&&(k==='idioma'||k==='idiomaOk'))return;if(k==='favs'){if(Array.isArray(d.cfg.favs)&&typeof favJunta==='function'&&favJunta(d.cfg.favs))ch=true;return}if(k==='provas'){if(Array.isArray(d.cfg.provas)&&typeof prvJunta==='function'&&prvJunta(d.cfg.provas))ch=true;return}if(k in d.cfg&&typeof d.cfg[k]===typeof CFG[k]&&CFG[k]!==d.cfg[k]){CFG[k]=d.cfg[k];ch=true}});
+  var idiAqui=d.cfg&&CFG.idiomaOk&&!d.cfg.idiomaOk,soDados=!persNaConta();
+  if(d.cfg&&typeof d.cfg==='object')ACC.cfgConta=Object.assign({},d.cfg);
+  if(d.cfg&&typeof d.cfg==='object')Object.keys(CFG).forEach(function(k){if(idiAqui&&(k==='idioma'||k==='idiomaOk'))return;if(soDados&&CFG_CONTA.indexOf(k)<0)return;if(k==='avisos'){if(Array.isArray(d.cfg.avisos)&&typeof alvJunta==='function'&&alvJunta(d.cfg.avisos))ch=true;return}if(k==='favs'){if(Array.isArray(d.cfg.favs)&&typeof favJunta==='function'&&favJunta(d.cfg.favs))ch=true;return}if(k==='provas'){if(Array.isArray(d.cfg.provas)&&typeof prvJunta==='function'&&prvJunta(d.cfg.provas))ch=true;return}if(k in d.cfg&&typeof d.cfg[k]===typeof CFG[k]&&CFG[k]!==d.cfg[k]){CFG[k]=d.cfg[k];ch=true}});
   ACC.mute=true;
   if(ch){saveCfg();applyBg();applyFont();applyTheme();applyCoverStyle();updateMap();drawBanner();drawShared();renderDetail();coverToday();if(typeof idiAplica==='function')idiAplica()}
   if(d.rota&&STOPS[d.rota.from]&&STOPS[d.rota.to]&&d.rota.from!==d.rota.to&&(d.rota.from!==state.from||d.rota.to!==state.to)){state.from=d.rota.from;state.to=d.rota.to;savePrefs();renderPlan();updateMap()}
