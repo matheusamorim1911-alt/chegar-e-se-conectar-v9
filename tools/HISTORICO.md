@@ -81,3 +81,20 @@ tarde, noite) com ganho comprovado. Quanto mais dias úteis, mais trechos cobert
 O pico da manhã (7-9) precisa de perfil próprio (69,0 → 56,6 m; com a manhã inteira, só 64,7 m). O fim da tarde
 (17-19) ficou melhor junto com a tarde (55,1 m) do que sozinho (57,1 m) com estes dados. Para testar outras faixas:
 `python3 tools/perfil_trechos.py <gps…> --teste --faixas 5-7,7-9,9-13,13-17,17-19,19-5 --detalhar 7-9,17-19`.
+
+## Coleta automática (sábados, domingos e BRT)
+
+A API antiga da prefeitura do Rio, que devolvia as posições de um período passado (`/gps/sppo?dataInicial=…`), saiu do ar
+em nov/2026; agora só há as posições de agora. A tarefa `.github/workflows/coletar-gps.yml` (GitHub Actions, grátis em
+repositório público) pergunta ao Worker do app a cada 15 s, das 5h às 23h, e guarda um arquivo por turno no ramo
+`dados-gps` (`gps/AAAA-MM-DD-HHMM.csv.gz`, no mesmo formato de `tools/dados/`). Para usar:
+
+```
+git fetch origin dados-gps && git worktree add /tmp/dados-gps origin/dados-gps
+python3 tools/conferir_horarios.py vindo-de-fora.json tools/dados/gps-*.csv.gz /tmp/dados-gps/gps/*.csv.gz            # dias úteis
+python3 tools/conferir_horarios.py vindo-de-fora.json /tmp/dados-gps/gps/*.csv.gz --sabado                             # ou --domingo
+python3 tools/vindo_de_fora.py <pasta do GTFS> vindo-de-fora.json tools/dados/gps-*.csv.gz /tmp/dados-gps/gps/*.csv.gz  # atualiza a espera no app
+```
+
+O GitHub pode atrasar o início de cada turno em alguns minutos e desliga tarefas agendadas depois de 60 dias sem
+mudanças no repositório. Para parar: Actions › Coletar GPS dos ônibus › Disable workflow.
