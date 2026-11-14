@@ -789,7 +789,8 @@ Nenhuma linha até a Vila depois desse horário. ¦ No line to the Vila after th
 Nenhum ônibus da cidade da UFRJ até perto da sua casa nas próximas 2 horas. ¦ No city bus from UFRJ to near your home in the next 2 hours. ¦ Ningún autobús de la ciudad desde la UFRJ hasta cerca de tu casa en las próximas 2 horas.
 Horários programados pela prefeitura do Rio e pela Prefeitura Universitária. O trânsito muda tudo: confira os ônibus ao vivo no mapa. ¦ Scheduled times from the prefeitura do Rio and the Prefeitura Universitária. Traffic changes everything: check the live buses on the map. ¦ Horarios programados por la prefeitura do Rio y la Prefeitura Universitária. El tráfico lo cambia todo: mira los autobuses en vivo en el mapa.
 Para programar esta viagem, salve o ponto como sua casa. ¦ To schedule this trip, save the stop as your home. ¦ Para programar este viaje, guarda la parada como tu casa.
-Casa salva. Ela vale para a ida e para a volta. ¦ Home saved. It works for going and returning. ¦ Casa guardada. Vale para la ida y la vuelta.
+Casa salva só neste aparelho. Ela vale para a ida e para a volta. ¦ Home saved on this device only. It works for going and returning. ¦ Casa guardada solo en este dispositivo. Vale para la ida y la vuelta.
+Os ônibus da cidade não têm hora certa. A espera e a folga vêm do GPS da prefeitura do Rio: com elas, 8 em cada 10 viagens chegaram a tempo. Linhas internas: horários da Prefeitura Universitária. ¦ City buses have no fixed times. The wait and the margin come from the prefeitura do Rio GPS: with them, 8 in 10 trips arrived on time. Campus lines: Prefeitura Universitária times. ¦ Los autobuses de la ciudad no tienen hora fija. La espera y el margen vienen del GPS de la prefeitura do Rio: con ellos, 8 de cada 10 viajes llegaron a tiempo. Líneas internas: horarios de la Prefeitura Universitária.
 Viagem programada. Ligue o aviso para saber a hora de sair. ¦ Trip scheduled. Turn on the alert to know when to leave. ¦ Viaje programado. Activa el aviso para saber cuándo salir.
 Viagem apagada. ¦ Trip deleted. ¦ Viaje borrado.
 Aviso desligado. ¦ Alert off. ¦ Aviso desactivado.
@@ -826,6 +827,11 @@ function idiPorPedacos(t){
 IDI_PAD.push([/^(.+?) perto de (.+)$/,function(_,a,b){var r=idiMapa().get(a);return (r?r[0]:a)+' near '+b},function(_,a,b){var r=idiMapa().get(a);return (r?r[1]:a)+' cerca de '+b}]);
 IDI_PAD.push([/^Parada (.+), linhas (.+)$/,'Stop $1, lines $2','Parada $1, líneas $2']);
 IDI_PAD.push([/^Guarita (\d+), segurança$/,'Guard post $1, security','Garita $1, seguridad']);
+IDI_PAD.push([/^chega por volta de (\d\d:\d\d), até (\d\d:\d\d)$/,'arrives around $1, by $2 at the latest','llega hacia las $1, a más tardar $2']);
+IDI_PAD.push([/^chega (\d\d:\d\d)$/,'arrives $1','llega $1']);
+IDI_PAD.push([/^Esteja em (.+) às (\d\d:\d\d)$/,'Be at $1 by $2','Está en $1 a las $2']);
+IDI_PAD.push([/^Espera típica ~(\d+) min · viagem ~(\d+) min( \(estimada\))?$/,function(_,a,b,e){return 'Typical wait ~'+a+' min · ride ~'+b+' min'+(e?' (estimated)':'')},function(_,a,b,e){return 'Espera típica ~'+a+' min · viaje ~'+b+' min'+(e?' (estimada)':'')}]);
+IDI_PAD.push([/^Desça em (.+)$/,'Get off at $1','Bájate en $1']);
 IDI_PAD.push([/^chega (\d\d:\d\d) · (\d+) min$/,'arrives $1 · $2 min','llega $1 · $2 min']);
 IDI_PAD.push([/^Caminhe (\d+) min até casa$/,'Walk $1 min home','Camina $1 min hasta casa']);
 IDI_PAD.push([/^Caminhe (\d+) min até (.+)$/,'Walk $1 min to $2','Camina $1 min hasta $2']);

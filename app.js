@@ -10,7 +10,7 @@ function etapas(nome){var a=[].slice.call(arguments,1);(ETAPAS[nome]||[]).forEac
 var FBMODE=!!(window.CSE_FIREBASE&&window.CSE_FIREBASE.apiKey&&window.CSE_FIREBASE.projectId)&&!(window.claude&&typeof window.claude.use==='function');
 var LITE=(function(){try{return window.matchMedia('(pointer:coarse), (max-width:820px)').matches||(navigator.hardwareConcurrency||8)<=4||!!(navigator.connection&&navigator.connection.saveData)}catch(e){return false}})();
 document.documentElement.classList.toggle('lite',LITE);
-var CFG={vf:'',cover:'folha',idioma:'pt',idiomaOk:false,provas:[],favs:[],banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'escuro',temaV:0,bussola:false,foto:true,perf:'auto',perfV:0,bldn:true,simples:true,simplesV:0,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true,faixa:10,faixaV:0,telaCheia:null,alChuva:true,alFila:false};
+var CFG={cover:'folha',idioma:'pt',idiomaOk:false,provas:[],favs:[],banner:true,reps:true,coverToday:true,login:true,flow:true,bg:'brilho',font:'aparelho',fsize:'m',tema:'escuro',temaV:0,bussola:false,foto:true,perf:'auto',perfV:0,bldn:true,simples:true,simplesV:0,tabs:null,tabsOff:null,bussolaAlvo:'destino',autoDest:true,clima:true,chuva:true,faixa:10,faixaV:0,telaCheia:null,alChuva:true,alFila:false};
 try{var _c=JSON.parse(localStorage.getItem('cse-cfg'));if(_c)CFG=Object.assign(CFG,_c)}catch(e){}
 /* v22: tema escuro é o padrão; quem estava em "Do aparelho" passa para escuro uma vez (claro ou pelo horário escolhidos ficam) */
 if(CFG.temaV!==1){if(!CFG.tema||CFG.tema==='sistema')CFG.tema='escuro';CFG.temaV=1;try{localStorage.setItem('cse-cfg',JSON.stringify(CFG))}catch(e){}}
@@ -3335,7 +3335,7 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
 })();
 /* ======================= versão de apresentação: robustez ======================= */
 /* Número da versão: o empacotamento para o GitHub troca 'dev' pela data e hora do pacote. */
-var APP_VERSION='20261114-0932';
+var APP_VERSION='20261114-1001';
 var ON_SITE=!(window.claude&&typeof window.claude.use==='function');
 /* ---------- limite de envios: carimbo do servidor + intervalo no aparelho ---------- */
 var POST_GAP={rep:30,fila:30,req:60};
@@ -6550,7 +6550,7 @@ setInterval(function(){if(!document.hidden)capaAvisos()},1500);
 var IDI_NOMES={pt:'Português',en:'English',es:'Español'};
 /* No site, a tabela (este texto, o de 37-idioma-textos.js e IDI_FRAG de 38-idioma-frases.js) sai do app.js para idioma.json
    (tools/build_site.py põe o endereço em IDI_ARQ): quem usa o app em português não baixa as traduções. */
-var IDI_ARQ='idioma.json?v=42e07e2e99';
+var IDI_ARQ='idioma.json?v=49c4d3952f';
 var IDI_TAB='';
 /* textos montados: [padrão sobre o texto em português, inglês, espanhol]; $1, $2… são os trechos que ficam como vieram */
 var IDI_PAD=[
@@ -6760,6 +6760,11 @@ function idiPorPedacos(t){
 IDI_PAD.push([/^(.+?) perto de (.+)$/,function(_,a,b){var r=idiMapa().get(a);return (r?r[0]:a)+' near '+b},function(_,a,b){var r=idiMapa().get(a);return (r?r[1]:a)+' cerca de '+b}]);
 IDI_PAD.push([/^Parada (.+), linhas (.+)$/,'Stop $1, lines $2','Parada $1, líneas $2']);
 IDI_PAD.push([/^Guarita (\d+), segurança$/,'Guard post $1, security','Garita $1, seguridad']);
+IDI_PAD.push([/^chega por volta de (\d\d:\d\d), até (\d\d:\d\d)$/,'arrives around $1, by $2 at the latest','llega hacia las $1, a más tardar $2']);
+IDI_PAD.push([/^chega (\d\d:\d\d)$/,'arrives $1','llega $1']);
+IDI_PAD.push([/^Esteja em (.+) às (\d\d:\d\d)$/,'Be at $1 by $2','Está en $1 a las $2']);
+IDI_PAD.push([/^Espera típica ~(\d+) min · viagem ~(\d+) min( \(estimada\))?$/,function(_,a,b,e){return 'Typical wait ~'+a+' min · ride ~'+b+' min'+(e?' (estimated)':'')},function(_,a,b,e){return 'Espera típica ~'+a+' min · viaje ~'+b+' min'+(e?' (estimada)':'')}]);
+IDI_PAD.push([/^Desça em (.+)$/,'Get off at $1','Bájate en $1']);
 IDI_PAD.push([/^chega (\d\d:\d\d) · (\d+) min$/,'arrives $1 · $2 min','llega $1 · $2 min']);
 IDI_PAD.push([/^Caminhe (\d+) min até casa$/,'Walk $1 min home','Camina $1 min hasta casa']);
 IDI_PAD.push([/^Caminhe (\d+) min até (.+)$/,'Walk $1 min to $2','Camina $1 min hasta $2']);
@@ -7586,14 +7591,19 @@ window.addEventListener('resize',function(){if(LVC.on)requestAnimationFrame(lvcP
    "Hora de sair": com "Chegar até", o app procura a saída mais tarde que ainda chega a tempo (a hora da próxima aula
    da Grade vem sugerida). A viagem pode ser programada (até 4: dias e horário) e, com as notificações ligadas, o
    aviso chega na hora de ir para o ponto, pelo mesmo serviço dos Avisos de ônibus (ALV_EXTRA em 39-alertas-onibus.js).
-   Horários: os programados da prefeitura do Rio (vindo-de-fora.json, gerado por tools/vindo_de_fora.py, baixado só
-   quando a seção abre) e os das linhas internas. Guardado em CFG.vf (texto JSON: casa, programados), no aparelho e
-   na conta; a casa fica guardada só como um ponto aproximado (~100 m). */
-var VF_ARQ='vindo-de-fora.json?v=d56d58f96e';
+   Ônibus da cidade: o GTFS da prefeitura do Rio só tem frequências ("a cada x min"), não horas de verdade; conferido
+   com o GPS (tools/conferir_horarios.py), quem chegava ao ponto na "hora" do GTFS chegava a tempo só 35% das vezes.
+   Por isso o app não promete hora de ônibus da cidade: soma a espera medida no GPS (por linha e faixa de horário;
+   sem GPS, o intervalo programado × fator) e o tempo de viagem do GTFS com folga, e mostra "por volta de" (mediana)
+   e "até" (85%). Com a folga, 81% chegaram a tempo no mesmo teste. Linhas internas: horários da Prefeitura
+   Universitária. Dados em vindo-de-fora.json (tools/vindo_de_fora.py, baixado só quando a seção abre).
+   A casa e as viagens programadas ficam só neste navegador (cse-vf), nunca na conta; a casa, como um ponto
+   aproximado (~100 m). */
+var VF_ARQ='vindo-de-fora.json?v=f9973e9bbb';
 var VF={d:null,carregando:false,erro:false,aba:'ida',origem:null,para:'',de:'',alvo:'',modo:'',h:'',busca:'',res:null,msg:'',max:4,ver:0};
 var VF_PE=75,VF_FATOR=1.3,VF_RAIO=700,VF_TROCA=2;/* caminhada: 75 m/min, linha reta × 1,3; até 700 m do ponto; 2 min para trocar */
-function vfCfg(){try{var o=JSON.parse(CFG.vf||'{}');return o&&typeof o==='object'?o:{}}catch(e){return {}}}
-function vfGuarda(o){CFG.vf=JSON.stringify(o);saveCfg()}
+function vfCfg(){try{var o=JSON.parse(localStorage.getItem('cse-vf')||'{}');return o&&typeof o==='object'?o:{}}catch(e){return {}}}
+function vfGuarda(o){try{localStorage.setItem('cse-vf',JSON.stringify(o))}catch(e){}}
 function vfCasa(){var c=vfCfg().casa;return c&&isFinite(c.la)&&isFinite(c.lo)?c:null}
 function vfProgs(){var p=vfCfg().prog;return Array.isArray(p)?p.filter(function(x){return x&&x.id}):[]}
 /* ---------- dados ---------- */
@@ -7609,7 +7619,7 @@ function vfPrepara(d){
   P.forEach(function(p){if(!p.il)return;var q=ll2map(p.la,p.lo);Object.keys(STOPS).forEach(function(k){
     var m=Math.hypot(STOPS[k].p[0]-q[0],STOPS[k].p[1]-q[1])/MPU*VF_FATOR;if(m<=300)p.perto.push([k,Math.max(1,Math.round(m/VF_PE))])})});
   d.r.forEach(function(R,ri){for(var i=0;i<R.s.length;i+=2)P[R.s[i]].r.push([ri,i])});
-  return {p:P,r:d.r,ate:d.ate||''};
+  return {p:P,r:d.r,ate:d.ate||'',e:d.e||{},r2:d.r2||{},k:d.k||[0.75,1.5],fx:d.fx||[[5,7],[7,9],[9,13],[13,18],[18,29]],gps:d.gps||'',cache:{}};
 }
 /* ---------- dia e linhas internas ---------- */
 function vfDia(off){var d=new Date();d.setDate(d.getDate()+(off||0));var w=d.getDay(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -7623,30 +7633,74 @@ function vfInt(u,v,t,dia,C){
         tr.deps.forEach(function(d){var dep=d+tr.passes[i].off,arr=d+tr.passes[j].off;if(dep>=t&&(!best||arr<best.arr))best={lid:lid,dep:dep,arr:arr}});break}}})});
   if(C)C[ch]=best;return best;
 }
+/* a linha interna mais tarde de u até v que chega até T */
+function vfIntAte(u,v,T,dia,C){
+  var ch='a'+u+'|'+v+'|'+Math.round(T);if(C&&ch in C)return C[ch];var best=null,fds=dia!=='U';
+  Object.keys(LINES).forEach(function(lid){var L=LINES[lid];if(L.susp||(L.weekdays&&fds))return;
+    L.trips.forEach(function(tr){for(var i=0;i<tr.passes.length;i++){if(tr.passes[i].stop!==u)continue;
+      for(var j=i+1;j<tr.passes.length;j++){if(tr.passes[j].stop!==v)continue;
+        tr.deps.forEach(function(d){var dep=d+tr.passes[i].off,arr=d+tr.passes[j].off;if(arr<=T&&arr>T-120&&(!best||dep>best.dep))best={lid:lid,dep:dep,arr:arr}});break}}})});
+  if(C)C[ch]=best;return best;
+}
+/* ---------- ônibus da cidade: espera e viagem ---------- */
+function vfFaixa(m){var h=((m/60)%24+24)%24;if(h<5)h+=24;var F=VF.d.fx;for(var i=0;i<F.length;i++)if(h>=F[i][0]&&h<F[i][1])return i;return F.length-1}
+/* saídas programadas de uma linha (mesmo número e destino) num ponto */
+function vfSaidasNoPonto(i,R,dia){var D=VF.d,ch=i+'|'+R.n+'|'+R.d+'|'+dia;if(D.cache[ch])return D.cache[ch];var L=[];
+  D.p[i].r.forEach(function(x){var Q=D.r[x[0]];if(Q.n!==R.n||Q.d!==R.d)return;((Q.t&&Q.t[dia])||[]).forEach(function(s){L.push(s+Q.s[x[1]+1])})});
+  return D.cache[ch]=L.sort(function(a,b){return a-b})}
+function vfConta(L,a,b){var n=0;for(var k=0;k<L.length;k++)if(L[k]>=a&&L[k]<b)n++;return n}
+/* espera no ponto i chegando às m: [mediana, folga] e se veio do GPS; null se a linha não passa nessa hora */
+function vfEspera(i,R,m,dia){
+  var c=vfConta(vfSaidasNoPonto(i,R,dia),m-30,m+30);if(!c)return null;
+  var g=dia==='U'&&VF.d.e[R.n]&&VF.d.e[R.n][vfFaixa(m)];if(g)return {w:g,gps:true};
+  var h=60/c;return {w:[Math.round(h*VF.d.k[0]*10)/10,Math.round(h*VF.d.k[1]*10)/10],gps:false};
+}
+function vfRazao(m){return VF.d.r2[vfFaixa(m)]||[1,1.3]}
+/* esta variante da viagem vale perto da hora m? (o tempo de viagem muda com a hora do dia) */
+function vfVariante(R,pos,m,dia){var o=R.s[pos+1];return ((R.t&&R.t[dia])||[]).some(function(s){return Math.abs(s+o-m)<=45})}
+/* o trecho de ônibus da cidade do ponto pos ao q, chegando ao ponto às A: espera, viagem e chegada (mediana e folga) */
+function vfTrecho(R,pos,q,A,dia){
+  var i=R.s[pos],E=vfEspera(i,R,A,dia);if(!E||!vfVariante(R,pos,A,dia))return null;
+  var base=R.s[q+1]-R.s[pos+1],r=vfRazao(A),v=[base*r[0],base*r[1]];
+  return {A:A,w:E.w,gps:E.gps,v:v,x:[A+E.w[0]+v[0],A+E.w[1]+v[1]]};
+}
 /* ---------- pontos perto de um lugar ---------- */
 function vfPertoDe(la,lo){var m=vfMetros(la*1e5,lo*1e5),o=[];VF.d.p.forEach(function(p,i){if(p.il)return;var d=Math.hypot(p.x-m[0],p.y-m[1])*VF_FATOR;
   if(d<=VF_RAIO*VF_FATOR)o.push({i:i,w:Math.max(1,Math.round(d/VF_PE))})});return o}
-function vfSaidas(R,dia){return (R.t&&R.t[dia])||[]}
 function vfCor(R){return R.c||liveColor(R.n)}
+function vfPernaC(R,pos,q,t){var D=VF.d;return {c:R,de:D.p[R.s[pos]].n,para:D.p[R.s[q]].n,A:t.A,w:t.w,gps:t.gps,v:t.v}}
 /* ---------- ida: de perto de casa até a parada v da UFRJ ---------- */
 function vfIda(orig,v,dia,modo,T){
   var O=vfPertoDe(orig.la,orig.lo),C={},porLinha={},D=VF.d;
-  O.forEach(function(o){D.p[o.i].r.forEach(function(x){var R=D.r[x[0]],pos=x[1],off0=R.s[pos+1];
-    /* onde descer: pontos da ilha depois daqui */
-    var desce=[];for(var q=pos+2;q<R.s.length;q+=2){var pq=D.p[R.s[q]];if(pq.il&&pq.perto.length)desce.push(q)}
-    if(!desce.length)return;
-    vfSaidas(R,dia).forEach(function(s){var dep=s+off0,sai=dep-o.w;
-      if(modo==='chegar'?(dep>T||dep<T-240):(sai<T||sai>T+180))return;
-      var melhor=null;desce.forEach(function(q){var pq=D.p[R.s[q]],arrI=s+R.s[q+1];
-        pq.perto.forEach(function(k){var a=k[0]===v?{lid:null,dep:arrI+k[1],arr:arrI+k[1]}:vfInt(k[0],v,arrI+k[1]+VF_TROCA,dia,C);if(!a)return;
-          var fim=a.lid?a.arr:a.arr;if(!melhor||fim<melhor.fim)melhor={fim:fim,q:q,arrI:arrI,k:k,a:a}})});
-      if(!melhor||(modo==='chegar'&&melhor.fim>T))return;
-      var op={sai:sai,fim:melhor.fim,pernas:[{pe:o.w,para:D.p[o.i].n},{c:R,de:D.p[o.i].n,dep:dep,para:D.p[R.s[melhor.q]].n,arr:melhor.arrI}]};
-      var k=melhor.k;if(melhor.a.lid){op.pernas.push({pe:k[1],para:STOPS[k[0]].name});op.pernas.push({i:melhor.a.lid,de:STOPS[k[0]].name,dep:melhor.a.dep,para:STOPS[v].name,arr:melhor.a.arr})}
-      else op.pernas.push({pe:k[1],para:STOPS[v].name});
-      var ch=R.n,b=porLinha[ch];if(!b||(modo==='chegar'?op.sai>b.sai||(op.sai===b.sai&&op.fim<b.fim):op.fim<b.fim||(op.fim===b.fim&&op.sai>b.sai)))porLinha[ch]=op});
+  O.forEach(function(o){D.p[o.i].r.forEach(function(x){var R=D.r[x[0]],pos=x[1];
+    for(var q=pos+2;q<R.s.length;q+=2){var pq=D.p[R.s[q]];if(!pq.il||!pq.perto.length)continue;
+      pq.perto.forEach(function(k){
+        var op=modo==='chegar'?vfIdaChegar(R,pos,q,k,o,v,dia,T,C):vfIdaAgora(R,pos,q,k,o,v,dia,T,C);if(!op)return;
+        var b=porLinha[R.n];if(!b||(modo==='chegar'?op.sai>b.sai||(op.sai===b.sai&&op.tip<b.tip):op.fim<b.fim||(op.fim===b.fim&&op.tip<b.tip)))porLinha[R.n]=op})}
   })});
   return vfOrdena(porLinha,modo);
+}
+/* da ilha até v: chegando ao ponto da ilha às X, a pé ou de linha interna; devolve a chegada e as pernas */
+function vfDaIlha(k,v,X,dia,C){
+  if(k[0]===v)return {fim:X+k[1],p:[{pe:k[1],para:STOPS[v].name}]};
+  var a=vfInt(k[0],v,X+k[1]+VF_TROCA,dia,C);if(!a)return null;
+  return {fim:a.arr,p:[{pe:k[1],para:STOPS[k[0]].name},{i:a.lid,de:STOPS[k[0]].name,dep:a.dep,para:STOPS[v].name,arr:a.arr}]};
+}
+function vfIdaChegar(R,pos,q,k,o,v,dia,T,C){
+  /* até quando é preciso estar no ponto da ilha */
+  var X,a=null;if(k[0]===v)X=T-k[1];else{a=vfIntAte(k[0],v,T,dia,C);if(!a)return null;X=a.dep-k[1]-VF_TROCA}
+  var base=R.s[q+1]-R.s[pos+1],A=X-base*1.3-15,t=null;
+  for(var it=0;it<2;it++){var E=vfEspera(R.s[pos],R,A,dia);if(!E)return null;A=X-base*vfRazao(A)[1]-E.w[1]}
+  t=vfTrecho(R,pos,q,A,dia);if(!t||t.x[1]>X+0.5)return null;
+  var tip=vfDaIlha(k,v,t.x[0],dia,C),p=[{pe:o.w,para:D_n(R.s[pos])},vfPernaC(R,pos,q,t)];
+  if(a)p.push({pe:k[1],para:STOPS[k[0]].name},{i:a.lid,de:STOPS[k[0]].name,dep:a.dep,para:STOPS[v].name,arr:a.arr});else p.push({pe:k[1],para:STOPS[v].name});
+  var fim=a?a.arr:t.x[1]+k[1];return {sai:A-o.w,fim:fim,tip:tip?Math.min(tip.fim,fim):fim,pernas:p};
+}
+function D_n(i){return VF.d.p[i].n}
+function vfIdaAgora(R,pos,q,k,o,v,dia,T,C){
+  var A=T+o.w,t=vfTrecho(R,pos,q,A,dia);if(!t)return null;
+  var seg=vfDaIlha(k,v,t.x[1],dia,C),tip=vfDaIlha(k,v,t.x[0],dia,C);if(!seg)return null;
+  return {sai:T,fim:seg.fim,tip:tip?tip.fim:seg.fim,pernas:[{pe:o.w,para:D_n(R.s[pos])},vfPernaC(R,pos,q,t)].concat(seg.p)};
 }
 function vfOrdena(M,modo){return Object.keys(M).map(function(k){return M[k]}).sort(function(a,b){return modo==='chegar'?b.sai-a.sai:a.fim-b.fim}).slice(0,3)}
 /* ---------- volta: da parada u da UFRJ até perto de casa, ou até a Vila ---------- */
@@ -7654,21 +7708,21 @@ function vfVolta(u,alvo,dia,T){
   var D=VF.d,C={},porLinha={},vila=alvo==='vila'?vilaPonto():null,casa=alvo==='casa'?vfCasa():null;if(!vila&&!casa)return [];
   var fimPe=vila?vila.min:0,fimNome=vila?'Vila Residencial':'casa';
   /* só a linha interna (Vila) */
-  if(vila){var a=vfInt(u,vila.id,T,dia,C);if(a&&a.lid)porLinha['i'+a.lid]={sai:a.dep,fim:a.arr+fimPe,pernas:[{i:a.lid,de:STOPS[u].name,dep:a.dep,para:STOPS[vila.id].name,arr:a.arr},{pe:fimPe,para:fimNome}]}}
+  if(vila){var a=vfInt(u,vila.id,T,dia,C);if(a&&a.lid)porLinha['i'+a.lid]={sai:a.dep,fim:a.arr+fimPe,tip:a.arr+fimPe,pernas:[{i:a.lid,de:STOPS[u].name,dep:a.dep,para:STOPS[vila.id].name,arr:a.arr},{pe:fimPe,para:fimNome}]}}
   /* chegar a cada ponto da cidade na ilha: a pé ou de linha interna */
   var chegaPonto={};D.p.forEach(function(p,i){if(!p.il)return;var best=null;
     p.perto.forEach(function(k){var a=k[0]===u?{lid:null,dep:T,arr:T}:vfInt(u,k[0],T,dia,C);if(!a)return;var t=a.arr+k[1]+(a.lid?VF_TROCA:0);if(!best||t<best.t)best={t:t,k:k,a:a}});
     if(best)chegaPonto[i]=best});
   var destinos={};if(casa)vfPertoDe(casa.la,casa.lo).forEach(function(o){destinos[o.i]=o.w});
   else D.p.forEach(function(p,i){if(!p.il)return;p.perto.forEach(function(k){if(k[0]===vila.id)destinos[i]=k[1]})});
-  Object.keys(chegaPonto).forEach(function(ii){var i=+ii,cp=chegaPonto[i];D.p[i].r.forEach(function(x){var R=D.r[x[0]],pos=x[1],off0=R.s[pos+1];
+  Object.keys(chegaPonto).forEach(function(ii){var i=+ii,cp=chegaPonto[i];D.p[i].r.forEach(function(x){var R=D.r[x[0]],pos=x[1];
     var desce=null;for(var q=pos+2;q<R.s.length;q+=2)if(R.s[q] in destinos){if(desce==null||destinos[R.s[q]]<destinos[R.s[desce]])desce=q}
     if(desce==null)return;
-    var s=vfSaidas(R,dia).filter(function(s){return s+off0>=cp.t&&s+off0<=cp.t+120})[0];if(s==null)return;
-    var dep=s+off0,arr=s+R.s[desce+1],w=destinos[R.s[desce]],fim=arr+w+(vila?fimPe:0);
-    var p=[];if(cp.a.lid)p.push({i:cp.a.lid,de:STOPS[u].name,dep:cp.a.dep,para:STOPS[cp.k[0]].name,arr:cp.a.arr});
-    p.push({pe:cp.k[1],para:D.p[i].n});p.push({c:R,de:D.p[i].n,dep:dep,para:D.p[R.s[desce]].n,arr:arr});p.push({pe:w+(vila?fimPe:0),para:fimNome});
-    var op={sai:cp.a.lid?cp.a.dep:dep-cp.k[1],fim:fim,pernas:p},b=porLinha[R.n];if(!b||op.fim<b.fim)porLinha[R.n]=op})});
+    var t=vfTrecho(R,pos,desce,cp.t,dia);if(!t)return;
+    var w=destinos[R.s[desce]]+(vila?fimPe:0),p=[];
+    if(cp.a.lid)p.push({i:cp.a.lid,de:STOPS[u].name,dep:cp.a.dep,para:STOPS[cp.k[0]].name,arr:cp.a.arr});
+    p.push({pe:cp.k[1],para:D.p[i].n});p.push(vfPernaC(R,pos,desce,t));p.push({pe:w,para:fimNome});
+    var op={sai:cp.a.lid?cp.a.dep:T,fim:t.x[1]+w,tip:t.x[0]+w,pernas:p},b=porLinha[R.n];if(!b||op.fim<b.fim)porLinha[R.n]=op})});
   return vfOrdena(porLinha,'sair');
 }
 /* ---------- formulário ---------- */
@@ -7696,10 +7750,13 @@ function vfBusca(q){
 }
 function vfBadge(p){return p.i?badge(p.i):'<span class="lb" style="--c:'+esc(vfCor(p.c))+'" title="Linha '+esc(p.c.n)+'">'+esc(p.c.n)+'</span>'}
 function vfOpHTML(op,i){
-  var h='<li class="vf-op'+(i===0?' vf-1':'')+'"><p class="vf-sai"><span>Saia às <b class="mono">'+fmt(op.sai)+'</b></span><span class="muted small keep">chega '+fmt(op.fim)+' · '+Math.max(1,Math.round(op.fim-op.sai))+' min</span></p><ol class="vf-pernas">';
+  var tip=Math.round(op.tip),fim=Math.round(op.fim);
+  var h='<li class="vf-op'+(i===0?' vf-1':'')+'"><p class="vf-sai"><span>Saia às <b class="mono">'+fmt(op.sai)+'</b></span><span class="muted small keep">'+(fim-tip>=2?'chega por volta de '+fmt(tip)+', até '+fmt(fim):'chega '+fmt(fim))+'</span></p><ol class="vf-pernas">';
   op.pernas.forEach(function(p){
     if(p.pe!=null){if(p.pe>0)h+='<li class="vf-pe"><span class="vf-ic" aria-hidden="true">🚶</span><span>Caminhe '+p.pe+' min até '+esc(p.para)+'</span></li>';return}
-    h+='<li class="vf-bus">'+vfBadge(p)+'<span><span class="mono">'+fmt(p.dep)+'</span> <span>Embarque em '+esc(p.de)+'</span>'+(p.c?' <span class="muted">(para '+esc(p.c.d)+')</span>':'')+'<br><span class="muted small keep">Desça em '+esc(p.para)+' · '+fmt(p.arr)+'</span></span></li>'});
+    /* ônibus da cidade: sem hora exata; linha interna: horário da Prefeitura Universitária */
+    if(p.c)h+='<li class="vf-bus">'+vfBadge(p)+'<span><span>Esteja em '+esc(p.de)+' às '+fmt(p.A)+'</span> <span class="muted keep">(para '+esc(p.c.d)+')</span><span class="vf-l muted small keep">Espera típica ~'+Math.max(1,Math.round(p.w[0]))+' min · viagem ~'+Math.max(1,Math.round(p.v[0]))+' min'+(p.gps?'':' (estimada)')+'</span><span class="vf-l muted small keep">Desça em '+esc(p.para)+'</span></span></li>';
+    else h+='<li class="vf-bus">'+vfBadge(p)+'<span><span class="mono">'+fmt(p.dep)+'</span> <span>Embarque em '+esc(p.de)+'</span><br><span class="muted small keep">Desça em '+esc(p.para)+' · '+fmt(p.arr)+'</span></span></li>'});
   return h+'</ol></li>';
 }
 function vfResultadoHTML(){
@@ -7709,7 +7766,7 @@ function vfResultadoHTML(){
   var r=vfCalcula();if(r.falta)return '<p class="muted small keep">'+r.falta+'</p>';
   var h=r.ops.length?'<ol class="vf-ops">'+r.ops.map(vfOpHTML).join('')+'</ol>':'<p class="muted small keep">'+r.vazio+'</p>';
   return (r.dia?'<p class="vf-dia small keep">'+r.dia+'</p>':'')+h+
-    '<p class="muted small keep">Horários programados pela prefeitura do Rio e pela Prefeitura Universitária. O trânsito muda tudo: confira os ônibus ao vivo no mapa.</p>';
+    '<p class="muted small keep">Os ônibus da cidade não têm hora certa. A espera e a folga vêm do GPS da prefeitura do Rio: com elas, 8 em cada 10 viagens chegaram a tempo. Linhas internas: horários da Prefeitura Universitária.</p>';
 }
 /* T e o dia: "chegar até" uma hora que já passou vale para amanhã */
 function vfQuando(){
@@ -7759,7 +7816,9 @@ function vfRecalculaProgs(){
   if(!VF.d)return;var o=vfCfg(),mudou=false;
   (o.prog||[]).forEach(function(p){var c={};(p.dias==='todos'?['U','S','D']:['U']).forEach(function(dia){var op=vfProgCalc(p,dia);if(!op)return;
       var b=op.pernas.filter(function(x){return x.pe==null})[0],pe=op.pernas[0].pe!=null?op.pernas[0].pe:0;
-      c[dia]={ln:b.i?String(b.i):b.c.n,h:Math.round(b.dep),sai:Math.round(op.sai),min:Math.min(30,Math.max(3,pe+3)),txt:'Hora de sair: '+(b.i?'linha '+b.i:'o '+b.c.n),nome:b.de}});
+      /* o aviso sai na hora de sair: "o 635 passa em ~N min" com N = caminhada + espera típica (ônibus da cidade) */
+      var h=b.c?b.A+b.w[0]:b.dep,min=b.c?pe+b.w[0]:pe+3;if(min>30){h-=min-30;min=30}
+      c[dia]={ln:b.i?String(b.i):b.c.n,h:Math.round(h),sai:Math.round(op.sai),min:Math.max(3,Math.round(min)),txt:'Hora de sair: '+(b.i?'linha '+b.i:'o '+b.c.n),nome:p.s==='ida'?'seu ponto':b.de}});/* o ponto perto de casa não vai para o servidor */
     if(JSON.stringify(c)!==JSON.stringify(p.c||{})){p.c=c;mudou=true}});
   if(mudou){vfGuarda(o);if(typeof alvSincroniza==='function'&&vfProgs().some(function(p){return p.av}))alvSincroniza(false)}
 }
@@ -7820,7 +7879,7 @@ document.addEventListener('click',function(e){var t=e.target;if(!t.closest||!t.c
   if((b=t.closest('[data-vfp]'))){var c=vfBusca(VF.busca)[+b.dataset.vfp];if(c){VF.origem={n:c.n,la:c.la,lo:c.lo};VF.trocando=false;VF.busca='';VF.msg=''}vfPinta();return}
   if(t.closest('#vfTroca')){VF.trocando=true;vfPinta();var i=$('#vfBusca');if(i)i.focus();return}
   if(t.closest('#vfLocal')){vfLocal();return}
-  if(t.closest('#vfSalvaCasa')){var o=vfCfg(),g=VF.origem;o.casa={n:g.n,la:Math.round(g.la*1e3)/1e3,lo:Math.round(g.lo*1e3)/1e3};vfGuarda(o);VF.origem={n:g.n,la:o.casa.la,lo:o.casa.lo,casa:true};VF.msg='Casa salva. Ela vale para a ida e para a volta.';vfRecalculaProgs();vfPinta();return}
+  if(t.closest('#vfSalvaCasa')){var o=vfCfg(),g=VF.origem;o.casa={n:g.n,la:Math.round(g.la*1e3)/1e3,lo:Math.round(g.lo*1e3)/1e3};vfGuarda(o);VF.origem={n:g.n,la:o.casa.la,lo:o.casa.lo,casa:true};VF.msg='Casa salva só neste aparelho. Ela vale para a ida e para a volta.';vfRecalculaProgs();vfPinta();return}
   if(t.closest('#vfProgramar')){vfPrograma();return}
   if((b=t.closest('[data-vfdel]'))){var o2=vfCfg();o2.prog=(o2.prog||[]).filter(function(p){return p.id!==b.dataset.vfdel});vfGuarda(o2);if(typeof alvSincroniza==='function')alvSincroniza(false);VF.msg='Viagem apagada.';vfPinta();return}
   if((b=t.closest('[data-vfav]'))){var o3=vfCfg(),p=(o3.prog||[]).filter(function(p){return p.id===b.dataset.vfav})[0];if(!p)return;p.av=!p.av;vfGuarda(o3);

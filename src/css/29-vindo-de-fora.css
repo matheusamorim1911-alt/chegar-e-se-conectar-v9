@@ -34,3 +34,4 @@
 .vf-1{border-color:var(--press)}
 .solido .vf-op,.solido .vf-orig,.solido .vf-plista li,.solido .vf-lista button{background:var(--surface-2);border-color:var(--line);box-shadow:none}
 .solido .vf-1{border-color:var(--press)}
+.vf-l{display:block;margin-top:2px}
