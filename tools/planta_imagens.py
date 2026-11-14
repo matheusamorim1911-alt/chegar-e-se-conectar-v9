@@ -61,7 +61,10 @@ def aplica(img, area, suf):
 
 for suf in CORES:
   ler = lambda n: Image.open(os.path.join(ORIG, 'mapa-%s%s.jpg' % (n, suf)))
-  salva = lambda img, n, q: img.save(os.path.join(ROOT, 'mapa-%s%s.jpg' % (n, suf)), quality=q, optimize=True)
+  def salva(img, n, q):
+    img.save(os.path.join(ROOT, 'mapa-%s%s.jpg' % (n, suf)), quality=q, optimize=True)
+    # WebP (cerca de metade do tamanho, mesma aparência): o app usa quando o navegador mostra WebP
+    img.save(os.path.join(ROOT, 'mapa-%s%s.webp' % (n, suf)), 'WEBP', quality=q, method=6)
   salva(aplica(ler('campus'), CAMPUS, suf), 'campus', 80)
   salva(aplica(ler('bordas'), BORDAS, suf), 'bordas', 80)
   mini0 = ler('mini').convert('RGB'); mini = aplica(mini0, CAMPUS, suf); salva(mini, 'mini', 80)

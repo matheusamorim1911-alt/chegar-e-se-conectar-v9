@@ -74,7 +74,7 @@ function favHTML(){
   if(!L.length&&!FAV.form)h+='<p class="muted small keep">Guarde pontos e linhas que você usa em Casa, Trabalho, Estudos ou numa categoria sua. Toque na estrela no painel de um ponto ou de uma linha, ou em Adicionar.</p>';
   if(C.length>1)h+='<div class="seg chips fav-filtro" role="group" aria-label="Categoria"><button type="button" data-favf="" aria-pressed="'+!FAV.filtro+'">Todos</button>'+C.map(function(c){return '<button type="button" data-favf="'+esc(c)+'" aria-pressed="'+(FAV.filtro===c)+'">'+esc(c)+'</button>'}).join('')+'</div>';
   C.filter(function(c){return !FAV.filtro||c===FAV.filtro}).forEach(function(c){
-    h+='<p class="eyebrow fav-cat">'+esc(c)+'</p><ul class="fav-lista">'+L.filter(function(f){return f.cat===c}).map(function(f){return favItem(f,now)}).join('')+'</ul>'});
+    h+='<p class="fav-cat">'+esc(c)+'</p><ul class="fav-lista">'+L.filter(function(f){return f.cat===c}).map(function(f){return favItem(f,now)}).join('')+'</ul>'});
   if(FAV.form)h+=favFormHTML();
   return h+'</div>';
 }

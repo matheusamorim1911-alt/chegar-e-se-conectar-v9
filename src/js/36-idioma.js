@@ -5,6 +5,9 @@
    O que não está na tabela continua em português. Em português nada disto roda. Guardado em CFG.idioma.
    Para traduzir mais um texto: acrescente uma linha em IDI_TAB com o texto exatamente como aparece na tela. */
 var IDI_NOMES={pt:'Português',en:'English',es:'Español'};
+/* No site, a tabela (este texto, o de 37-idioma-textos.js e IDI_FRAG de 38-idioma-frases.js) sai do app.js para idioma.json
+   (tools/build_site.py põe o endereço em IDI_ARQ): quem usa o app em português não baixa as traduções. */
+var IDI_ARQ='';
 var IDI_TAB=`
 Ajustes ¦ Settings ¦ Ajustes
 Siglas ¦ Acronyms ¦ Siglas
@@ -342,8 +345,18 @@ function idiVarre(raiz){
   var w=document.createTreeWalker(raiz,NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT),n=raiz;
   while(n){if(n.nodeType===3){if(!idiFora(n.parentElement))idiTexto(n)}else if(n.hasAttribute&&(n.hasAttribute('aria-label')||n.hasAttribute('title')||n.hasAttribute('placeholder'))&&!idiFora(n))idiAtributos(n);n=w.nextNode()}
 }
+function idiPronto(){return !IDI_ARQ||!!IDI.carregado}
+/* baixa as traduções (só na primeira vez que o idioma não é português) */
+function idiCarrega(){
+  if(idiPronto())return Promise.resolve();
+  if(!IDI.baixando)IDI.baixando=fetch(IDI_ARQ).then(function(r){if(!r.ok)throw new Error('idioma');return r.json()}).then(function(j){
+    IDI_TAB=j.tab+j.frag+IDI_TAB;IDI_FRAG=j.frag+IDI_FRAG;IDI.mapa=null;IDI_PEDACOS=null;IDI_CACHE.clear();IDI.carregado=true;IDI.baixando=null})
+    .catch(function(){IDI.baixando=null});
+  return IDI.baixando;
+}
 function idiLiga(){
   document.documentElement.lang=idiAtual()==='pt'?'pt-BR':idiAtual();
+  if(idiAtual()!=='pt'&&!idiPronto()){idiCarrega().then(function(){if(idiPronto())idiLiga()});return}
   idiVarre(document.body);
   if(idiAtual()==='pt'){if(IDI.obs){IDI.obs.disconnect();IDI.obs=null}return}
   if(IDI.obs)return;
