@@ -83,7 +83,7 @@ function vfTrecho(R,pos,q,A,dia){
 function vfPertoDe(la,lo){var m=vfMetros(la*1e5,lo*1e5),o=[];VF.d.p.forEach(function(p,i){if(p.il)return;var d=Math.hypot(p.x-m[0],p.y-m[1])*VF_FATOR;
   if(d<=VF_RAIO*VF_FATOR)o.push({i:i,w:Math.max(1,Math.round(d/VF_PE))})});return o}
 function vfCor(R){return R.c||liveColor(R.n)}
-function vfPernaC(R,pos,q,t){var D=VF.d;return {c:R,de:D.p[R.s[pos]].n,para:D.p[R.s[q]].n,A:t.A,w:t.w,gps:t.gps,v:t.v}}
+function vfPernaC(R,pos,q,t){var D=VF.d;return {c:R,pi:R.s[pos],pos:pos,de:D.p[R.s[pos]].n,para:D.p[R.s[q]].n,A:t.A,w:t.w,gps:t.gps,v:t.v}}
 /* ---------- ida: de perto de casa até a parada v da UFRJ ---------- */
 function vfIda(orig,v,dia,modo,T){
   var O=vfPertoDe(orig.la,orig.lo),C={},porLinha={},D=VF.d;
@@ -180,6 +180,8 @@ function vfResultadoHTML(){
   if(!VF.d)return '';
   var r=vfCalcula();if(r.falta)return '<p class="muted small keep">'+r.falta+'</p>';
   var h=r.ops.length?'<ol class="vf-ops">'+r.ops.map(vfOpHTML).join('')+'</ol>':'<p class="muted small keep">'+r.vazio+'</p>';
+  VF.ops=r.ops;/* para o mapa ao vivo até o ponto (49-mapa-ate-o-ponto.js) */
+  if(r.ops.length&&VF.aba==='ida'&&(VF.modo==='agora'||r.ops[0].sai-nowMin()<=30)&&typeof vmBotaoHTML==='function')h+=vmBotaoHTML();/* para quem sai agora (ou em até 30 min) */
   return (r.dia?'<p class="vf-dia small keep">'+r.dia+'</p>':'')+h+
     '<p class="muted small keep">Os ônibus da cidade não têm hora certa. A espera e a folga vêm do GPS da prefeitura do Rio: com elas, 8 em cada 10 viagens chegaram a tempo. Linhas internas: horários da Prefeitura Universitária.</p>';
 }
