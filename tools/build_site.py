@@ -32,6 +32,11 @@ _idv=hashlib.sha1(_idj.encode()).hexdigest()[:10]
 open(os.path.join(out,'idioma.json'),'w',encoding='utf-8').write(_idj)
 assert js.count("var IDI_ARQ='';")==1
 js=js.replace("var IDI_ARQ='';","var IDI_ARQ='idioma.json?v=%s';"%_idv)
+# horários dos ônibus da cidade para "De casa até a UFRJ" (tools/vindo_de_fora.py): baixado só quando a seção abre
+_vfp=os.path.join(ROOT,'vindo-de-fora.json')
+if os.path.exists(_vfp):
+  assert js.count("var VF_ARQ='vindo-de-fora.json';")==1
+  js=js.replace("var VF_ARQ='vindo-de-fora.json';","var VF_ARQ='vindo-de-fora.json?v=%s';"%hashlib.sha1(open(_vfp,'rb').read()).hexdigest()[:10])
 assert js.count("var APP_VERSION='dev';")==1
 js=js.replace("var APP_VERSION='dev';","var APP_VERSION='%s';"%ver)
 body=s[s.index('</style>')+8:m.start()].strip('\n')

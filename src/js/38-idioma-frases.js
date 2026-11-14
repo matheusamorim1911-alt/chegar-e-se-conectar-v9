@@ -750,6 +750,60 @@ Para sua nota contar na média, o dono da página precisa te dar acesso de colab
 Você entrou como gestor. ¦ You signed in as a manager. ¦ Entraste como gestor.
 Selecione o número ¦ Select the number ¦ Selecciona el número
 não circula ¦ not running ¦ no circula
+De casa até a UFRJ ¦ From home to UFRJ ¦ De casa a la UFRJ
+Ônibus da cidade, BRT e linhas internas ¦ City buses, BRT and campus lines ¦ Autobuses de la ciudad, BRT y líneas internas
+Ônibus e BRT da prefeitura do Rio até a ilha, e daí a linha interna ou a caminhada. ¦ Rio city buses and BRT to the island, then the campus line or a walk. ¦ Autobuses y BRT de la prefeitura do Rio hasta la isla, y de ahí la línea interna o a pie.
+Ida para a UFRJ ¦ Going to UFRJ ¦ Ida a la UFRJ
+Volta ¦ Return ¦ Vuelta
+Saindo de ¦ Leaving from ¦ Saliendo de
+Ponto de ônibus perto de casa ¦ Bus stop near home ¦ Parada de autobús cerca de casa
+Ex.: Avenida Brasil, Penha, Méier ¦ E.g.: Avenida Brasil, Penha, Méier ¦ Ej.: Avenida Brasil, Penha, Méier
+Usar minha localização ¦ Use my location ¦ Usar mi ubicación
+Salvar como minha casa ¦ Save as my home ¦ Guardar como mi casa
+Trocar ¦ Change ¦ Cambiar
+Minha casa ¦ My home ¦ Mi casa
+Para onde ¦ Where to ¦ Adónde
+Sentido ¦ Direction ¦ Sentido
+Sair agora ¦ Leave now ¦ Salir ahora
+Chegar até ¦ Arrive by ¦ Llegar antes de
+Sair às ¦ Leave at ¦ Salir a las
+Saia às ¦ Leave at ¦ Sal a las
+Horário ¦ Time ¦ Hora
+Dias ¦ Days ¦ Días
+Programar esta viagem ¦ Schedule this trip ¦ Programar este viaje
+Programados ¦ Scheduled ¦ Programados
+Avisar: ligado ¦ Alert: on ¦ Aviso: activado
+Avisar: desligado ¦ Alert: off ¦ Aviso: desactivado
+Apagar esta viagem ¦ Delete this trip ¦ Borrar este viaje
+Passagem com o Jaé. ¦ Pay the fare with Jaé. ¦ El pasaje se paga con Jaé.
+Onde você está agora ¦ Where you are now ¦ Donde estás ahora
+Carregando os horários dos ônibus… ¦ Loading bus times… ¦ Cargando los horarios de los autobuses…
+Não deu para carregar os horários dos ônibus da cidade. ¦ Could not load the city bus times. ¦ No se pudieron cargar los horarios de los autobuses de la ciudad.
+Abra o app pelo site. ¦ Open the app from the website. ¦ Abre la app desde el sitio web.
+Confira a conexão. ¦ Check your connection. ¦ Revisa la conexión.
+Escolha de onde você sai: busque o ponto de ônibus perto de casa ou use a localização. ¦ Choose where you leave from: search for the bus stop near home or use your location. ¦ Elige de dónde sales: busca la parada cerca de casa o usa tu ubicación.
+Nenhum ônibus da cidade chega a tempo saindo daí. Tente um horário mais tarde ou outro ponto perto de casa. ¦ No city bus gets there in time from that stop. Try a later time or another stop near home. ¦ Ningún autobús de la ciudad llega a tiempo desde ahí. Prueba una hora más tarde u otra parada cerca de casa.
+Nenhum ônibus da cidade perto daí até a UFRJ nas próximas 3 horas. Tente outro ponto perto de casa. ¦ No city bus from near there to UFRJ in the next 3 hours. Try another stop near home. ¦ Ningún autobús de la ciudad desde ahí hasta la UFRJ en las próximas 3 horas. Prueba otra parada cerca de casa.
+Para a volta, salve sua casa na aba Ida (o ponto de ônibus perto de casa). ¦ For the return trip, save your home on the Going tab (the bus stop near home). ¦ Para la vuelta, guarda tu casa en la pestaña Ida (la parada cerca de casa).
+Nenhuma linha até a Vila depois desse horário. ¦ No line to the Vila after that time. ¦ Ninguna línea hasta la Vila después de esa hora.
+Nenhum ônibus da cidade da UFRJ até perto da sua casa nas próximas 2 horas. ¦ No city bus from UFRJ to near your home in the next 2 hours. ¦ Ningún autobús de la ciudad desde la UFRJ hasta cerca de tu casa en las próximas 2 horas.
+Horários programados pela prefeitura do Rio e pela Prefeitura Universitária. O trânsito muda tudo: confira os ônibus ao vivo no mapa. ¦ Scheduled times from the prefeitura do Rio and the Prefeitura Universitária. Traffic changes everything: check the live buses on the map. ¦ Horarios programados por la prefeitura do Rio y la Prefeitura Universitária. El tráfico lo cambia todo: mira los autobuses en vivo en el mapa.
+Para programar esta viagem, salve o ponto como sua casa. ¦ To schedule this trip, save the stop as your home. ¦ Para programar este viaje, guarda la parada como tu casa.
+Casa salva só neste aparelho. Ela vale para a ida e para a volta. ¦ Home saved on this device only. It works for going and returning. ¦ Casa guardada solo en este dispositivo. Vale para la ida y la vuelta.
+Os ônibus da cidade não têm hora certa. A espera e a folga vêm do GPS da prefeitura do Rio: com elas, 8 em cada 10 viagens chegaram a tempo. Linhas internas: horários da Prefeitura Universitária. ¦ City buses have no fixed times. The wait and the margin come from the prefeitura do Rio GPS: with them, 8 in 10 trips arrived on time. Campus lines: Prefeitura Universitária times. ¦ Los autobuses de la ciudad no tienen hora fija. La espera y el margen vienen del GPS de la prefeitura do Rio: con ellos, 8 de cada 10 viajes llegaron a tiempo. Líneas internas: horarios de la Prefeitura Universitária.
+Viagem programada. Ligue o aviso para saber a hora de sair. ¦ Trip scheduled. Turn on the alert to know when to leave. ¦ Viaje programado. Activa el aviso para saber cuándo salir.
+Viagem apagada. ¦ Trip deleted. ¦ Viaje borrado.
+Aviso desligado. ¦ Alert off. ¦ Aviso desactivado.
+Aviso ligado: chega na hora de ir para o ponto. ¦ Alert on: it arrives when it is time to go to the stop. ¦ Aviso activado: llega cuando es hora de ir a la parada.
+Com o app aberto, o aviso aparece aqui. ¦ With the app open, the alert shows up here. ¦ Con la app abierta, el aviso aparece aquí.
+Procurando onde você está… ¦ Finding where you are… ¦ Buscando dónde estás…
+Nenhum ponto de ônibus até a UFRJ a menos de 700 m daqui. Busque um ponto pelo nome. ¦ No bus stop to UFRJ within 700 m of here. Search for a stop by name. ¦ Ninguna parada hacia la UFRJ a menos de 700 m de aquí. Busca una parada por el nombre.
+Não deu para saber onde você está. Busque o ponto pelo nome. ¦ Could not find where you are. Search for the stop by name. ¦ No se pudo saber dónde estás. Busca la parada por el nombre.
+Para amanhã. ¦ For tomorrow. ¦ Para mañana.
+Para amanhã (sábado). ¦ For tomorrow (Saturday). ¦ Para mañana (sábado).
+Para amanhã (domingo ou feriado). ¦ For tomorrow (Sunday or holiday). ¦ Para mañana (domingo o feriado).
+Hoje os ônibus seguem os horários de sábado. ¦ Today the buses run on the Saturday schedule. ¦ Hoy los autobuses siguen el horario de sábado.
+Hoje os ônibus seguem os horários de domingo e feriado. ¦ Today the buses run on the Sunday and holiday schedule. ¦ Hoy los autobuses siguen el horario de domingo y feriado.
 `;
 var IDI_PEDACOS=null,IDI_CACHE=new Map();
 /* pedaços com 7 letras ou mais (ou com pontuação que os marca), os mais compridos primeiro */
@@ -773,5 +827,23 @@ function idiPorPedacos(t){
 IDI_PAD.push([/^(.+?) perto de (.+)$/,function(_,a,b){var r=idiMapa().get(a);return (r?r[0]:a)+' near '+b},function(_,a,b){var r=idiMapa().get(a);return (r?r[1]:a)+' cerca de '+b}]);
 IDI_PAD.push([/^Parada (.+), linhas (.+)$/,'Stop $1, lines $2','Parada $1, líneas $2']);
 IDI_PAD.push([/^Guarita (\d+), segurança$/,'Guard post $1, security','Garita $1, seguridad']);
+IDI_PAD.push([/^chega por volta de (\d\d:\d\d), até (\d\d:\d\d)$/,'arrives around $1, by $2 at the latest','llega hacia las $1, a más tardar $2']);
+IDI_PAD.push([/^chega (\d\d:\d\d)$/,'arrives $1','llega $1']);
+IDI_PAD.push([/^Esteja em (.+) às (\d\d:\d\d)$/,'Be at $1 by $2','Está en $1 a las $2']);
+IDI_PAD.push([/^Espera típica ~(\d+) min · viagem ~(\d+) min( \(estimada\))?$/,function(_,a,b,e){return 'Typical wait ~'+a+' min · ride ~'+b+' min'+(e?' (estimated)':'')},function(_,a,b,e){return 'Espera típica ~'+a+' min · viaje ~'+b+' min'+(e?' (estimada)':'')}]);
+IDI_PAD.push([/^Desça em (.+)$/,'Get off at $1','Bájate en $1']);
+IDI_PAD.push([/^chega (\d\d:\d\d) · (\d+) min$/,'arrives $1 · $2 min','llega $1 · $2 min']);
+IDI_PAD.push([/^Caminhe (\d+) min até casa$/,'Walk $1 min home','Camina $1 min hasta casa']);
+IDI_PAD.push([/^Caminhe (\d+) min até (.+)$/,'Walk $1 min to $2','Camina $1 min hasta $2']);
+IDI_PAD.push([/^Embarque em (.+)$/,'Board at $1','Sube en $1']);
+IDI_PAD.push([/^\(para (.+)\)$/,'(to $1)','(hacia $1)']);
+IDI_PAD.push([/^Desça em (.+) · (\d\d:\d\d)$/,'Get off at $1 · $2','Bájate en $1 · $2']);
+IDI_PAD.push([/^Hoje: saia às (\d\d:\d\d) · (\S+)$/,'Today: leave at $1 · $2','Hoy: sal a las $1 · $2']);
+IDI_PAD.push([/^Ida · chegar até (\d\d:\d\d) em (.+)$/,'Going · arrive by $1 at $2','Ida · llegar antes de las $1 a $2']);
+IDI_PAD.push([/^Volta · sair às (\d\d:\d\d) de (.+) para casa$/,'Return · leave $2 at $1 for home','Vuelta · salir de $2 a las $1 hacia casa']);
+IDI_PAD.push([/^Volta · sair às (\d\d:\d\d) de (.+) para a Vila Residencial$/,'Return · leave $2 at $1 for Vila Residencial','Vuelta · salir de $2 a las $1 hacia la Vila Residencial']);
+IDI_PAD.push([/^(dias úteis|todos os dias)(?: · hoje: saia às (\d\d:\d\d))?$/,function(_,d,h){return (d==='dias úteis'?'weekdays':'every day')+(h?' · today: leave at '+h:'')},function(_,d,h){return (d==='dias úteis'?'días hábiles':'todos los días')+(h?' · hoy: sal a las '+h:'')}]);
+IDI_PAD.push([/^Casa · (.+)$/,'Home · $1','Casa · $1']);
+IDI_PAD.push([/^Horários válidos até (\d\d\/\d\d\/\d{4})\.$/,'Schedules valid until $1.','Horarios válidos hasta el $1.']);
 IDI_TAB+=IDI_FRAG+'Banco ¦ Bank ¦ Banco\nRestaurante Universitário ¦ University Cafeteria ¦ Comedor Universitario\n';IDI.mapa=null;
 if(idiAtual()!=='pt'&&idiPronto())idiVarre(document.body);/* sem a tabela ainda, idiLiga traduz quando ela chegar */

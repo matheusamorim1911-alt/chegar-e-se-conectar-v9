@@ -31,6 +31,7 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `26-eduroam-perfil.css`: perfil do eduroam da UFRJ (instalar, à mão, conferir usuário)
 - `27-favoritos.css`: favoritos (Trajetos, capa e estrela nos painéis)
 - `28-onibus-canvas.css`: canvas dos ônibus ao vivo sobre o mapa
+- `29-vindo-de-fora.css`: De casa até a UFRJ (ida, volta e viagens programadas)
 
 ## Código (js/)
 - `01-nucleo.js`: pontos de extensão (etapas), modo do site, ajustes salvos e utilidades básicas
@@ -77,4 +78,5 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `42-eduroam-perfil.js`: o perfil do eduroam da UFRJ no app (perfil para iPhone/Mac, configuração à mão, formato do usuário, validade dos certificados em Saúde)
 - `43-favoritos.js`: favoritos de pontos e linhas por categoria (Casa, Trabalho, Estudos ou própria), com o próximo ônibus, no topo de Trajetos e na capa
 - `44-onibus-canvas.js`: ônibus ao vivo pintados em canvas (os marcadores do SVG ficam só para tocar e acessibilidade)
+- `45-vindo-de-fora.js`: De casa até a UFRJ: ida e volta com ônibus e BRT da prefeitura do Rio e linhas internas, hora de sair e viagens programadas com aviso (`vindo-de-fora.json`)
 - `99-inicio.js`: abre a aba pedida no endereço (#predios, #grade…) depois que tudo carregou; fica sempre por último

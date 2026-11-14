@@ -8,6 +8,8 @@
    Com o app aberto, o próprio app confere a cada 15 s. Com o app fechado, quem confere é o Worker (gatilho Cron):
    o app manda para /push/alertas o trecho do traçado que chega ao ponto (ou os horários, nas linhas internas) e o
    Worker avisa por notificação. Guardado no aparelho em cse-avisos-onibus ({c: programados, u: de uma vez}). */
+/* outras partes acrescentam alertas no formato do Worker (ex.: a hora de sair das viagens programadas, 45-vindo-de-fora.js) */
+var ALV_EXTRA=[];
 var ALV={lista:[],uma:[],max:5,maxUma:5,form:null,msg:'',busy:false,push:false,sinc:0,disparados:{},motivo:'',falhas:{}};
 try{localStorage.removeItem('cse-alertas-onibus')}catch(e){}/* versão anterior: começa do zero */
 try{var _alv=JSON.parse(localStorage.getItem('cse-avisos-onibus')||'{}');if(_alv&&Array.isArray(_alv.c))ALV.lista=_alv.c.slice(0,ALV.max);if(_alv&&Array.isArray(_alv.u))ALV.uma=_alv.u.slice(0,ALV.maxUma)}catch(e){}
@@ -87,7 +89,8 @@ function alvServidor(){
   });
   alvVivosUma().forEach(function(a){var cor=alvCorredores(a);
     if(cor.length)S.push({id:a.id,tipo:'c',uma:1,fim:a.fim,min:a.min,nome:alvNome({gr:a.ponto,nome:a.nome}),l:a.linhas,v:a.carro,cor:cor});else ALV.falhas[a.id]='tracado'});
-  return S;
+  ALV_EXTRA.forEach(function(f){try{S=S.concat(f()||[])}catch(e){}});
+  return S.slice(0,15);/* o Worker guarda até 15 por aparelho */
 }
 /* permissão, chave do Worker e assinatura deste aparelho; devolve a assinatura ou null (com o motivo em ALV.motivo) */
 function alvAssina(pedir,criar){
