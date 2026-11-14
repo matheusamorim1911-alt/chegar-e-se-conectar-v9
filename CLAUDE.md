@@ -65,6 +65,10 @@ App web (sem framework) da Cidade Universitária da UFRJ, publicado pelo GitHub 
 ## Desempenho
 - Modos em Ajustes: completo (vidro e animações), intermediário (padrão no celular: tudo opaco, classe `solido`, sem `backdrop-filter` nem refração, mas com o movimento do mapa e dos ônibus) e leve (`lowgfx`: opaco e sem movimento). Regras só visuais usam `.solido`; as de movimento, `.lowgfx`.
 - O mapa base é sempre sólido (o controle de transparência saiu; no lugar, "Buscar ônibus").
+- Abertura: `placeCoverMap()` junta os pedidos num só cálculo no próximo quadro (`placeCoverMapAgora` faz a conta) e o ajuste dos filtros do topo também espera o quadro; ler medidas da tela no meio da carga obrigava o navegador a refazer o layout várias vezes.
+- Imagens da planta em WebP (`MAPEXT` em `03-mapa.js`; JPG para navegador sem WebP); `tools/planta_imagens.py` grava os dois e o service worker guarda só o WebP.
+- Traduções fora do `app.js`: `tools/build_site.py` tira as tabelas (`IDI_TAB`, `IDI_FRAG`) para `idioma.json`, baixado só quando o idioma não é português (`idiCarrega`, `IDI_ARQ`); no arquivo único do claude.ai elas continuam dentro.
+- Medição num celular simples simulado (CPU 6×, 4G de 1,6 Mbps): primeira abertura com app pronto em ~3 s, de novo em ~0,5 s; ao vivo ~57 quadros/s.
 - `box()` em `03-mapa.js` guarda a caixa do mapa (renova ao rolar, redimensionar e no começo de cada toque): lê-la a cada quadro forçava o layout.
 
 ## Instalar o app

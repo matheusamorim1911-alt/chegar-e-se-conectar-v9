@@ -770,4 +770,4 @@ IDI_PAD.push([/^(.+?) perto de (.+)$/,function(_,a,b){var r=idiMapa().get(a);ret
 IDI_PAD.push([/^Parada (.+), linhas (.+)$/,'Stop $1, lines $2','Parada $1, líneas $2']);
 IDI_PAD.push([/^Guarita (\d+), segurança$/,'Guard post $1, security','Garita $1, seguridad']);
 IDI_TAB+=IDI_FRAG+'Banco ¦ Bank ¦ Banco\nRestaurante Universitário ¦ University Cafeteria ¦ Comedor Universitario\n';IDI.mapa=null;
-if(idiAtual()!=='pt')idiVarre(document.body);
+if(idiAtual()!=='pt'&&idiPronto())idiVarre(document.body);/* sem a tabela ainda, idiLiga traduz quando ela chegar */

@@ -102,5 +102,5 @@ aoFazer('trajeto montado',function(){if(CMP.on)cmpSchedule()});/* ---------- fil
   window.addEventListener('resize',later);window.addEventListener('orientationchange',later);
   if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fit);
   new MutationObserver(later).observe(document.documentElement,{attributes:true,attributeFilter:['data-font','style','class']});
-  fit();
+  requestAnimationFrame(fit);/* depois que a página terminar de montar: medir agora obrigaria um layout a mais */
 })();

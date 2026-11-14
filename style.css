@@ -1994,7 +1994,7 @@ a.cv-aviso{text-decoration:none}
 .fav-box{display:grid;gap:8px;margin:0 0 16px}
 .fav-topo{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .fav-topo h3{margin:0}
-.fav-cat{margin:6px 0 0}
+.fav-cat{margin:8px 2px 0;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
 .fav-lista{list-style:none;margin:0;padding:0;display:grid;gap:6px}
 .fav-it{display:flex;align-items:center;gap:6px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2)}
 .fav-ir{flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:10px 12px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;border-radius:14px}
@@ -2011,3 +2011,8 @@ a.cv-aviso{text-decoration:none}
 .cv-favs{display:grid;gap:6px}
 .cv-fav-t{margin:4px 0 0;font-size:13px;color:var(--ink-2)}
 .cv-fav{padding:8px 14px}
+/* vidro como os outros botões (modo completo); opaco no intermediário e no leve */
+.cv-aviso:not(.vermelho):not(.amarelo),.fav-it,.fav-form,.fav-escolhe{background:linear-gradient(180deg,var(--lg-top),var(--lg-bot));border-color:var(--lg-rim2);box-shadow:inset 0 1px 0 var(--lg-rim),0 8px 20px -10px var(--lg-drop)}
+.cv-portal{background:linear-gradient(180deg,color-mix(in srgb,#34C759 16%,var(--lg-top)),color-mix(in srgb,#34C759 8%,var(--lg-bot)))!important;border:1.5px solid #34C759!important;box-shadow:inset 0 1px 0 var(--lg-rim),0 8px 20px -10px var(--lg-drop)}
+.solido .cv-aviso:not(.vermelho):not(.amarelo),.solido .fav-it,.solido .fav-form,.solido .fav-escolhe{background:var(--surface-2);border-color:var(--line);box-shadow:none}
+.solido .cv-portal{background:color-mix(in srgb,#34C759 10%,var(--surface))!important;box-shadow:none}

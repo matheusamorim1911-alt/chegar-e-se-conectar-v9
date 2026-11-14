@@ -23,7 +23,11 @@ function coverToday(){
   var el=$('#cvToday'),t=today0(),m=mudancas().filter(function(x){var n=dDiff(dParse(x.d),t);return n>=0&&n<=7})[0];
   if(m&&CFG.coverToday){var n=dDiff(dParse(m.d),t);el.textContent=(n===0?'Hoje':n===1?'Amanhã':dTxt(m.d))+': '+(MUD_K[m.k]||'Mudança').toLowerCase()+' · '+m.t;el.hidden=false}else el.hidden=true;
 }
-function placeCoverMap(){
+/* várias partes pedem para reposicionar o mapa da capa durante a carga (estilo, avisos, idioma): junta tudo num só
+   cálculo antes do próximo quadro, em vez de obrigar o navegador a refazer o layout a cada pedido */
+var PCM_Q=0;
+function placeCoverMap(){if(PCM_Q)return;PCM_Q=requestAnimationFrame(function(){PCM_Q=0;placeCoverMapAgora()})}
+function placeCoverMapAgora(){
   var m=$('#cvMap'),pin=$('#cvPin');if(!m||!window.MAPHD_URL)return;
   var W=m.clientWidth,H=m.clientHeight,sh=document.querySelector('.cv-sheet'),sheetH=sh?sh.offsetHeight:0,wide=W>=700;
   var st=cover.dataset.style||'folha';
