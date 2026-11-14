@@ -379,6 +379,20 @@ ok(linhaDaRota('O0665AAVAA') === 'SVA665' && linhaDaRota('O0665AAVBA') === 'SVB6
   // sair da conta: o aparelho sai do grupo
   await post3('alertas', { endpoint: EB, alertas: [] });
   ok(Object.keys(JSON.parse(KV3.m.get('grupos').v)[GR]).length === 1, 'grupo: sem o código (saiu da conta), o aparelho sai do grupo');
+  // /perto: ônibus das linhas pedidas perto de um ponto da cidade (fora da região do Fundão)
+  const PENHA = [-22.8405, -43.2810];
+  globalThis.fetch = async u => /realtime\/onibus/.test(String(u)) ? new Response(feed([
+      veiculo('P1', 'O0485AAA0A', PENHA[0] + 0.01, PENHA[1], 30, 0, tsA), veiculo('P2', 'O0485AAA0A', -22.95, -43.20, 30, 0, tsA),
+      veiculo('P3', 'O0100AAA0A', PENHA[0], PENHA[1], 30, 0, tsA), veiculo('P4', 'O0616AAA0A', PENHA[0] - 0.005, PENHA[1] - 0.004, 20, 90, tsA),
+      veiculo('P5', 'O0485AAA0A', pontoLa - 0.009, pontoLo, 30, 0, tsA)], tsA)) : new Response(feed([], tsA));
+  const pr = await (await worker.fetch(new Request(`https://x.workers.dev/perto?la=${PENHA[0]}&lo=${PENHA[1]}&l=485,616,100&r=5000`), {}, { waitUntil() {} })).json();
+  const vs = pr.onibus.map(o => o.v).sort().join();
+  ok(vs === 'P1,P4', '/perto: só as linhas pedidas que vão ao Fundão, a até 5 km do ponto (' + vs + ')');
+  ok(pr.onibus[0].d < pr.onibus[1].d && pr.onibus.every(o => o.vel > 0 && o.t > 0), '/perto: do mais perto ao mais longe, com velocidade e hora');
+  const pr2 = await worker.fetch(new Request('https://x.workers.dev/perto?la=10&lo=10&l=485'), {}, { waitUntil() {} });
+  ok(pr2.status === 400, '/perto: ponto fora do Rio é recusado');
+  const prIlha = await (await worker.fetch(new Request(`https://x.workers.dev/perto?la=${pontoLa}&lo=${pontoLo}&l=485&r=3000`), {}, { waitUntil() {} })).json();
+  ok(prIlha.onibus.some(o => o.v === 'P5'), '/perto: também os ônibus dentro da região do Fundão');
   RT_MODO = false;
 }
 process.exit(falhou ? 1 : 0);

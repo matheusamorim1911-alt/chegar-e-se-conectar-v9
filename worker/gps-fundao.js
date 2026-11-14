@@ -79,12 +79,16 @@ export function linhaDaRota(rid) {
 }
 // Lê um FeedMessage com VehiclePosition. Só os textos de quem está na região do Fundão viram string (CPU).
 // Devolve registros no mesmo formato da API antiga, para o filtro de sempre.
-export function lerGtfsRt(buf) {
+// Com cidade = true, também separa os ônibus da cidade toda das linhas que vão ao Fundão (LINHAS), para
+// "/perto" (o mapa até o ponto, no app): [carro, linha, lat, lon, velocidade crua, direção, hora].
+const LINHA_MEMO = new Map(), LINHA_BYTES = new Map();
+function linhaMemo(rid) { let l = LINHA_MEMO.get(rid); if (l === undefined) { l = linhaDaRota(rid); if (LINHA_MEMO.size < 3000) LINHA_MEMO.set(rid, l); } return l; }
+export function lerGtfsRt(buf, cidade) {
   const b = buf instanceof Uint8Array ? buf : new Uint8Array(buf), dv = new DataView(b.buffer, b.byteOffset, b.byteLength), dec = new TextDecoder();
   let i = 0;
   const vi = () => { let v = 0, m = 1, c; do { c = b[i++]; v += (c & 127) * m; m *= 128; } while (c & 128); return v; };
   const pula = w => { if (w === 0) vi(); else if (w === 1) i += 8; else if (w === 2) { const n = vi(); i += n; } else if (w === 5) i += 4; else throw new Error('protobuf inválido'); };
-  const out = [], CX = AREA, pend = [];
+  const out = [], CX = AREA, pend = [], cid = [];
   let resolvidos = 0, total = 0, ts = 0;
   const desconhecidas = new Map();
   while (i < b.length) {
@@ -116,13 +120,19 @@ export function lerGtfsRt(buf) {
     const str = r => r ? dec.decode(b.subarray(r[0], r[0] + r[1])) : '';
     // a linha só é lida de quem está na caixa do Fundão e acessos, mas a amostra que mede o formato vale para todos
     const dentro = veh.la >= CX.latMin && veh.la <= CX.latMax && veh.lo >= CX.lonMin && veh.lo <= CX.lonMax;
+    if (!dentro && cidade && veh.rid) {
+      // a linha pelo route_id, sem montar o texto a cada ônibus: guarda pela "impressão" dos bytes
+      let h = veh.rid[1]; for (let q = veh.rid[0], f = q + veh.rid[1]; q < f; q++) h = (h * 31 + b[q]) | 0;
+      let l = LINHA_BYTES.get(h); if (l === undefined) { l = linhaMemo(dec.decode(b.subarray(veh.rid[0], veh.rid[0] + veh.rid[1]))); if (LINHA_BYTES.size < 3000) LINHA_BYTES.set(h, l); }
+      if (LINHAS.has(l)) cid.push([str(veh.vid) || str(veh.lab), l, +veh.la.toFixed(5), +veh.lo.toFixed(5), veh.sp, Math.round(veh.br) || 0, veh.t * 1000]);
+    }
     if (!dentro && total % 20) continue;
     const rid = str(veh.rid), linha = linhaDaRota(rid);
     if (!dentro) { if (linha) resolvidos += 20; else if (rid && desconhecidas.size < 8) desconhecidas.set(rid, 1); continue; }
     if (linha) resolvidos++; else if (rid && desconhecidas.size < 8) desconhecidas.set(rid, 1);
     pend.push({ id_veiculo: str(veh.vid) || str(veh.lab), servico: linha || rid, latitude: veh.la, longitude: veh.lo, sp: veh.sp, direcao: veh.br, t: veh.t * 1000 });
   }
-  return { lista: pend, total, resolvidos: Math.min(resolvidos, total), desconhecidas: [...desconhecidas.keys()], ts: ts * 1000 };
+  return { lista: pend, total, resolvidos: Math.min(resolvidos, total), desconhecidas: [...desconhecidas.keys()], ts: ts * 1000, ...(cidade ? { cidade: cid } : {}) };
 }
 // Ajustes que dependem do lote inteiro: a velocidade deveria vir em m/s, mas a da prefeitura do Rio parece vir em km/h
 // (se a maioria dos que andam passa de 25, é km/h); e, se as horas vierem 3 h deslocadas (relógio de Brasília marcado
@@ -249,6 +259,7 @@ async function buscar(agora) {
     if (r.status >= 500) { f.de_novo = r.status; await new Promise(ok => setTimeout(ok, 400)); r = await go(); }
     f.http = r.status; return r;
   };
+  const cidade = [];
   const partes = await Promise.all(FONTES.map(async F => {
     const f = { f: F.f, ok: false }, t0 = Date.now(); fontes.push(f);
     try {
@@ -257,13 +268,14 @@ async function buscar(agora) {
         const r = await pede(F.rt, f);
         if (!r.ok) throw new Error(motivoHttp(r.status));
         const buf = await r.arrayBuffer(); f.kb = Math.round(buf.byteLength / 1024);
-        const L = lerGtfsRt(buf);
+        const L = lerGtfsRt(buf, true);
         f.n = L.total;
         if (L.desconhecidas.length) f.rotas = L.desconhecidas;
         if (L.total > 30 && L.resolvidos < L.total * 0.5) throw new Error('formato: a linha não veio no route_id (ex.: ' + (L.desconhecidas[0] || 'vazio') + ')');
         const A = ajustarRt(L.lista, agora);
         if (A.desloc) f.desloc_h = A.desloc / 3600e3;
         if (L.ts) f.ts = L.ts + A.desloc;
+        for (const c of L.cidade || []) { c[4] = Math.round(A.kmh ? c[4] : c[4] * 3.6); c[6] += A.desloc; if (c[6] > agora - VELHO_MIN * 60e3) cidade.push(c); }
         f.via = 'gtfs-rt'; f.ok = true; return A.lista;
       } catch (e) { f.motivo_rt = String(e.message || e).slice(0, 120); if (/^a prefeitura/.test(f.motivo_rt)) f.motivo = f.motivo_rt; else f.motivo = motivoErro(e); }
       // 2) API antiga em JSON (até 30/11/2026)
@@ -278,7 +290,43 @@ async function buscar(agora) {
     } catch (e) { f.motivo = motivoErro(e); return []; }
     finally { f.ms = Date.now() - t0; }
   }));
-  return { onibus: filtrar(partes.flat(), agora), falhou: fontes.every(f => !f.ok), parcial: fontes.some(f => !f.ok), fontes };
+  const onibus = filtrar(partes.flat(), agora);
+  // a cidade toda (linhas que vão ao Fundão): os de fora da região, mais os de dentro já filtrados
+  for (const o of onibus) if (!o.f) cidade.push([o.v, o.l, o.la, o.lo, o.vel, o.dir, o.t]);
+  return { onibus, cidade, falhou: fontes.every(f => !f.ok), parcial: fontes.some(f => !f.ok), fontes };
+}
+// ---------- /perto: os ônibus de algumas linhas perto de um ponto da cidade ----------
+// Para o mapa "até o ponto" do app (De casa até a UFRJ): GET /perto?la=-22.84&lo=-43.27&l=485,616&r=5000.
+// Usa a mesma leitura da prefeitura do Rio (guardada junto, em gps-cidade); só as linhas de LINHAS, até 12 linhas
+// e 8 km. O app manda o ponto de ônibus, não a posição da pessoa.
+const CIDADE = 'https://cache.local/gps-cidade';
+export function pertoDe(cidade, la, lo, linhas, raio) {
+  const kx = 111320 * Math.cos(la * Math.PI / 180), o = [];
+  for (const c of cidade) {
+    if (!linhas.has(c[1])) continue;
+    const d = Math.hypot((c[3] - lo) * kx, (c[2] - la) * 110574);
+    if (d <= raio) o.push({ v: c[0], l: c[1], la: c[2], lo: c[3], vel: c[4], dir: c[5], t: c[6], d: Math.round(d) });
+  }
+  return o.sort((a, b) => a.d - b.d).slice(0, 80);
+}
+async function perto(req, env, ctx, cors) {
+  const u = new URL(req.url), la = +u.searchParams.get('la'), lo = +u.searchParams.get('lo');
+  const raio = Math.min(8000, Math.max(300, +u.searchParams.get('r') || 5000));
+  const linhas = new Set(String(u.searchParams.get('l') || '').toUpperCase().split(',').filter(l => LINHAS.has(l)).slice(0, 12));
+  if (!(la > -23.2 && la < -22.6 && lo > -43.9 && lo < -43.0) || !linhas.size) return new Response(JSON.stringify({ erro: 'ponto ou linhas inválidos' }), { status: 400, headers: cors });
+  const cache = caches.default, chave = new Request(CIDADE), agora = Date.now();
+  let d = null, prox = CACHE_S * 1000;
+  const g = await cache.match(chave);
+  if (g) { d = await g.json(); const fim = +g.headers.get('x-fim') || 0; prox = fim ? Math.max(0, fim - agora) : prox; }
+  else {
+    try {
+      const r = await buscar(agora);
+      if (!r.falhou) { const ms = validade(r.fontes, agora); d = { t: agora, c: r.cidade }; prox = ms;
+        ctx.waitUntil(cache.put(chave, new Response(JSON.stringify(d), { headers: { 'content-type': 'application/json', 'cache-control': `public, max-age=${Math.max(1, Math.round(ms / 1000))}`, 'x-fim': String(agora + ms) } }))); }
+    } catch (e) { /* sem posições agora */ }
+  }
+  if (!d) return new Response(JSON.stringify({ t: agora, onibus: [], falhou: true }), { headers: { ...cors, 'x-prox': '5000', 'cache-control': 'no-store' } });
+  return new Response(JSON.stringify({ t: d.t, fonte: 'SMTR / Prefeitura do Rio (dados.mobilidade.rio)', onibus: pertoDe(d.c || [], la, lo, linhas, raio) }), { headers: { ...cors, 'x-prox': String(prox) } });
 }
 // Quanto tempo guardar esta resposta: a prefeitura do Rio também guarda a dela por ~10 s; pela hora em que ela gerou
 // o feed (cabeçalho do GTFS Realtime), a próxima versão sai perto de ts + 10 s. Guardar só até lá faz o Worker pedir
@@ -710,6 +758,7 @@ export default {
     if (caminho.startsWith('/push/')) return rotaPush(caminho, req, env, cors);
     if (new URL(req.url).pathname.replace(/\/$/, '') === '/tiroteios') return tiroteios(env, ctx, cors);
     if (new URL(req.url).pathname.replace(/\/$/, '') === '/saude') return saude(env, cors, req);
+    if (caminho === '/perto') return perto(req, env, ctx, cors);
     const chave = new Request('https://cache.local/gps-fundao');
     const cache = caches.default;
     const guardado = await cache.match(chave);
@@ -720,8 +769,8 @@ export default {
     }
     const reserva = new Request('https://cache.local/gps-fundao-reserva');
     const agora = Date.now();
-    let onibus = [], falhou = true, parcial = false, fontes = [];
-    try { ({ onibus, falhou, parcial, fontes } = await buscar(agora)); } catch (e) { falhou = true; fontes = [{ f: 'worker', ok: false, motivo: 'erro no Worker: ' + String(e.message || e).slice(0, 80) }]; }
+    let onibus = [], falhou = true, parcial = false, fontes = [], cidade = [];
+    try { ({ onibus, falhou, parcial, fontes, cidade } = await buscar(agora)); } catch (e) { falhou = true; fontes = [{ f: 'worker', ok: false, motivo: 'erro no Worker: ' + String(e.message || e).slice(0, 80) }]; }
     if (falhou) {
       const velho = await cache.match(reserva);
       ctx.waitUntil(registrar({ t: agora, r: velho ? 'reserva' : 'falhou', fontes }).catch(() => {}));
@@ -741,6 +790,7 @@ export default {
     const ms = validade(fontes, agora), fim = agora + ms;
     const resp = new Response(corpo, { headers: { ...cors, 'x-prox': String(ms) } });
     ctx.waitUntil(cache.put(chave, new Response(corpo, { headers: { 'content-type': 'application/json', 'cache-control': `public, max-age=${Math.max(1, Math.round(ms / 1000))}`, 'x-fim': String(fim) } })));
+    ctx.waitUntil(cache.put(new Request(CIDADE), new Response(JSON.stringify({ t: agora, c: cidade || [] }), { headers: { 'content-type': 'application/json', 'cache-control': `public, max-age=${Math.max(1, Math.round(ms / 1000))}`, 'x-fim': String(fim) } })));
     if (!falhou) ctx.waitUntil(cache.put(reserva, new Response(corpo, { headers: { 'content-type': 'application/json', 'cache-control': `public, max-age=${RESERVA_S}` } })));
     return resp;
   },

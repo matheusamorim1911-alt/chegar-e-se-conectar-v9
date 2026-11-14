@@ -812,6 +812,21 @@ A personalização deste aparelho agora é só dele. ¦ This device's personaliz
 Seus avisos de ônibus vieram da conta. Para receber neste aparelho, permita as notificações em Ajustes › Avisos de ônibus. ¦ Your bus alerts came from your account. To get them on this device, allow notifications in Settings › Bus alerts. ¦ Tus avisos de autobús vinieron de la cuenta. Para recibirlos en este dispositivo, permite las notificaciones en Ajustes › Avisos de autobús.
 Notificações de tiroteio ligadas, como nos seus outros aparelhos. ¦ Shooting notifications on, as on your other devices. ¦ Notificaciones de tiroteos activadas, como en tus otros dispositivos.
 Os avisos de tiroteio estão ligados na sua conta. Para receber neste aparelho, ligue em Ajustes › Segurança no caminho. ¦ Shooting alerts are on in your account. To get them on this device, turn them on in Settings › Safety on the way. ¦ Los avisos de tiroteos están activados en tu cuenta. Para recibirlos en este dispositivo, actívalos en Ajustes › Seguridad en el camino.
+Ver os ônibus ao vivo no mapa ¦ See live buses on the map ¦ Ver los autobuses en vivo en el mapa
+Ônibus ao vivo até o ponto ¦ Live buses to your stop ¦ Autobuses en vivo hasta la parada
+Fechar o mapa ¦ Close the map ¦ Cerrar el mapa
+Ponto de embarque ¦ Boarding stop ¦ Parada de embarque
+Mapa com você, o ponto de ônibus e os ônibus ao vivo ¦ Map with you, the bus stop and live buses ¦ Mapa contigo, la parada y los autobuses en vivo
+Mapa: © colaboradores do OpenStreetMap. Posições: prefeitura do Rio (GPS dos ônibus). ¦ Map: © OpenStreetMap contributors. Positions: prefeitura do Rio (bus GPS). ¦ Mapa: © colaboradores de OpenStreetMap. Posiciones: prefeitura do Rio (GPS de los autobuses).
+Carregando o mapa… ¦ Loading the map… ¦ Cargando el mapa…
+Não deu para carregar o mapa. Confira a conexão. ¦ Could not load the map. Check your connection. ¦ No se pudo cargar el mapa. Revisa la conexión.
+Ônibus ao vivo indisponíveis aqui. ¦ Live buses unavailable here. ¦ Autobuses en vivo no disponibles aquí.
+A prefeitura do Rio não respondeu agora. Tentando de novo. ¦ The prefeitura do Rio did not respond. Trying again. ¦ La prefeitura do Rio no respondió. Intentando de nuevo.
+O Worker ainda não tem o mapa ao vivo: ele precisa ser publicado de novo na Cloudflare. ¦ The Worker does not have the live map yet: it needs to be republished on Cloudflare. ¦ El Worker aún no tiene el mapa en vivo: hay que publicarlo de nuevo en Cloudflare.
+Sem conexão com os ônibus ao vivo. Tentando de novo. ¦ No connection to live buses. Trying again. ¦ Sin conexión con los autobuses en vivo. Intentando de nuevo.
+Procurando os ônibus… ¦ Looking for buses… ¦ Buscando los autobuses…
+Nenhum ônibus destas linhas visto perto agora. ¦ No bus from these lines seen nearby right now. ¦ Ningún autobús de estas líneas visto cerca ahora.
+Perto do ponto ¦ Near the stop ¦ Cerca de la parada
 `;
 var IDI_PEDACOS=null,IDI_CACHE=new Map();
 /* pedaços com 7 letras ou mais (ou com pontuação que os marca), os mais compridos primeiro */
@@ -837,6 +852,11 @@ IDI_PAD.push([/^Parada (.+), linhas (.+)$/,'Stop $1, lines $2','Parada $1, líne
 IDI_PAD.push([/^Guarita (\d+), segurança$/,'Guard post $1, security','Garita $1, seguridad']);
 IDI_PAD.push([/^Teste enviado para (\d+) aparelhos\. A notificação chega em alguns segundos\.$/,'Test sent to $1 devices. The notification arrives in a few seconds.','Prueba enviada a $1 dispositivos. La notificación llega en unos segundos.']);
 IDI_PAD.push([/^Aviso de teste enviado para (\d+) aparelhos\. Ele chega em alguns segundos\.$/,'Test alert sent to $1 devices. It arrives in a few seconds.','Aviso de prueba enviado a $1 dispositivos. Llega en unos segundos.']);
+IDI_PAD.push([/^Seu ponto: (.+) · ~(\d+) min a pé$/,'Your stop: $1 · ~$2 min walk','Tu parada: $1 · ~$2 min a pie']);
+IDI_PAD.push([/^Seu ponto: (.+)$/,'Your stop: $1','Tu parada: $1']);
+IDI_PAD.push([/^Chega em ~(\d+) min$/,'Arrives in ~$1 min','Llega en ~$1 min']);
+IDI_PAD.push([/^A ([\d,]+ (?:m|km)) do ponto · carro (.+)$/,'$1 from the stop · bus $2','A $1 de la parada · coche $2']);
+IDI_PAD.push([/^Nenhum ônibus destas linhas visto perto agora\. Pela espera típica, ~(\d+) min\.$/,'No bus from these lines seen nearby right now. Typical wait: ~$1 min.','Ningún autobús de estas líneas visto cerca ahora. Espera típica: ~$1 min.']);
 IDI_PAD.push([/^chega por volta de (\d\d:\d\d), até (\d\d:\d\d)$/,'arrives around $1, by $2 at the latest','llega hacia las $1, a más tardar $2']);
 IDI_PAD.push([/^chega (\d\d:\d\d)$/,'arrives $1','llega $1']);
 IDI_PAD.push([/^Esteja em (.+) às (\d\d:\d\d)$/,'Be at $1 by $2','Está en $1 a las $2']);
