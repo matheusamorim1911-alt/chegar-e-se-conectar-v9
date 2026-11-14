@@ -34,6 +34,7 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `29-vindo-de-fora.css`: De casa até a UFRJ (ida, volta e viagens programadas)
 - `30-ajustes-por-aparelho.css`: opção de personalização por aparelho em Ajustes › Conta
 - `31-avisos-em-todos-aparelhos.css`: (vazio) avisos em todos os aparelhos da conta
+- `32-conta-ao-vivo.css`: (vazio) conta ao vivo entre aparelhos
 
 ## Código (js/)
 - `01-nucleo.js`: pontos de extensão (etapas), modo do site, ajustes salvos e utilidades básicas
@@ -83,4 +84,5 @@ O build junta as partes nesta ordem (a ordem importa: cada parte registra suas e
 - `45-vindo-de-fora.js`: De casa até a UFRJ: ida e volta com ônibus e BRT da prefeitura do Rio e linhas internas, hora de sair e viagens programadas com aviso (`vindo-de-fora.json`)
 - `46-ajustes-por-aparelho.js`: personalização só deste aparelho ou igual em todos (Ajustes › Conta); dados (favoritos, provas, avisos de ônibus, idioma) vão sempre com a conta
 - `47-avisos-em-todos-aparelhos.js`: código de grupo da conta (`CFG.pushGrupo`) para os avisos de ônibus, de tiroteio e os testes chegarem em todos os aparelhos; "Notificar tiroteios novos" vai com a conta (`CFG.tiroPush`)
+- `48-conta-ao-vivo.js`: ouve a conta (usuarios/{uid}) e traz na hora o que mudou em outro aparelho (avisos de ônibus, favoritos, provas, ajustes)
 - `99-inicio.js`: abre a aba pedida no endereço (#predios, #grade…) depois que tudo carregou; fica sempre por último

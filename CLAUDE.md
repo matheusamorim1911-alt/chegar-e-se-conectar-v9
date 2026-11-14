@@ -62,6 +62,7 @@ App web (sem framework) da Cidade Universitária da UFRJ, publicado pelo GitHub 
 
 ## Conta e aparelhos
 - O que vai sempre com a conta: `CFG_CONTA` em `09-lugares-conta-fonte.js` (provas, favoritos, avisos de ônibus, idioma, código de grupo dos avisos e tiroteios ligados), mais grade, trajeto e contato. O resto do `CFG` é personalização: Ajustes › Conta › "Mesma personalização em todos os aparelhos" (`src/js/46-ajustes-por-aparelho.js`, `cse-pers-conta` no aparelho, ligado por padrão). Desligado, o aparelho não recebe a personalização da conta e, ao gravar, manda a da conta como estava (`ACC.cfgConta`); ligar de novo traz a da conta. Viagens programadas e casa de "De casa até a UFRJ" nunca vão para a conta. Teste: `tests/teste-ajustes-conta.js`.
+- Conta ao vivo (`src/js/48-conta-ao-vivo.js`): com conta Google/e-mail, o aparelho ouve `usuarios/{uid}` (onSnapshot) e aplica na hora o que outro aparelho mudou (`applyRemote`). Ignora a própria gravação (`ts === ACC.tsEnviado`, sem comparar relógios) e o que já aplicou; se chegar enquanto este aparelho grava (`ACC.state 'salvando'`), aplica depois. Teste: parte "ao vivo" de `tests/teste-ajustes-conta.js`.
 
 ## Perfil de uso
 - `src/js/34-perfil-de-uso.js`: depois do login, a folha "Como você usa o Fundão?" (`cse-uso`). Quem mora na Vila Residencial tem a Volta à noite para o ponto mais perto da Vila (`nightDest`, `vilaPonto`); a aba Grade aparece conforme a resposta (`CFG.tabsOff`). A etapa `login fechado` avisa quando o login termina.
