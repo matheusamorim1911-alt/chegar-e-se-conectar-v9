@@ -1,0 +1,36 @@
+/* De casa até a UFRJ: ida e volta com ônibus da cidade e linhas internas, viagens programadas */
+#vfBox .fold-b{display:grid;gap:10px}
+.vf-abas{margin-bottom:2px}
+.vf-de{display:grid;gap:8px}
+.vf-orig{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0;padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2)}
+.vf-orig span{font-weight:600}
+.vf-de input,#vfPara,#vfDe{width:100%;min-height:44px}
+.vf-lista{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.vf-lista:empty{display:none}
+.vf-lista button{width:100%;display:grid;gap:2px;padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:inherit;font:inherit;text-align:left;cursor:pointer}
+.vf-lista button:focus-visible{outline:2px solid var(--press);outline-offset:2px}
+.vf-quando{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.vf-quando input{min-height:40px;font-size:16px}
+.vf-ops{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.vf-op{padding:12px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2)}
+.vf-1{border-color:var(--press)}
+.vf-sai{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 10px;margin:0 0 8px}
+.vf-sai b{font-size:22px}
+.vf-pernas{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.vf-pernas li{display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:1.35}
+.vf-pernas .lb{flex:none;min-width:38px}
+.vf-ic{flex:none;width:38px;text-align:center}
+.vf-dia{margin:0;font-weight:600}
+.vf-prog{display:grid;gap:8px}
+.vf-progs h3{margin:6px 0 4px}
+.vf-plista{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.vf-plista li{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 6px 8px 12px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2)}
+.vf-plista .grow{flex:1 1 100%;min-width:0}
+.vf-plista li [data-vfav]{margin-left:auto}
+.vf-plista b{display:block;font-size:14px}
+.vf-plista .muted{display:block}
+.vf-plista [aria-pressed="true"]{font-weight:700}
+.vf-op,.vf-orig,.vf-plista li,.vf-lista button{background:linear-gradient(180deg,var(--lg-top),var(--lg-bot));border-color:var(--lg-rim2);box-shadow:inset 0 1px 0 var(--lg-rim),0 8px 20px -10px var(--lg-drop)}
+.vf-1{border-color:var(--press)}
+.solido .vf-op,.solido .vf-orig,.solido .vf-plista li,.solido .vf-lista button{background:var(--surface-2);border-color:var(--line);box-shadow:none}
+.solido .vf-1{border-color:var(--press)}

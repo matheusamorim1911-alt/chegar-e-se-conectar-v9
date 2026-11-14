@@ -6,6 +6,7 @@ const { chromium } = require('playwright');const servir=require('./servidor');co
  const am=JSON.parse(fs.readFileSync(path.join(__dirname,'amostra-onibus.json'),'utf8'));
  const estados=[
    ['bloco "Ônibus da cidade" aberto em Trajetos (a carga parava aqui)',{'cse-fold-ext':'1'},''],
+   ['"De casa até a UFRJ" aberto em Trajetos',{'cse-fold-vf':'1'},''],
    ['Prédios por dentro aberto, na aba Lugares',{'cse-folds':'{"f":true,"b":true}'},'#predios'],
    ['Prédios por dentro aberto, na aba Trajetos',{'cse-folds':'{"f":false,"b":true}'},''],
    ['ônibus da cidade ligado e um ônibus seguido',{'cse-lay-ext':'1','cse-seguir':JSON.stringify({v:'B28568',l:'329',t:Date.now()})},''],
